@@ -156,7 +156,7 @@ The application consists of several modular components:
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using GPT models
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
-- **AudioFeedbackService** (`src/audio_feedback.py`): Provides simple, clean audio feedback using Windows built-in sounds
+- **Audio Feedback** (`src/audio_feedback.py`): Provides simple, clean audio feedback using Windows built-in sounds via utility functions
 - **PushNTalkApp** (`src/push_n_talk.py`): Main application orchestrator
 
 ### Data Flow

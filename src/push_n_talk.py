@@ -13,7 +13,7 @@ from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
-from src.audio_feedback import AudioFeedbackService
+from src import audio_feedback
 
 # Configure logging
 logging.basicConfig(
@@ -109,7 +109,7 @@ class PushNTalkApp:
             hotkey=self.config.hotkey
         )
         
-        self.audio_feedback = AudioFeedbackService() if self.config.enable_audio_feedback else None
+        # Audio feedback will be used directly via function calls when enabled
         
         # State management
         self.is_running = False
@@ -154,9 +154,7 @@ class PushNTalkApp:
         self.is_running = False
         self.hotkey_service.stop_service()
         
-        # Clean up audio feedback service
-        if self.audio_feedback:
-            self.audio_feedback.cleanup()
+        # No cleanup needed for audio feedback utility functions
         
         logger.info("PushNTalk application stopped")
     
@@ -183,8 +181,8 @@ class PushNTalkApp:
         """Callback for when recording starts."""
         with self.processing_lock:
             # Play audio feedback if enabled
-            if self.audio_feedback:
-                self.audio_feedback.play_start_feedback()
+            if self.config.enable_audio_feedback:
+                audio_feedback.play_start_feedback()
             
             if not self.audio_recorder.start_recording():
                 logger.error("Failed to start audio recording")
@@ -192,8 +190,8 @@ class PushNTalkApp:
     def _on_stop_recording(self):
         """Callback for when recording stops."""
         # Play audio feedback immediately when hotkey is released
-        if self.audio_feedback:
-            self.audio_feedback.play_stop_feedback()
+        if self.config.enable_audio_feedback:
+            audio_feedback.play_stop_feedback()
         
         def process_recording():
             with self.processing_lock:
@@ -288,13 +286,7 @@ class PushNTalkApp:
         """
         self.config.enable_audio_feedback = not self.config.enable_audio_feedback
         
-        if self.config.enable_audio_feedback and not self.audio_feedback:
-            # Initialize audio feedback service if it wasn't created
-            self.audio_feedback = AudioFeedbackService()
-        elif not self.config.enable_audio_feedback and self.audio_feedback:
-            # Clean up audio feedback service if disabled
-            self.audio_feedback.cleanup()
-            self.audio_feedback = None
+        # Audio feedback is now handled via utility functions - no service to manage
         
         logger.info(f"Audio feedback {'enabled' if self.config.enable_audio_feedback else 'disabled'}")
         return self.config.enable_audio_feedback
