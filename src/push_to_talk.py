@@ -32,7 +32,7 @@ class PushToTalkConfig:
     """Configuration class for PushToTalk application."""
     # OpenAI settings
     openai_api_key: str = ""
-    whisper_model: str = "gpt-4o-transcribe"
+    whisper_model: str = "gpt-4o-mini-transcribe"
     gpt_model: str = "gpt-4.1-nano"
     
     # Audio settings
@@ -45,7 +45,7 @@ class PushToTalkConfig:
     toggle_hotkey: str = "ctrl+shift+t"  # New toggle hotkey
     
     # Text insertion settings
-    insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
+    insertion_method: str = "sendkeys"  # "clipboard" or "sendkeys"
     insertion_delay: float = 0.005
     
     # Feature flags

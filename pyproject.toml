@@ -1,7 +1,7 @@
 [project]
 name = "push-n-talk"
 version = "0.1.0"
-description = "Add your description here"
+description = "A push-to-talk speech-to-text application using OpenAI API for real-time transcription and support active window text insertion."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,4 +10,9 @@ dependencies = [
     "pyaudio>=0.2.14",
     "python-dotenv>=1.1.1",
     "pywin32>=311",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.14.2",
 ]

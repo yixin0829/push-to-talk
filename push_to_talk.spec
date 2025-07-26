@@ -1,0 +1,62 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
+a = Analysis(
+    ['main.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('src', 'src'),
+        ('.env.example', '.'),
+    ],
+    hiddenimports=[
+        'src.push_to_talk',
+        'src.audio_recorder',
+        'src.transcription',
+        'src.text_refiner',
+        'src.text_inserter',
+        'src.hotkey_service',
+        'src.audio_feedback',
+        'pyaudio',
+        'keyboard',
+        'openai',
+        'pywin32',
+        'win32gui',
+        'win32con',
+        'win32clipboard',
+        'pywintypes',
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='PushToTalk',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,
+    disable_windowed_traceback=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=None,  # Add icon='icon.ico' if you have an icon file
+) 
