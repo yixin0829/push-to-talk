@@ -10,5 +10,5 @@ wheels/
 .venv
 .env
 
-push_n_talk.log
-push_n_talk_config.json
+push_to_talk.log
+push_to_talk_config.json

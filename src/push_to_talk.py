@@ -13,7 +13,7 @@ from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
-from src import audio_feedback
+from src.audio_feedback import play_start_feedback, play_stop_feedback
 
 # Configure logging
 logging.basicConfig(
@@ -21,15 +21,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('push_n_talk.log')
+        logging.FileHandler('push_to_talk.log')
     ]
 )
 
 logger = logging.getLogger(__name__)
 
 @dataclass
-class PushNTalkConfig:
-    """Configuration class for PushNTalk application."""
+class PushToTalkConfig:
+    """Configuration class for PushToTalk application."""
     # OpenAI settings
     openai_api_key: str = ""
     whisper_model: str = "gpt-4o-transcribe"
@@ -58,7 +58,7 @@ class PushNTalkConfig:
             json.dump(asdict(self), f, indent=2)
     
     @classmethod
-    def load_from_file(cls, filepath: str) -> 'PushNTalkConfig':
+    def load_from_file(cls, filepath: str) -> 'PushToTalkConfig':
         """Load configuration from JSON file."""
         try:
             with open(filepath, 'r') as f:
@@ -68,15 +68,15 @@ class PushNTalkConfig:
             logger.warning(f"Failed to load config from {filepath}: {e}")
             return cls()
 
-class PushNTalkApp:
-    def __init__(self, config: Optional[PushNTalkConfig] = None):
+class PushToTalkApp:
+    def __init__(self, config: Optional[PushToTalkConfig] = None):
         """
-        Initialize the PushNTalk application.
+        Initialize the PushToTalk application.
         
         Args:
             config: Configuration object. If None, default config is used.
         """
-        self.config = config or PushNTalkConfig()
+        self.config = config or PushToTalkConfig()
         
         # Validate OpenAI API key
         if not self.config.openai_api_key:
@@ -121,15 +121,15 @@ class PushNTalkApp:
             on_stop_recording=self._on_stop_recording
         )
         
-        logger.info("PushNTalk application initialized")
+        logger.info("PushToTalk application initialized")
     
     def start(self):
-        """Start the PushNTalk application."""
+        """Start the PushToTalk application."""
         if self.is_running:
             logger.warning("Application is already running")
             return
         
-        logger.info("Starting PushNTalk application...")
+        logger.info("Starting PushToTalk application...")
         
         # Start hotkey service
         if not self.hotkey_service.start_service():
@@ -137,26 +137,26 @@ class PushNTalkApp:
             return
         
         self.is_running = True
-        logger.info(f"PushNTalk is running. Press and hold '{self.config.hotkey}' to record.")
+        logger.info(f"PushToTalk is running. Press and hold '{self.config.hotkey}' to record.")
         
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
         
     def stop(self):
-        """Stop the PushNTalk application."""
+        """Stop the PushToTalk application."""
         if not self.is_running:
             logger.warning("Application is not running")
             return
         
-        logger.info("Stopping PushNTalk application...")
+        logger.info("Stopping PushToTalk application...")
         
         self.is_running = False
         self.hotkey_service.stop_service()
         
         # No cleanup needed for audio feedback utility functions
         
-        logger.info("PushNTalk application stopped")
+        logger.info("PushToTalk application stopped")
     
     def run(self):
         """Run the application until stopped."""
@@ -182,7 +182,7 @@ class PushNTalkApp:
         with self.processing_lock:
             # Play audio feedback if enabled
             if self.config.enable_audio_feedback:
-                audio_feedback.play_start_feedback()
+                play_start_feedback()
             
             if not self.audio_recorder.start_recording():
                 logger.error("Failed to start audio recording")
@@ -191,7 +191,7 @@ class PushNTalkApp:
         """Callback for when recording stops."""
         # Play audio feedback immediately when hotkey is released
         if self.config.enable_audio_feedback:
-            audio_feedback.play_stop_feedback()
+            play_stop_feedback()
         
         def process_recording():
             with self.processing_lock:
@@ -314,18 +314,18 @@ class PushNTalkApp:
 def main():
     """Main entry point for the application."""
     # Load config if it exists
-    config_file = "push_n_talk_config.json"
+    config_file = "push_to_talk_config.json"
     if os.path.exists(config_file):
-        config = PushNTalkConfig.load_from_file(config_file)
+        config = PushToTalkConfig.load_from_file(config_file)
         logger.info(f"Loaded configuration from {config_file}")
     else:
-        config = PushNTalkConfig()
+        config = PushToTalkConfig()
         config.save_to_file(config_file)
         logger.info(f"Created default configuration file: {config_file}")
     
     # Create and run application
     try:
-        app = PushNTalkApp(config)
+        app = PushToTalkApp(config)
         app.run()
     except Exception as e:
         logger.error(f"Application error: {e}")

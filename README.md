@@ -1,6 +1,6 @@
-# PushNTalk - Speech-to-Text Push-to-Talk Application
+# PushToTalk - AI Refined Speech-to-Text Dictation
 
-A Python application that provides push-to-talk speech-to-text functionality with OpenAI Whisper transcription, GPT text refinement, and automatic text insertion into the active window on Windows.
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows.
 
 ## Features
 
@@ -43,7 +43,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
    # Option 1: .env file (preferred)
    echo "OPENAI_API_KEY=your_api_key_here" > .env
    
-   # Option 2: Edit push_n_talk_config.json after first run
+   # Option 2: Edit push_to_talk_config.json after first run
    ```
 
 ## Usage
@@ -66,7 +66,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 ### Configuration
 
-The application creates a `push_n_talk_config.json` file on first run. You can customize:
+The application creates a `push_to_talk_config.json` file on first run. You can customize:
 
 ```json
 {
@@ -99,7 +99,7 @@ The application creates a `push_n_talk_config.json` file on first run. You can c
 | `insertion_method` | string | `"clipboard"` | Method for inserting text. Options: `clipboard` (faster), `sendkeys` (better for special chars). |
 | `insertion_delay` | float | `0.1` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
-| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_n_talk.log` file and console. |
+| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file and console. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 
 #### Audio Quality Settings
@@ -157,7 +157,7 @@ The application consists of several modular components:
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
 - **Audio Feedback** (`src/audio_feedback.py`): Provides simple, clean audio feedback using Windows built-in sounds via utility functions
-- **PushNTalkApp** (`src/push_n_talk.py`): Main application orchestrator
+- **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator
 
 ### Data Flow
 
@@ -204,7 +204,7 @@ The application consists of several modular components:
 
 ### Logging
 
-Logs are written to `push_n_talk.log` and console. Log levels:
+Logs are written to `push_to_talk.log` and console. Log levels:
 - INFO: Normal operation events
 - WARNING: Non-critical issues
 - ERROR: Critical errors
@@ -216,9 +216,9 @@ Logs are written to `push_n_talk.log` and console. Log levels:
 You can customize the text refinement behavior:
 
 ```python
-from src import PushNTalkApp, PushNTalkConfig
+from src import PushToTalkApp, PushToTalkConfig
 
-app = PushNTalkApp()
+app = PushToTalkApp()
 app.text_refiner.set_custom_prompt(
     "Your custom refinement instructions here..."
 )
@@ -227,15 +227,15 @@ app.text_refiner.set_custom_prompt(
 ### Programmatic Control
 
 ```python
-from src import PushNTalkApp, PushNTalkConfig
+from src import PushToTalkApp, PushToTalkConfig
 
 # Create custom config
-config = PushNTalkConfig()
+config = PushToTalkConfig()
 config.hotkey = "f12"
 config.enable_text_refinement = False
 
 # Run application
-app = PushNTalkApp(config)
+app = PushToTalkApp(config)
 
 # Toggle audio feedback
 app.toggle_audio_feedback()  # Disable audio feedback

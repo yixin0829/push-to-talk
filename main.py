@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PushNTalk Application Entry Point
+PushToTalk Application Entry Point
 
 Run this script to start the push-to-talk speech-to-text application.
 
@@ -23,7 +23,7 @@ from src import main
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("PushNTalk - Speech-to-Text Push-to-Talk Application")
+    print("PushToTalk - Speech-to-Text Push-to-Talk Application")
     print("=" * 60)
     print()
     print("Instructions:")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-PushNTalk - Example Usage
+PushToTalk - Example Usage
 
-This script demonstrates different ways to use the PushNTalk application.
+This script demonstrates different ways to use the PushToTalk application.
 """
 
 import os
@@ -15,14 +15,14 @@ load_dotenv()
 # Add src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src import PushNTalkApp, PushNTalkConfig
+from src import PushToTalkApp, PushToTalkConfig
 
 def example_basic_usage():
     """Example: Basic usage with default settings."""
     print("=== Basic Usage Example ===")
     
     # Create app with default settings
-    app = PushNTalkApp()
+    app = PushToTalkApp()
     
     print("Press Ctrl+Shift+Space to test recording...")
     print("Press Ctrl+C to stop")
@@ -37,13 +37,13 @@ def example_custom_config():
     print("=== Custom Configuration Example ===")
     
     # Create custom configuration
-    config = PushNTalkConfig()
+    config = PushToTalkConfig()
     config.hotkey = "ctrl+shift+space"
     config.enable_text_refinement = False  # Skip GPT refinement for speed
     config.insertion_method = "sendkeys"  # Use keystroke simulation
     
     # Create app with custom config
-    app = PushNTalkApp(config)
+    app = PushToTalkApp(config)
     
     print("Press Ctrl+Shift+Space to test recording (no text refinement)...")
     print("Press Ctrl+C to stop")
@@ -58,7 +58,7 @@ def example_programmatic_control():
     print("=== Programmatic Control Example ===")
     
     # Create app
-    app = PushNTalkApp()
+    app = PushToTalkApp()
     
     # Start the service
     app.start()
@@ -85,7 +85,7 @@ def example_hotkey_change():
     """Example: Changing hotkey during runtime."""
     print("=== Runtime Hotkey Change Example ===")
     
-    app = PushNTalkApp()
+    app = PushToTalkApp()
     app.start()
     
     print("Starting with default hotkey: Ctrl+Shift+Space")
@@ -108,9 +108,9 @@ def example_audio_feedback():
     print("=== Audio Feedback Example ===")
     
     # Create app with audio feedback enabled by default
-    config = PushNTalkConfig()
+    config = PushToTalkConfig()
     config.enable_audio_feedback = True
-    app = PushNTalkApp(config)
+    app = PushToTalkApp(config)
     
     app.start()
     
@@ -153,7 +153,7 @@ def main():
         "5": ("Audio Feedback Demo", example_audio_feedback),
     }
     
-    print("PushNTalk - Example Usage")
+    print("PushToTalk - Example Usage")
     print("=" * 40)
     print("Choose an example to run:")
     print()
