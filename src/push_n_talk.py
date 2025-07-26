@@ -13,6 +13,7 @@ from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
+from src.audio_feedback import AudioFeedbackService
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 class PushNTalkConfig:
     """Configuration class for PushNTalk application."""
     # OpenAI settings
-    openai_api_key: str = "<Config using environment variable>"
+    openai_api_key: str = ""
     whisper_model: str = "gpt-4o-transcribe"
     gpt_model: str = "gpt-4.1-nano"
     
@@ -44,11 +45,12 @@ class PushNTalkConfig:
     
     # Text insertion settings
     insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
-    insertion_delay: float = 0.01
+    insertion_delay: float = 0.005
     
     # Feature flags
     enable_text_refinement: bool = True
     enable_logging: bool = True
+    enable_audio_feedback: bool = True
     
     def save_to_file(self, filepath: str):
         """Save configuration to JSON file."""
@@ -107,6 +109,8 @@ class PushNTalkApp:
             hotkey=self.config.hotkey
         )
         
+        self.audio_feedback = AudioFeedbackService() if self.config.enable_audio_feedback else None
+        
         # State management
         self.is_running = False
         self.processing_lock = threading.Lock()
@@ -150,6 +154,10 @@ class PushNTalkApp:
         self.is_running = False
         self.hotkey_service.stop_service()
         
+        # Clean up audio feedback service
+        if self.audio_feedback:
+            self.audio_feedback.cleanup()
+        
         logger.info("PushNTalk application stopped")
     
     def run(self):
@@ -174,11 +182,19 @@ class PushNTalkApp:
     def _on_start_recording(self):
         """Callback for when recording starts."""
         with self.processing_lock:
+            # Play audio feedback if enabled
+            if self.audio_feedback:
+                self.audio_feedback.play_start_feedback()
+            
             if not self.audio_recorder.start_recording():
                 logger.error("Failed to start audio recording")
     
     def _on_stop_recording(self):
         """Callback for when recording stops."""
+        # Play audio feedback immediately when hotkey is released
+        if self.audio_feedback:
+            self.audio_feedback.play_stop_feedback()
+        
         def process_recording():
             with self.processing_lock:
                 self._process_recorded_audio()
@@ -263,6 +279,26 @@ class PushNTalkApp:
         logger.info(f"Text refinement {'enabled' if self.config.enable_text_refinement else 'disabled'}")
         return self.config.enable_text_refinement
     
+    def toggle_audio_feedback(self) -> bool:
+        """
+        Toggle audio feedback on/off.
+        
+        Returns:
+            New state of audio feedback (True if enabled)
+        """
+        self.config.enable_audio_feedback = not self.config.enable_audio_feedback
+        
+        if self.config.enable_audio_feedback and not self.audio_feedback:
+            # Initialize audio feedback service if it wasn't created
+            self.audio_feedback = AudioFeedbackService()
+        elif not self.config.enable_audio_feedback and self.audio_feedback:
+            # Clean up audio feedback service if disabled
+            self.audio_feedback.cleanup()
+            self.audio_feedback = None
+        
+        logger.info(f"Audio feedback {'enabled' if self.config.enable_audio_feedback else 'disabled'}")
+        return self.config.enable_audio_feedback
+    
     def get_status(self) -> Dict[str, Any]:
         """
         Get current application status.
@@ -274,6 +310,7 @@ class PushNTalkApp:
             "is_running": self.is_running,
             "hotkey": self.config.hotkey,
             "text_refinement_enabled": self.config.enable_text_refinement,
+            "audio_feedback_enabled": self.config.enable_audio_feedback,
             "insertion_method": self.config.insertion_method,
             "hotkey_service_running": self.hotkey_service.is_service_running(),
             "models": {

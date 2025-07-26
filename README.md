@@ -8,6 +8,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **Speech-to-Text**: Uses OpenAI Whisper for accurate transcription
 - **Text Refinement**: Improves transcription quality using gpt-4.1-nano
 - **Auto Text Insertion**: Automatically inserts refined text into the active window
+- **Audio Feedback**: Sophisticated sound cues for recording start/stop with a tech-inspired vibe
 - **Background Operation**: Runs silently in the background
 - **Configurable**: Customizable hotkeys, models, and settings
 - **Logging**: Comprehensive logging for debugging and monitoring
@@ -15,7 +16,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 ## Requirements
 
 - Windows 10/11
-- Python 3.13+
+- Python 3.12+
 - OpenAI API key
 - Microphone access
 - Administrator privileges (for global hotkey detection)
@@ -30,13 +31,17 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 2. **Install dependencies**:
    ```bash
+   # using uv
    uv sync
+
+   # using pip
+   pip install -r requirements.txt
    ```
 
 3. **Set up your OpenAI API key**:
    ```bash
-   # Option 1: Environment variable
-   set OPENAI_API_KEY=your_api_key_here
+   # Option 1: .env file (preferred)
+   echo "OPENAI_API_KEY=your_api_key_here" > .env
    
    # Option 2: Edit push_n_talk_config.json after first run
    ```
@@ -75,7 +80,8 @@ The application creates a `push_n_talk_config.json` file on first run. You can c
   "insertion_method": "clipboard",
   "insertion_delay": 0.01,
   "enable_text_refinement": true,
-  "enable_logging": true
+  "enable_logging": true,
+  "enable_audio_feedback": true
 }
 ```
 
@@ -83,7 +89,7 @@ The application creates a `push_n_talk_config.json` file on first run. You can c
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. |
+| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. If not set, the application will look for the `OPENAI_API_KEY` environment variable. |
 | `whisper_model` | string | `"whisper-1"` | OpenAI Whisper model for speech-to-text. Options: `whisper-1` (recommended for API usage). |
 | `gpt_model` | string | `"gpt-4.1-nano"` | GPT model for text refinement. Options: `gpt-4.1-nano` |
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition with Whisper. |
@@ -94,6 +100,7 @@ The application creates a `push_n_talk_config.json` file on first run. You can c
 | `insertion_delay` | float | `0.1` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_n_talk.log` file and console. |
+| `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 
 #### Audio Quality Settings
 
@@ -110,7 +117,6 @@ The application creates a `push_n_talk_config.json` file on first run. You can c
 - **channels**:
   - `1` - Mono recording (recommended for speech)
   - `2` - Stereo recording (unnecessary for speech-to-text)
-```
 
 ### Hotkey Options
 
@@ -126,6 +132,19 @@ You can use various hotkey combinations:
 - **clipboard** (default): Faster and more reliable, uses Ctrl+V
 - **sendkeys**: Simulates individual keystrokes, better for special characters
 
+### Audio Feedback
+
+The application includes clean and simple audio feedback:
+
+- **Recording Start**: A crisp high-pitched beep (880 Hz) that signals recording has begun
+- **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
+- **Minimalist Design**: Simple, clean tones inspired by Apple's design philosophy of elegant simplicity
+- **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
+- **Configurable**: Can be toggled on/off via configuration or programmatically during runtime
+- **Zero Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
+
+The audio feedback provides immediate, unobtrusive confirmation of your interactions without adding complexity or dependencies.
+
 ## Architecture
 
 The application consists of several modular components:
@@ -137,6 +156,7 @@ The application consists of several modular components:
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using GPT models
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
+- **AudioFeedbackService** (`src/audio_feedback.py`): Provides simple, clean audio feedback using Windows built-in sounds
 - **PushNTalkApp** (`src/push_n_talk.py`): Main application orchestrator
 
 ### Data Flow
@@ -152,7 +172,7 @@ The application consists of several modular components:
 - **keyboard**: Global hotkey detection
 - **pyaudio**: Audio recording
 - **openai**: Speech-to-text and text refinement
-- **pywin32**: Windows-specific text insertion
+- **pywin32**: Windows-specific text insertion and audio feedback (winsound)
 
 ## Troubleshooting
 
@@ -216,6 +236,15 @@ config.enable_text_refinement = False
 
 # Run application
 app = PushNTalkApp(config)
+
+# Toggle audio feedback
+app.toggle_audio_feedback()  # Disable audio feedback
+app.toggle_audio_feedback()  # Re-enable audio feedback
+
+# Check status including audio feedback state
+status = app.get_status()
+print(f"Audio feedback enabled: {status['audio_feedback_enabled']}")
+
 app.run()
 ```
 

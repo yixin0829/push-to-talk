@@ -103,6 +103,46 @@ def example_hotkey_change():
     
     app.stop()
 
+def example_audio_feedback():
+    """Example: Testing audio feedback and toggling features."""
+    print("=== Audio Feedback Example ===")
+    
+    # Create app with audio feedback enabled by default
+    config = PushNTalkConfig()
+    config.enable_audio_feedback = True
+    app = PushNTalkApp(config)
+    
+    app.start()
+    
+    print("Audio feedback is enabled by default.")
+    print("Press Ctrl+Shift+Space to hear the groovy tech sounds!")
+    print("Testing for 15 seconds...")
+    
+    time.sleep(15)
+    
+    # Toggle audio feedback off
+    print("Disabling audio feedback...")
+    app.toggle_audio_feedback()
+    print("Try the hotkey now - no sound should play.")
+    print("Testing for 10 seconds...")
+    
+    time.sleep(10)
+    
+    # Toggle audio feedback back on
+    print("Re-enabling audio feedback...")
+    app.toggle_audio_feedback()
+    print("Audio feedback is back! Try the hotkey again.")
+    print("Testing for 10 seconds...")
+    
+    time.sleep(10)
+    
+    print("Status:")
+    status = app.get_status()
+    for key, value in status.items():
+        print(f"  {key}: {value}")
+    
+    app.stop()
+
 def main():
     """Main function to demonstrate different examples."""
     examples = {
@@ -110,6 +150,7 @@ def main():
         "2": ("Custom Configuration", example_custom_config),
         "3": ("Programmatic Control", example_programmatic_control),
         "4": ("Runtime Hotkey Change", example_hotkey_change),
+        "5": ("Audio Feedback Demo", example_audio_feedback),
     }
     
     print("PushNTalk - Example Usage")
@@ -121,7 +162,7 @@ def main():
         print(f"{key}. {name}")
     
     print()
-    choice = input("Enter your choice (1-4): ").strip()
+    choice = input("Enter your choice (1-5): ").strip()
     
     if choice in examples:
         name, func = examples[choice]
