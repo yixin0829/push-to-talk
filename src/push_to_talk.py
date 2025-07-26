@@ -357,6 +357,12 @@ def main():
         app.run()
     except Exception as e:
         logger.error(f"Application error: {e}")
+        logger.error(f"Tip 1: Make sure you have a .env file with your OPENAI_API_KEY")
+        logger.error(f"Tip 2: or set the OPENAI_API_KEY in push_to_talk_config.json file created by the application.")
+        logger.error(f"Exiting in 10 seconds...")
+        for i in range(10):
+            logger.error(f"Exiting in {10 - i} seconds...")
+            time.sleep(1)
         sys.exit(1)
 
 
