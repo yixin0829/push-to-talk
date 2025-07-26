@@ -31,7 +31,7 @@ class PushToTalkConfig:
 
     # OpenAI settings
     openai_api_key: str = ""
-    whisper_model: str = "gpt-4o-mini-transcribe"
+    whisper_model: str = "gpt-4o-transcribe"
     gpt_model: str = "gpt-4.1-nano"
 
     # Audio settings

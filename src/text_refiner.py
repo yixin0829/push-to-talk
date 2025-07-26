@@ -26,15 +26,14 @@ class TextRefiner:
         self.client = OpenAI(api_key=self.api_key)
 
         # Default system prompt for transcription text refinement
-        self.system_prompt = """You are a text refinement assistant. Your task is to improve transcribed speech-to-text output by:
+        self.system_prompt = """You are a helpful text refinement assistant. Your task is to improve transcribed speech-to-text output by:
 
 1. Correcting any obvious transcription errors
 2. Adding appropriate punctuation and capitalization
-3. Improving grammar and sentence structure
-4. Making the text more readable and professional
-5. Maintaining the original meaning and intent
+3. Improving grammar and sentence structure for clarity and readability
+4. Maintaining the original meaning and intent
 
-Keep the refined text concise and natural. Do not add extra content that wasn't implied in the original text. Return only the refined text without any explanations or additional commentary."""
+Do not add extra content that wasn't implied in the original text. Return only the refined text without any explanations or additional commentary."""
 
     def refine_text(
         self, raw_text: str, custom_prompt: Optional[str] = None

@@ -17,11 +17,18 @@ if exist "dist\PushToTalk.exe" (
     echo Executable created: dist\PushToTalk.exe
     echo ========================================
     echo.
+    REM Compress the executable to a zip file for easy distribution
+    echo Compressing executable to PushToTalk.zip...
+    powershell -Command "Compress-Archive -Path dist\PushToTalk.exe -DestinationPath dist\PushToTalk.zip"
+    echo Executable compressed to PushToTalk.zip
+    echo.
+
     echo To run the application:
     echo 1. Make sure you have a .env file with your OPENAI_API_KEY
     echo 2. Run as Administrator for hotkey detection
     echo 3. Double-click dist\PushToTalk.exe
     echo.
+
 ) else (
     echo.
     echo ========================================

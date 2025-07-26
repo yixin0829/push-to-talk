@@ -204,7 +204,7 @@ wheels = [
 ]
 
 [[package]]
-name = "push-n-talk"
+name = "push-to-talk"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
