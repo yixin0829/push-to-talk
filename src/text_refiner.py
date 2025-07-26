@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from typing import Optional
 from openai import OpenAI
 
@@ -55,6 +56,10 @@ Keep the refined text concise and natural. Do not add extra content that wasn't 
         try:
             system_prompt = custom_prompt or self.system_prompt
             
+            # Start timing the LLM completion
+            start_time = time.time()
+            logger.info("Starting LLM completion for text refinement")
+            
             response = self.client.responses.create(
                 model=self.model,
                 input=[
@@ -64,7 +69,11 @@ Keep the refined text concise and natural. Do not add extra content that wasn't 
                 temperature=0.3  # Lower temperature for more consistent results
             )
             
-            refined_text = response.choices[0].message.content.strip()
+            # Calculate and log completion time
+            completion_time = time.time() - start_time
+            logger.info(f"LLM completion finished in {completion_time:.2f} seconds")
+            
+            refined_text = response.output_text
             
             if not refined_text:
                 logger.warning("GPT returned empty response, using original text")

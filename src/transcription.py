@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from typing import Optional
 from openai import OpenAI
 import tempfile
@@ -24,7 +25,7 @@ class Transcriber:
         
     def transcribe_audio(self, audio_file_path: str, language: Optional[str] = None) -> Optional[str]:
         """
-        Transcribe audio file to text using OpenAI Whisper.
+        Transcribe audio file to text using OpenAI API.
         
         Args:
             audio_file_path: Path to the audio file
@@ -38,6 +39,9 @@ class Transcriber:
             return None
             
         try:
+            start_time = time.time()
+            logger.debug(f"Starting transcription for: {audio_file_path}")
+            
             with open(audio_file_path, "rb") as audio_file:
                 transcript = self.client.audio.transcriptions.create(
                     model=self.model,
@@ -46,9 +50,11 @@ class Transcriber:
                     response_format="text"
                 )
             
+            transcription_time = time.time() - start_time
+            
             # Clean up temporary file
             try:
-                os.unlink(audio_file_path)
+                os.remove(audio_file_path)
                 logger.debug(f"Cleaned up temporary audio file: {audio_file_path}")
             except Exception as e:
                 logger.warning(f"Failed to clean up audio file {audio_file_path}: {e}")
@@ -58,7 +64,7 @@ class Transcriber:
             else:
                 text = transcript.text.strip() if hasattr(transcript, 'text') else str(transcript).strip()
             
-            logger.info(f"Transcription successful: {len(text)} characters")
+            logger.info(f"Transcription successful: {len(text)} characters in {transcription_time:.2f}s")
             return text if text else None
             
         except Exception as e:
@@ -66,7 +72,7 @@ class Transcriber:
             # Clean up temporary file even on error
             try:
                 if os.path.exists(audio_file_path):
-                    os.unlink(audio_file_path)
+                    os.remove(audio_file_path)
             except:
                 pass
             return None 

@@ -42,6 +42,7 @@ class PushToTalkConfig:
     
     # Hotkey settings
     hotkey: str = "ctrl+shift+space"
+    toggle_hotkey: str = "ctrl+shift+t"  # New toggle hotkey
     
     # Text insertion settings
     insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
@@ -106,7 +107,8 @@ class PushToTalkApp:
         )
         
         self.hotkey_service = HotkeyService(
-            hotkey=self.config.hotkey
+            hotkey=self.config.hotkey,
+            toggle_hotkey=self.config.toggle_hotkey
         )
         
         # Audio feedback will be used directly via function calls when enabled
@@ -137,7 +139,9 @@ class PushToTalkApp:
             return
         
         self.is_running = True
-        logger.info(f"PushToTalk is running. Press and hold '{self.config.hotkey}' to record.")
+        logger.info(f"PushToTalk is running.")
+        logger.info(f"Push-to-talk: Press and hold '{self.config.hotkey}' to record.")
+        logger.info(f"Toggle mode: Press '{self.config.toggle_hotkey}' to start/stop recording.")
         
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -253,16 +257,31 @@ class PushToTalkApp:
     
     def change_hotkey(self, new_hotkey: str) -> bool:
         """
-        Change the hotkey combination.
+        Change the push-to-talk hotkey combination.
         
         Args:
-            new_hotkey: New hotkey combination
+            new_hotkey: New push-to-talk hotkey combination
             
         Returns:
             True if hotkey was changed successfully
         """
         if self.hotkey_service.change_hotkey(new_hotkey):
             self.config.hotkey = new_hotkey
+            return True
+        return False
+    
+    def change_toggle_hotkey(self, new_toggle_hotkey: str) -> bool:
+        """
+        Change the toggle hotkey combination.
+        
+        Args:
+            new_toggle_hotkey: New toggle hotkey combination
+            
+        Returns:
+            True if toggle hotkey was changed successfully
+        """
+        if self.hotkey_service.change_toggle_hotkey(new_toggle_hotkey):
+            self.config.toggle_hotkey = new_toggle_hotkey
             return True
         return False
     
@@ -301,6 +320,10 @@ class PushToTalkApp:
         return {
             "is_running": self.is_running,
             "hotkey": self.config.hotkey,
+            "toggle_hotkey": self.config.toggle_hotkey,
+            "recording_mode": self.hotkey_service.get_recording_mode(),
+            "is_recording": self.hotkey_service.is_recording,
+            "is_toggle_recording": self.hotkey_service.is_toggle_recording(),
             "text_refinement_enabled": self.config.enable_text_refinement,
             "audio_feedback_enabled": self.config.enable_audio_feedback,
             "insertion_method": self.config.insertion_method,

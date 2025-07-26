@@ -56,9 +56,8 @@ A Python application that provides push-to-talk speech-to-text functionality wit
    ```
 
 2. **Use push-to-talk**:
-   - Press and hold `Ctrl+Shift+Space` to start recording
-   - Speak your message
-   - Release the key to stop recording and process
+   - **Push-to-talk mode**: Press and hold `Ctrl+Shift+Space` to start recording, speak your message, and release the key to stop recording and process
+   - **Toggle mode**: Press `Ctrl+Shift+T` once to start recording, speak your message (no need to hold), and press `Ctrl+Shift+T` again to stop recording and process
    - The refined text will be inserted into the active window
 
 3. **Exit**:
@@ -77,6 +76,7 @@ The application creates a `push_to_talk_config.json` file on first run. You can 
   "chunk_size": 1024,
   "channels": 1,
   "hotkey": "ctrl+shift+space",
+  "toggle_hotkey": "ctrl+shift+t",
   "insertion_method": "clipboard",
   "insertion_delay": 0.01,
   "enable_text_refinement": true,
@@ -96,6 +96,7 @@ The application creates a `push_to_talk_config.json` file on first run. You can 
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
 | `hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for push-to-talk. See [Hotkey Options](#hotkey-options) for examples. |
+| `toggle_hotkey` | string | `"ctrl+shift+t"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
 | `insertion_method` | string | `"clipboard"` | Method for inserting text. Options: `clipboard` (faster), `sendkeys` (better for special chars). |
 | `insertion_delay` | float | `0.1` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
@@ -120,12 +121,21 @@ The application creates a `push_to_talk_config.json` file on first run. You can 
 
 ### Hotkey Options
 
-You can use various hotkey combinations:
+You can configure different hotkey combinations for both modes:
+
+**Push-to-talk hotkey** (hold to record):
 - `ctrl+shift+space` (default)
 - `alt+space`
 - `ctrl+alt+r`
 - `f12`
-- Any combination supported by the `keyboard` library
+
+**Toggle hotkey** (press once to start, press again to stop):
+- `ctrl+shift+t` (default)
+- `f11`
+- `ctrl+alt+t`
+- `alt+t`
+
+Both hotkeys support any combination from the `keyboard` library.
 
 ### Text Insertion Methods
 
@@ -141,7 +151,7 @@ The application includes clean and simple audio feedback:
 - **Minimalist Design**: Simple, clean tones inspired by Apple's design philosophy of elegant simplicity
 - **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via configuration or programmatically during runtime
-- **Zero Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
+- **Minimal Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
 
 The audio feedback provides immediate, unobtrusive confirmation of your interactions without adding complexity or dependencies.
 
@@ -232,17 +242,25 @@ from src import PushToTalkApp, PushToTalkConfig
 # Create custom config
 config = PushToTalkConfig()
 config.hotkey = "f12"
+config.toggle_hotkey = "f11"
 config.enable_text_refinement = False
 
 # Run application
 app = PushToTalkApp(config)
 
+# Change hotkeys
+app.change_hotkey("ctrl+alt+r")  # Change push-to-talk hotkey
+app.change_toggle_hotkey("ctrl+alt+t")  # Change toggle hotkey
+
 # Toggle audio feedback
 app.toggle_audio_feedback()  # Disable audio feedback
 app.toggle_audio_feedback()  # Re-enable audio feedback
 
-# Check status including audio feedback state
+# Check status including hotkey and recording mode information
 status = app.get_status()
+print(f"Push-to-talk hotkey: {status['hotkey']}")
+print(f"Toggle hotkey: {status['toggle_hotkey']}")
+print(f"Recording mode: {status['recording_mode']}")  # "idle", "push-to-talk", or "toggle"
 print(f"Audio feedback enabled: {status['audio_feedback_enabled']}")
 
 app.run()
