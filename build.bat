@@ -1,5 +1,5 @@
 @echo off
-echo Building PushToTalk Windows Executable...
+echo Building PushToTalk GUI Windows Executable...
 echo.
 
 REM Clean previous builds
@@ -7,6 +7,7 @@ if exist "dist" rmdir /s /q "dist"
 if exist "build" rmdir /s /q "build"
 
 REM Build the executable
+echo Building GUI application with PyInstaller...
 uv run pyinstaller push_to_talk.spec
 
 REM Check if build was successful
@@ -14,7 +15,7 @@ if exist "dist\PushToTalk.exe" (
     echo.
     echo ========================================
     echo Build successful!
-    echo Executable created: dist\PushToTalk.exe
+    echo GUI Executable created: dist\PushToTalk.exe
     echo ========================================
     echo.
     REM Compress the executable to a zip file for easy distribution
@@ -23,10 +24,15 @@ if exist "dist\PushToTalk.exe" (
     echo Executable compressed to PushToTalk.zip
     echo.
 
-    echo To run the application:
-    echo 1. Make sure you have a .env file with your OPENAI_API_KEY
-    echo 2. Run as Administrator for hotkey detection
-    echo 3. Double-click dist\PushToTalk.exe
+    echo To run the GUI application:
+    echo 1. Double-click dist\PushToTalk.exe
+    echo 2. Configure your OpenAI API key in the setup window
+    echo 3. Adjust audio and hotkey settings as needed
+    echo 4. Click "Save & Start Application" to begin
+    echo 5. Run as Administrator for hotkey detection
+    echo.
+    echo The application will show configuration dialogs on first run
+    echo and then run in the background with your configured hotkeys.
     echo.
 
 ) else (
@@ -35,6 +41,11 @@ if exist "dist\PushToTalk.exe" (
     echo Build failed! Check the output above for errors.
     echo ========================================
     echo.
+    echo Common issues:
+    echo - Make sure uv is installed and working
+    echo - Check that all dependencies are available
+    echo - Ensure PyInstaller is in the dev dependencies
+    echo.
 )
 
-pause 
+pause

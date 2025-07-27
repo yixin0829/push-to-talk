@@ -14,7 +14,7 @@ class Transcriber:
 
         Args:
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
-            model: Whisper model to use (default: whisper-1)
+            model: STT Model to use (default: whisper-1)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:

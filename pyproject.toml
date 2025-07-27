@@ -8,7 +8,6 @@ dependencies = [
     "keyboard>=0.13.5",
     "openai>=1.97.1",
     "pyaudio>=0.2.14",
-    "python-dotenv>=1.1.1",
     "pywin32>=309",
 ]
 
@@ -16,5 +15,6 @@ dependencies = [
 dev = [
     "pre-commit>=4.2.0",
     "pyinstaller>=6.14.2",
+    "python-dotenv>=1.1.1",
     "ruff>=0.12.5",
 ]
