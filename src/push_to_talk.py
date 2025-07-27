@@ -31,8 +31,8 @@ class PushToTalkConfig:
 
     # OpenAI settings
     openai_api_key: str = ""
-    whisper_model: str = "gpt-4o-transcribe"
-    gpt_model: str = "gpt-4.1-nano"
+    stt_model: str = "gpt-4o-transcribe"
+    refinement_model: str = "gpt-4.1-nano"
 
     # Audio settings
     sample_rate: int = 16000
@@ -87,6 +87,28 @@ class PushToTalkApp:
                     "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
                 )
 
+        # Initialize components - this will be called by _initialize_components
+        self.audio_recorder = None
+        self.transcriber = None
+        self.text_refiner = None
+        self.text_inserter = None
+        self.hotkey_service = None
+
+        # State management
+        self.is_running = False
+        self.processing_lock = threading.Lock()
+
+        # Initialize all components
+        self._initialize_components()
+
+        logger.info("PushToTalk application initialized")
+
+    def _initialize_components(self):
+        """Initialize or reinitialize all components with current configuration."""
+        # Clean up existing components if they exist
+        if self.hotkey_service:
+            self.hotkey_service.stop()
+
         # Initialize components
         self.audio_recorder = AudioRecorder(
             sample_rate=self.config.sample_rate,
@@ -95,11 +117,13 @@ class PushToTalkApp:
         )
 
         self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.whisper_model
+            api_key=self.config.openai_api_key, model=self.config.stt_model
         )
 
         self.text_refiner = (
-            TextRefiner(api_key=self.config.openai_api_key, model=self.config.gpt_model)
+            TextRefiner(
+                api_key=self.config.openai_api_key, model=self.config.refinement_model
+            )
             if self.config.enable_text_refinement
             else None
         )
@@ -110,43 +134,83 @@ class PushToTalkApp:
             hotkey=self.config.hotkey, toggle_hotkey=self.config.toggle_hotkey
         )
 
-        # Audio feedback will be used directly via function calls when enabled
-
-        # State management
-        self.is_running = False
-        self.processing_lock = threading.Lock()
-
         # Setup hotkey callbacks
         self.hotkey_service.set_callbacks(
             on_start_recording=self._on_start_recording,
             on_stop_recording=self._on_stop_recording,
         )
 
-        logger.info("PushToTalk application initialized")
+    def update_configuration(self, new_config: PushToTalkConfig):
+        """
+        Update the application configuration and reinitialize components.
 
-    def start(self):
-        """Start the PushToTalk application."""
+        Args:
+            new_config: New configuration object
+        """
+        logger.info("Updating application configuration")
+
+        # Store old config for comparison
+        old_config = self.config
+        self.config = new_config
+
+        # Check if we need to reinitialize components
+        needs_reinit = (
+            old_config.openai_api_key != new_config.openai_api_key
+            or old_config.stt_model != new_config.stt_model
+            or old_config.refinement_model != new_config.refinement_model
+            or old_config.sample_rate != new_config.sample_rate
+            or old_config.chunk_size != new_config.chunk_size
+            or old_config.channels != new_config.channels
+            or old_config.hotkey != new_config.hotkey
+            or old_config.toggle_hotkey != new_config.toggle_hotkey
+            or old_config.insertion_delay != new_config.insertion_delay
+            or old_config.enable_text_refinement != new_config.enable_text_refinement
+        )
+
+        if needs_reinit:
+            logger.info("Configuration changes require component reinitialization")
+            self._initialize_components()
+        else:
+            logger.info("Configuration updated without requiring component changes")
+
+    def get_configuration(self) -> PushToTalkConfig:
+        """Get the current configuration."""
+        return self.config
+
+    def save_configuration(self, filepath: str = "push_to_talk_config.json"):
+        """Save current configuration to file."""
+        self.config.save_to_file(filepath)
+        logger.info(f"Configuration saved to {filepath}")
+
+    def start(self, setup_signals=True):
+        """Start the PushToTalk application.
+
+        Args:
+            setup_signals: Whether to setup signal handlers (only works in main thread)
+        """
         if self.is_running:
             logger.warning("Application is already running")
             return
 
         logger.info("Starting PushToTalk application...")
 
-        # Start hotkey service
-        if not self.hotkey_service.start_service():
-            logger.error("Failed to start hotkey service")
-            return
-
         self.is_running = True
+        self.hotkey_service.start_service()
+
         logger.info("PushToTalk is running.")
         logger.info(f"Push-to-talk: Press and hold '{self.config.hotkey}' to record.")
         logger.info(
             f"Toggle mode: Press '{self.config.toggle_hotkey}' to start/stop recording."
         )
 
-        # Setup signal handlers for graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # Setup signal handlers for graceful shutdown (only in main thread)
+        if setup_signals:
+            try:
+                signal.signal(signal.SIGINT, self._signal_handler)
+                signal.signal(signal.SIGTERM, self._signal_handler)
+            except ValueError as e:
+                # This happens when not in main thread - just log and continue
+                logger.debug(f"Could not setup signal handlers: {e}")
 
     def stop(self):
         """Stop the PushToTalk application."""
@@ -265,10 +329,23 @@ class PushToTalkApp:
         Returns:
             True if hotkey was changed successfully
         """
-        if self.hotkey_service.change_hotkey(new_hotkey):
-            self.config.hotkey = new_hotkey
-            return True
-        return False
+        logger.info(
+            f"Changing push-to-talk hotkey from '{self.config.hotkey}' to '{new_hotkey}'"
+        )
+        self.config.hotkey = new_hotkey
+
+        # Reinitialize hotkey service with new hotkey
+        if self.hotkey_service:
+            self.hotkey_service.stop()
+
+        self.hotkey_service = HotkeyService(
+            hotkey=self.config.hotkey, toggle_hotkey=self.config.toggle_hotkey
+        )
+        self.hotkey_service.set_callbacks(
+            on_start_recording=self._on_start_recording,
+            on_stop_recording=self._on_stop_recording,
+        )
+        return True
 
     def change_toggle_hotkey(self, new_toggle_hotkey: str) -> bool:
         """
@@ -280,10 +357,23 @@ class PushToTalkApp:
         Returns:
             True if toggle hotkey was changed successfully
         """
-        if self.hotkey_service.change_toggle_hotkey(new_toggle_hotkey):
-            self.config.toggle_hotkey = new_toggle_hotkey
-            return True
-        return False
+        logger.info(
+            f"Changing toggle hotkey from '{self.config.toggle_hotkey}' to '{new_toggle_hotkey}'"
+        )
+        self.config.toggle_hotkey = new_toggle_hotkey
+
+        # Reinitialize hotkey service with new toggle hotkey
+        if self.hotkey_service:
+            self.hotkey_service.stop()
+
+        self.hotkey_service = HotkeyService(
+            hotkey=self.config.hotkey, toggle_hotkey=self.config.toggle_hotkey
+        )
+        self.hotkey_service.set_callbacks(
+            on_start_recording=self._on_start_recording,
+            on_stop_recording=self._on_stop_recording,
+        )
+        return True
 
     def toggle_text_refinement(self) -> bool:
         """
@@ -292,7 +382,20 @@ class PushToTalkApp:
         Returns:
             New state of text refinement (True if enabled)
         """
+        old_value = self.config.enable_text_refinement
         self.config.enable_text_refinement = not self.config.enable_text_refinement
+
+        # Reinitialize text refiner if needed
+        if old_value != self.config.enable_text_refinement:
+            self.text_refiner = (
+                TextRefiner(
+                    api_key=self.config.openai_api_key,
+                    model=self.config.refinement_model,
+                )
+                if self.config.enable_text_refinement
+                else None
+            )
+
         logger.info(
             f"Text refinement {'enabled' if self.config.enable_text_refinement else 'disabled'}"
         )
@@ -321,21 +424,21 @@ class PushToTalkApp:
         Returns:
             Dictionary containing status information
         """
+        recording_mode = "idle"
+        if hasattr(self.hotkey_service, "recording_state"):
+            if self.hotkey_service.recording_state == "push_to_talk":
+                recording_mode = "push-to-talk"
+            elif self.hotkey_service.recording_state == "toggle":
+                recording_mode = "toggle"
+
         return {
             "is_running": self.is_running,
             "hotkey": self.config.hotkey,
             "toggle_hotkey": self.config.toggle_hotkey,
-            "recording_mode": self.hotkey_service.get_recording_mode(),
-            "is_recording": self.hotkey_service.is_recording,
-            "is_toggle_recording": self.hotkey_service.is_toggle_recording(),
-            "text_refinement_enabled": self.config.enable_text_refinement,
+            "recording_mode": recording_mode,
             "audio_feedback_enabled": self.config.enable_audio_feedback,
-            "insertion_method": self.config.insertion_method,
-            "hotkey_service_running": self.hotkey_service.is_service_running(),
-            "models": {
-                "whisper": self.config.whisper_model,
-                "gpt": self.config.gpt_model,
-            },
+            "text_refinement_enabled": self.config.enable_text_refinement,
+            "logging_enabled": self.config.enable_logging,
         }
 
 

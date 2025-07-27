@@ -8,7 +8,7 @@ insertion into the active window.
 Main Components:
 - AudioRecorder: Records audio using pyaudio
 - Transcriber: Converts speech to text using OpenAI Whisper
-- TextRefiner: Improves transcription using GPT models
+- TextRefiner: Improves transcription using Refinement Models
 - TextInserter: Inserts text into active windows using pywin32
 - HotkeyService: Handles push-to-talk hotkey detection
 - PushToTalkApp: Main application orchestrator

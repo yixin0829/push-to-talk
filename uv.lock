@@ -281,7 +281,6 @@ dependencies = [
     { name = "keyboard" },
     { name = "openai" },
     { name = "pyaudio" },
-    { name = "python-dotenv" },
     { name = "pywin32" },
 ]
 
@@ -289,6 +288,7 @@ dependencies = [
 dev = [
     { name = "pre-commit" },
     { name = "pyinstaller" },
+    { name = "python-dotenv" },
     { name = "ruff" },
 ]
 
@@ -297,7 +297,6 @@ requires-dist = [
     { name = "keyboard", specifier = ">=0.13.5" },
     { name = "openai", specifier = ">=1.97.1" },
     { name = "pyaudio", specifier = ">=0.2.14" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "pywin32", specifier = ">=309" },
 ]
 
@@ -305,6 +304,7 @@ requires-dist = [
 dev = [
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pyinstaller", specifier = ">=6.14.2" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "ruff", specifier = ">=0.12.5" },
 ]
 

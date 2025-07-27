@@ -14,7 +14,7 @@ class TextRefiner:
 
         Args:
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
-            model: GPT model to use (default: gpt-4.1-nano)
+            model: Refinement Model to use (default: gpt-4.1-nano)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
@@ -39,7 +39,7 @@ Do not add extra content that wasn't implied in the original text. Return only t
         self, raw_text: str, custom_prompt: Optional[str] = None
     ) -> Optional[str]:
         """
-        Refine the transcribed text using GPT model.
+        Refine the transcribed text using Refinement Model.
 
         Args:
             raw_text: Raw transcribed text to refine

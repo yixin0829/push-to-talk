@@ -10,7 +10,7 @@ Requirements:
 - Run with administrator privileges on Windows for hotkey detection
 
 Usage:
-    python main.py
+    python main_console.py
 """
 
 import sys
