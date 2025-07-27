@@ -11,20 +11,7 @@ a = Analysis(
         ('.env.example', '.'),
     ],
     hiddenimports=[
-        'src.push_to_talk',
-        'src.audio_recorder',
-        'src.transcription',
-        'src.text_refiner',
-        'src.text_inserter',
-        'src.hotkey_service',
-        'src.audio_feedback',
-        'pyaudio',
-        'keyboard',
-        'openai',
         'pywin32',
-        'win32gui',
-        'win32con',
-        'win32clipboard',
         'pywintypes',
     ],
     hookspath=[],
@@ -58,5 +45,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # Add icon='icon.ico' if you have an icon file
-) 
+    icon='icon.ico',
+)

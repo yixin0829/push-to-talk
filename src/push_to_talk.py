@@ -13,7 +13,7 @@ from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
-from src.audio_feedback import play_start_feedback, play_stop_feedback
+from src.utils import play_start_feedback, play_stop_feedback
 
 # Configure logging
 logging.basicConfig(
@@ -357,9 +357,11 @@ def main():
         app.run()
     except Exception as e:
         logger.error(f"Application error: {e}")
-        logger.error(f"Tip 1: Make sure you have a .env file with your OPENAI_API_KEY")
-        logger.error(f"Tip 2: or set the OPENAI_API_KEY in push_to_talk_config.json file created by the application.")
-        logger.error(f"Exiting in 10 seconds...")
+        logger.error("Tip 1: Make sure you have a .env file with your OPENAI_API_KEY")
+        logger.error(
+            "Tip 2: or set the OPENAI_API_KEY in push_to_talk_config.json file created by the application."
+        )
+        logger.error("Exiting in 10 seconds...")
         for i in range(10):
             logger.error(f"Exiting in {10 - i} seconds...")
             time.sleep(1)

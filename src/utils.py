@@ -1,6 +1,6 @@
-import winsound
 import threading
 import logging
+import winsound
 
 logger = logging.getLogger(__name__)
 

@@ -8,42 +8,42 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **Speech-to-Text**: Uses OpenAI Whisper for accurate transcription
 - **Text Refinement**: Improves transcription quality using gpt-4.1-nano
 - **Auto Text Insertion**: Automatically inserts refined text into the active window
-- **Audio Feedback**: Sophisticated sound cues for recording start/stop with a tech-inspired vibe
-- **Background Operation**: Runs silently in the background
 - **Configurable**: Customizable hotkeys, models, and settings
-- **Logging**: Comprehensive logging for debugging and monitoring
+
+## Roadmap
+
+- GUI for configuration
+- Customizable glossary for transcription refinement
+- Streaming transcription with ongoing audio
+- Cross-platform support (MacOS, Linux)
 
 ## Requirements
 
-- Windows 10/11
-- Python 3.12+
-- OpenAI API key
-- Microphone access
+- Windows OS (10/11)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- OpenAI API key (https://platform.openai.com/docs/api-reference/introduction)
+- Microphone access (for recording)
 - Administrator privileges (for global hotkey detection)
 
-## Installation
+## Setup
 
 1. **Clone the repository**:
    ```bash
    git clone <repository-url>
-   cd push-n-talk
+   cd push-to-talk
    ```
 
 2. **Install dependencies**:
    ```bash
-   # using uv
    uv sync
-
-   # using pip
-   pip install -r requirements.txt
    ```
 
 3. **Set up your OpenAI API key**:
    ```bash
    # Option 1: .env file (preferred)
    echo "OPENAI_API_KEY=your_api_key_here" > .env
-   
-   # Option 2: Edit push_to_talk_config.json after first run
+
+   # Option 2: Edit push_to_talk_config.json after the first run
    ```
 
 ## Usage
@@ -52,7 +52,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 1. **Run the application**:
    ```bash
-   python main.py
+   uv run python main.py
    ```
 
 2. **Use push-to-talk**:
@@ -105,7 +105,7 @@ The application creates a `push_to_talk_config.json` file on first run. You can 
 
 #### Audio Quality Settings
 
-- **sample_rate**: 
+- **sample_rate**:
   - `16000` (16kHz) - Recommended for speech (Whisper optimized)
   - `8000` (8kHz) - Lower quality but faster processing
   - `44100` (44.1kHz) - CD quality (overkill for speech, slower)
@@ -139,8 +139,8 @@ Both hotkeys support any combination from the `keyboard` library.
 
 ### Text Insertion Methods
 
-- **clipboard** (default): Faster and more reliable, uses Ctrl+V
-- **sendkeys**: Simulates individual keystrokes, better for special characters
+- **sendkeys** (default): Simulates individual keystrokes, better for special characters
+- **clipboard**: Faster and more reliable, uses Ctrl+V
 
 ### Audio Feedback
 
@@ -148,14 +148,33 @@ The application includes clean and simple audio feedback:
 
 - **Recording Start**: A crisp high-pitched beep (880 Hz) that signals recording has begun
 - **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
-- **Minimalist Design**: Simple, clean tones inspired by Apple's design philosophy of elegant simplicity
 - **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via configuration or programmatically during runtime
 - **Minimal Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
 
-The audio feedback provides immediate, unobtrusive confirmation of your interactions without adding complexity or dependencies.
-
 ## Architecture
+
+```mermaid
+graph TD
+    %% Core Components
+    HotkeyService[HotkeyService<br/>Hotkey Detection]
+    AudioRecorder[AudioRecorder<br/>Audio Recording]
+    Transcriber[Transcriber<br/>Speech-to-Text]
+    TextRefiner[TextRefiner<br/>Text Improvement]
+    TextInserter[TextInserter]
+
+    %% Main Flow
+    HotkeyService -->|"Start/Stop Recording"| AudioRecorder
+    AudioRecorder -->|"Audio File"| Transcriber
+
+    %% External Service
+    OpenAITranscription[OpenAI API Transcription]
+    OpenAICompletion[OpenAI API Completion]
+    Transcriber -.->|"Audio"| OpenAITranscription
+    OpenAITranscription -->|"Transcription"| TextRefiner
+    TextRefiner -.->|"Transcription"| OpenAICompletion
+    OpenAICompletion -->|"Refined Text"| TextInserter
+```
 
 The application consists of several modular components:
 
@@ -166,7 +185,6 @@ The application consists of several modular components:
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using GPT models
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
-- **Audio Feedback** (`src/audio_feedback.py`): Provides simple, clean audio feedback using Windows built-in sounds via utility functions
 - **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator
 
 ### Data Flow
@@ -282,4 +300,4 @@ app.run()
 
 ## Version History
 
-- **1.0.0**: Initial release with core functionality
+- **0.1.0**: Initial release with core functionality

@@ -4,14 +4,10 @@ This guide explains how to package the PushToTalk application as a standalone Wi
 
 ## Prerequisites
 
-1. **Python Environment**: Ensure you have Python 3.13+ installed
+1. **uv**: Ensure you have [uv](https://docs.astral.sh/uv/) installed
 2. **Dependencies**: Install all project dependencies:
    ```bash
-   pip install -r requirements.txt
-   ```
-3. **PyInstaller**: Install PyInstaller for packaging:
-   ```bash
-   pip install pyinstaller
+   uv sync
    ```
 
 ## Quick Build
@@ -82,9 +78,8 @@ After successful build:
 ### Build Errors
 
 If the build fails:
-1. Check that all dependencies are installed
-2. Ensure PyInstaller is up to date: `pip install --upgrade pyinstaller`
-3. Try building with debug mode: change `debug=False` to `debug=True` in the spec file
+1. Check that all dependencies are installed: `uv sync`
+2. Try building with debug mode: change `debug=False` to `debug=True` in the spec file
 
 ## Customization
 
@@ -108,8 +103,8 @@ The final `PushToTalk.exe` can be distributed as a standalone application. Users
 - Windows 10/11
 - Microphone access permissions
 - Administrator privileges for hotkey functionality
-- OpenAI API key (configured in .env file)
+- OpenAI API key (configured in .env file or set in the JSON config file after running the application once)
 
 ## Security Note
 
-Windows Defender or other antivirus software may flag PyInstaller executables as potentially unwanted programs. This is a false positive common with packaged Python applications. You may need to add an exception or submit the file for analysis. 
+Windows Defender or other antivirus software may flag PyInstaller executables as potentially unwanted programs. This is a false positive common with packaged Python applications. You may need to add an exception or submit the file for analysis.
