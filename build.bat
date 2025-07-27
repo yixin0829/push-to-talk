@@ -28,7 +28,7 @@ if exist "dist\PushToTalk.exe" (
     echo 1. Double-click dist\PushToTalk.exe
     echo 2. Configure your OpenAI API key in the setup window
     echo 3. Adjust audio and hotkey settings as needed
-    echo 4. Click "Save & Start Application" to begin
+    echo 4. Click "Start Application" to begin
     echo 5. Run as Administrator for hotkey detection
     echo.
     echo The application will show configuration dialogs on first run

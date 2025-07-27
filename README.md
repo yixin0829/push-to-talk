@@ -1,15 +1,14 @@
 # PushToTalk - AI Refined Speech-to-Text Dictation
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows. **Now features a user-friendly GUI configuration interface for easy setup and management.**
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
-- **🎯 GUI Configuration Interface**: Intuitive setup wizard with organized settings panels
+- **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
 - **🤖 Speech-to-Text**: Uses OpenAI Whisper for accurate transcription
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
-- **⚙️ Fully Configurable**: Customizable hotkeys, models, and settings via GUI or files
 - **🔊 Audio Feedback**: Optional audio cues for recording start/stop
 - **📋 Multiple Insertion Methods**: Support for clipboard and sendkeys insertion
 
@@ -32,22 +31,23 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 ### For End Users (Recommended)
 
-1. **Download and run the executable**:
+1. **Download and launch**:
    - Download `PushToTalk.exe` from releases
-   - Double-click to launch
-   - Follow the configuration wizard
+   - Double-click to launch the configuration interface
 
-2. **First-time setup**:
-   - Welcome dialog explains the setup process
-   - Enter your OpenAI API key
-   - Configure audio settings (defaults work for most users)
-   - Set your preferred hotkeys
-   - Click "Save & Start Application"
+2. **One-window setup and control**:
+   - **Welcome section** explains the application at the top
+   - **Configure your settings** in the organized sections below
+   - **Click "Start Application"** to begin - the GUI stays open
+   - **Monitor status** with real-time indicators (green = running, gray = stopped)
+   - **View active settings** displayed when running
+   - **Easy control** with "Stop Application" button to terminate
 
 3. **Daily usage**:
-   - Application runs in the background
+   - GUI provides persistent control and status monitoring
    - Use your configured hotkeys to record and transcribe
-   - No console or technical setup required
+   - Start/stop the service anytime from the GUI
+   - No separate console or technical setup required
 
 ### For Developers
 
@@ -69,12 +69,18 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 4. **Or run the console version**:
    ```bash
-   uv run python main.py
+   uv run python main_console.py
    ```
 
 ## GUI Configuration Interface
 
-The application features a comprehensive configuration GUI with organized sections:
+The application features a comprehensive, persistent configuration GUI with organized sections:
+
+### 🏠 Welcome & Status
+- **Real-Time Status**: Visual indicators show current application state
+  - **Gray circle + "Ready to start"**: Application stopped
+  - **Green circle + "Running - Use your configured hotkeys"**: Application running
+- **Active Settings Display**: Shows current hotkeys and enabled features when running
 
 ### 🔑 API Settings
 - **OpenAI API Key**: Secure entry with show/hide functionality
@@ -98,27 +104,20 @@ The application features a comprehensive configuration GUI with organized sectio
 - **Insertion Delay**: Fine-tune timing for different applications
 - **Method Guidance**: Recommendations for each approach
 
-### 🎛️ Feature Controls
-- **Text Refinement**: Enable/disable GPT-powered text improvement
-- **Audio Feedback**: Toggle recording sound cues
-- **Logging**: Control detailed logging output
 
-### 🛠️ Advanced Features
-- **Load/Save Configurations**: Import/export settings files
-- **Reset to Defaults**: Quick restoration of default settings
-- **Configuration Testing**: Validate settings before use
-- **Real-time Validation**: Immediate feedback on configuration issues
 
 ## How to Use
 
 ### Via GUI (Recommended)
 1. **Launch**: Double-click `PushToTalk.exe` or run `uv run python main_gui.py`
-2. **Configure**: Use the intuitive setup interface
-3. **Start**: Click "Save & Start Application"
-4. **Use**: Background operation with your configured hotkeys
+2. **Configure**: Use the integrated setup interface with welcome guidance
+3. **Start**: Click "Start Application" - GUI stays open with status indicators
+4. **Monitor**: Watch real-time status and active settings display
+5. **Use**: Background operation with your configured hotkeys
+6. **Control**: Use "Stop Application" button to terminate, or restart anytime
 
 ### Via Console
-1. **Run**: `uv run python main.py`
+1. **Run**: `uv run python main_console.py`
 2. **Configure**: Edit `push_to_talk_config.json` manually or set environment variables
 3. **Use**: Same hotkey functionality as GUI
 
@@ -133,7 +132,7 @@ This creates `dist\PushToTalk.exe` - a standalone GUI application.
 ### Build Console Executable
 ```bash
 # First, modify push_to_talk.spec to
-# 1. Replace main_gui.py with main.py
+# 1. Replace main_gui.py with main_console.py
 # 2. Set console=True
 uv run pyinstaller push_to_talk.spec
 ```
@@ -143,8 +142,9 @@ uv run pyinstaller push_to_talk.spec
 The application supports both GUI and file-based configuration:
 
 ### Via GUI (Recommended)
-- Launch the application and use the built-in configuration interface
-- All settings are validated and saved automatically to `push_to_talk_config.json`
+- Launch the application to access the integrated configuration interface
+- **All settings** validated and saved automatically to `push_to_talk_config.json`
+- **Real-time status** shows application state with visual indicators
 
 ### File-Based Configuration
 The application creates a `push_to_talk_config.json` file. Example configuration file:
@@ -237,35 +237,21 @@ The application includes clean and simple audio feedback:
 ## Architecture
 
 ```mermaid
-graph LR
-    %% User Interface
-    GUI[Configuration GUI<br/>Settings Management]
-    MainGUI[Main GUI Entry<br/>Welcome & Startup]
-
-    %% Core Components
-    HotkeyService[HotkeyService<br/>Hotkey Detection]
-    AudioRecorder[AudioRecorder<br/>Audio Recording]
-    Transcriber[Transcriber<br/>Speech-to-Text]
-    TextRefiner[TextRefiner<br/>Text Improvement]
-    TextInserter[TextInserter<br/>Text Insertion]
-    PushToTalkApp[PushToTalkApp<br/>Main Orchestrator]
-
-    %% Configuration Flow
-    MainGUI -->|"Configure Settings"| GUI
+flowchart LR
     GUI -->|"Save Configuration"| PushToTalkApp
 
     %% Main Flow
     PushToTalkApp -->|"Initialize"| HotkeyService
     HotkeyService -->|"Start/Stop Recording"| AudioRecorder
     AudioRecorder -->|"Audio File"| Transcriber
+    Transcriber -->|"Audio"| AI_Transcription
+    TextRefiner -->|"Transcription"| AI_Refinement
 
     %% External Services
-    OpenAITranscription[OpenAI API<br/>Whisper Transcription]
-    OpenAICompletion[OpenAI API<br/>GPT Completion]
-    Transcriber -.->|"Audio"| OpenAITranscription
-    OpenAITranscription -->|"Transcription"| TextRefiner
-    TextRefiner -.->|"Transcription"| OpenAICompletion
-    OpenAICompletion -->|"Refined Text"| TextInserter
+    AI_Transcription[AI Transcription]
+    AI_Refinement[AI Refinement]
+    AI_Transcription -->|"Transcription"| TextRefiner
+    AI_Refinement -->|"Refined Text"| TextInserter
 
     %% Dynamic Updates
     GUI -.->|"Live Updates"| PushToTalkApp
@@ -286,12 +272,13 @@ The application consists of several modular components:
 
 ### User Experience Flow
 
-1. **Launch** → Welcome dialog with setup explanation
-2. **Configure** → Comprehensive GUI configuration interface
-3. **Validate** → Settings validation and API key testing
-4. **Confirm** → Startup summary with final settings
-5. **Operate** → Background push-to-talk functionality
-6. **Update** → Live configuration updates without restart
+1. **Launch** → Single window with integrated welcome and configuration
+2. **Configure** → Comprehensive GUI with organized settings sections
+3. **Start** → Click "Start Application" with immediate visual feedback
+4. **Monitor** → Real-time status indicators and active settings display
+5. **Operate** → Background push-to-talk with persistent GUI control
+6. **Control** → Easy start/stop with "Stop Application" button
+7. **Manage** → Multiple start/stop cycles without closing the interface
 
 ### Data Flow
 
@@ -319,12 +306,17 @@ The application consists of several modular components:
    - Check that the executable isn't blocked by antivirus
    - Try running from command line to see error messages
 
-2. **Configuration GUI not responding**:
-   - Close and restart the application
+2. **Status indicators not updating**:
+   - The GUI should show real-time status changes when starting/stopping
+   - If stuck, try restarting the application
    - Check `push_to_talk.log` for error details
-   - Try deleting `push_to_talk_config.json` to reset to defaults
 
-3. **Settings not saving**:
+3. **Start/Stop button not working**:
+   - Ensure all required fields are filled (especially OpenAI API key)
+   - Use "Test Configuration" to validate settings
+   - Check that no other instance is running
+
+4. **Settings not saving**:
    - Ensure the application has write permissions in its directory
    - Check that the configuration file isn't marked as read-only
    - Try running as Administrator
@@ -344,7 +336,7 @@ The application consists of several modular components:
    - Run as administrator (required for global hotkey detection)
    - Check if another application is using the same hotkey
    - Try a different hotkey combination in the GUI
-   - Ensure the application is running in the background
+   - Ensure the application shows "Running" status in the GUI
 
 4. **OpenAI API errors**:
    - Use the "Test Configuration" button in the GUI to validate settings
@@ -430,12 +422,11 @@ app.run()
 from src.config_gui import show_configuration_gui
 from src.push_to_talk import PushToTalkConfig
 
-# Show configuration GUI
+# Show persistent configuration GUI
 result, config = show_configuration_gui()
-if result == "start":
-    # User clicked "Save & Start Application"
-    app = PushToTalkApp(config)
-    app.run()
+if result == "close":
+    # User closed the application
+    print("Application closed by user")
 ```
 
 ## Performance Tips
@@ -444,6 +435,7 @@ if result == "start":
 2. **Disable text refinement**: For faster transcription without GPT processing
 3. **Use clipboard method**: Generally faster than sendkeys for text insertion
 4. **Short recordings**: Keep recordings under 30 seconds for optimal performance
+5. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
 
 ## Security Considerations
 
@@ -455,5 +447,5 @@ if result == "start":
 
 ## Version History
 
-- **0.2.0**: GUI interface, improved user experience, packaging as executable
+- **0.2.0**: Persistent GUI interface, real-time status management, improved user experience, packaging as executable
 - **0.1.0**: Initial console-based release

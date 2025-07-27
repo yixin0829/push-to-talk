@@ -182,29 +182,35 @@ class PushToTalkApp:
         self.config.save_to_file(filepath)
         logger.info(f"Configuration saved to {filepath}")
 
-    def start(self):
-        """Start the PushToTalk application."""
+    def start(self, setup_signals=True):
+        """Start the PushToTalk application.
+
+        Args:
+            setup_signals: Whether to setup signal handlers (only works in main thread)
+        """
         if self.is_running:
             logger.warning("Application is already running")
             return
 
         logger.info("Starting PushToTalk application...")
 
-        # Start hotkey service
-        if not self.hotkey_service.start_service():
-            logger.error("Failed to start hotkey service")
-            return
-
         self.is_running = True
+        self.hotkey_service.start_service()
+
         logger.info("PushToTalk is running.")
         logger.info(f"Push-to-talk: Press and hold '{self.config.hotkey}' to record.")
         logger.info(
             f"Toggle mode: Press '{self.config.toggle_hotkey}' to start/stop recording."
         )
 
-        # Setup signal handlers for graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # Setup signal handlers for graceful shutdown (only in main thread)
+        if setup_signals:
+            try:
+                signal.signal(signal.SIGINT, self._signal_handler)
+                signal.signal(signal.SIGTERM, self._signal_handler)
+            except ValueError as e:
+                # This happens when not in main thread - just log and continue
+                logger.debug(f"Could not setup signal handlers: {e}")
 
     def stop(self):
         """Stop the PushToTalk application."""
