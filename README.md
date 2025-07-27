@@ -237,24 +237,17 @@ The application includes clean and simple audio feedback:
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
+    %% GUI
     GUI -->|"Save Configuration"| PushToTalkApp
+    GUI -.->|"Real-time Updates"| PushToTalkApp
 
     %% Main Flow
     PushToTalkApp -->|"Initialize"| HotkeyService
     HotkeyService -->|"Start/Stop Recording"| AudioRecorder
     AudioRecorder -->|"Audio File"| Transcriber
-    Transcriber -->|"Audio"| AI_Transcription
-    TextRefiner -->|"Transcription"| AI_Refinement
-
-    %% External Services
-    AI_Transcription[AI Transcription]
-    AI_Refinement[AI Refinement]
-    AI_Transcription -->|"Transcription"| TextRefiner
-    AI_Refinement -->|"Refined Text"| TextInserter
-
-    %% Dynamic Updates
-    GUI -.->|"Live Updates"| PushToTalkApp
+    Transcriber -->|"AI Transcription"| TextRefiner
+    TextRefiner -->|"AI Refinement"| TextInserter
 ```
 
 The application consists of several modular components:
