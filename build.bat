@@ -1,5 +1,5 @@
 @echo off
-echo Building PushToTalk Windows Executable...
+echo Building PushToTalk Windows GUI Executable...
 echo.
 
 REM Clean previous builds

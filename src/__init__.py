@@ -20,6 +20,7 @@ __description__ = "Speech-to-Text Push-to-Talk Application"
 
 from dotenv import load_dotenv
 from .push_to_talk import PushToTalkApp, PushToTalkConfig, main
+from .config_gui import ConfigGUI
 from .audio_recorder import AudioRecorder
 from .transcription import Transcriber
 from .text_refiner import TextRefiner
@@ -36,5 +37,6 @@ __all__ = [
     "TextRefiner",
     "TextInserter",
     "HotkeyService",
+    "ConfigGUI",
     "main",
 ]
