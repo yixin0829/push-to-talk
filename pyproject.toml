@@ -9,6 +9,7 @@ dependencies = [
     "openai>=1.97.1",
     "pyaudio>=0.2.14",
     "pywin32>=309",
+    "websocket-client>=1.8.0",
 ]
 
 [dependency-groups]

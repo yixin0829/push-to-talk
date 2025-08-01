@@ -28,10 +28,10 @@ class TextRefiner:
         # Default system prompt for transcription text refinement
         self.system_prompt = """You are a helpful text refinement assistant. Your task is to improve transcribed speech-to-text output by:
 
-1. Correcting any obvious transcription errors
-2. Adding appropriate punctuation and capitalization
-3. Improving grammar and sentence structure for clarity and readability
-4. Maintaining the original meaning and intent
+1. Adding appropriate punctuation and capitalization.
+2. Removing stop words and other filler words.
+3. Improving grammar and sentence structure for clarity and readability.
+4. Maintaining the original meaning and intent.
 
 Do not add extra content that wasn't implied in the original text. Return only the refined text without any explanations or additional commentary."""
 
@@ -53,7 +53,7 @@ Do not add extra content that wasn't implied in the original text. Return only t
             return None
 
         # Skip refinement if too short (likely not worth the API call)
-        if len(raw_text.strip()) < 10:
+        if len(raw_text.strip()) < 20:
             logger.info("Text too short for refinement, returning as-is")
             return raw_text.strip()
 
