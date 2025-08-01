@@ -267,7 +267,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         whisper_combo = ttk.Combobox(
             frame,
             textvariable=self.config_vars["stt_model"],
-            values=["whisper-1", "gpt-4o-transcribe"],
+            values=["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
             state="readonly",
             width=20,
         )
