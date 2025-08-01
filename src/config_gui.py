@@ -622,7 +622,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                 self.app_instance.start(setup_signals=False)
 
                 # Keep running until stopped
-                while self.app_instance.is_running:
+                while self.app_instance and self.app_instance.is_running:
                     import time
 
                     time.sleep(0.1)
@@ -657,6 +657,10 @@ Configure your settings below, then click "Start Application" to begin:"""
                 text="Start Application", style="Accent.TButton"
             )
             self._update_status_display()
+
+            # Wait for the background thread to finish before clearing references
+            if self.app_thread and self.app_thread.is_alive():
+                self.app_thread.join(timeout=1)
 
             self.app_instance = None
             self.app_thread = None
