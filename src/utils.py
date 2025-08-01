@@ -2,11 +2,7 @@ import threading
 import logging
 import math
 import array
-
-try:
-    import simpleaudio as sa
-except Exception:  # pragma: no cover - fallback when dependency missing
-    sa = None  # type: ignore
+import simpleaudio as sa
 
 logger = logging.getLogger(__name__)
 
