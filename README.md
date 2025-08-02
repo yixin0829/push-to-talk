@@ -18,6 +18,19 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **🔊 Audio Feedback**: Optional audio cues for recording start/stop
 - **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
 
+## Demo
+A demo for v0.2.0. Some new features have been added since then.
+<div>
+   <a href="https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6">
+     <p>Push-to-Talk: Personal Voice Transcription Powered by AI - Watch Video</p>
+   </a>
+   <a href="https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6">
+     <div align="center">
+       <img style="width:100%;max-width:700px;border-radius:10px;" src="https://cdn.loom.com/sessions/thumbnails/fbabb2da83c249d3a0a09b3adcc4a4e6-ab814d7527bfa513-full-play.gif">
+     </div>
+   </a>
+</div>
+
 ## Roadmap
 See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 
