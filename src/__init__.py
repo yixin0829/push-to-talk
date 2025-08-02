@@ -18,15 +18,13 @@ __version__ = "1.0.0"
 __author__ = "Assistant"
 __description__ = "Speech-to-Text Push-to-Talk Application"
 
-from dotenv import load_dotenv
-from .push_to_talk import PushToTalkApp, PushToTalkConfig, main
+from .push_to_talk import PushToTalkApp, PushToTalkConfig
 from .audio_recorder import AudioRecorder
 from .transcription import Transcriber
 from .text_refiner import TextRefiner
 from .text_inserter import TextInserter
 from .hotkey_service import HotkeyService
 
-load_dotenv()
 
 __all__ = [
     "PushToTalkApp",
@@ -36,5 +34,4 @@ __all__ = [
     "TextRefiner",
     "TextInserter",
     "HotkeyService",
-    "main",
 ]

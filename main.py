@@ -10,7 +10,7 @@ Requirements:
 - Run with administrator privileges on Windows for hotkey detection
 
 Usage:
-    python main_gui.py
+    python main.py
 """
 
 import sys
@@ -35,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main_gui():
+def main():
     """Main entry point for the GUI application."""
     try:
         # Load existing config if it exists
@@ -86,4 +86,4 @@ Check push_to_talk.log for detailed error information."""
 
 
 if __name__ == "__main__":
-    main_gui()
+    main()

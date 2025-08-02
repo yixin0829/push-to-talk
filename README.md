@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="icon.ico" width="128" height="128" alt="PushToTalk Icon">
+</p>
+
+
 # PushToTalk - AI Refined Speech-to-Text Dictation
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS, and Linux. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
@@ -14,11 +19,15 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
 
 ## Roadmap
+See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 
 - [x] GUI for configuration
 - [x] Full cross-platform support (Windows, MacOS, Linux)
-- [ ] Customizable glossary for transcription refinement
+- [ ] Add a voice instruction feature to refine the transcription
+- [ ] Non-blocking transcription feature
+- [ ] Improve UI/UX using PyQt6 or Flet
 - [ ] Local Whisper model support
+- [ ] Customizable glossary for transcription refinement
 - [ ] Streaming transcription with ongoing audio (Optional)
 
 ## Requirements
@@ -47,7 +56,6 @@ A Python application that provides push-to-talk speech-to-text functionality wit
    - GUI provides persistent control and status monitoring
    - Use your configured hotkeys to record and transcribe
    - Start/stop the service anytime from the GUI
-   - No separate console or technical setup required
 
 ### For Developers
 
@@ -64,79 +72,60 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 
 3. **Run the GUI application**:
    ```bash
-   uv run python main_gui.py
-   ```
-
-4. **Or run the console version**:
-   ```bash
-   uv run python main_console.py
+   uv run python main.py
    ```
 
 ## GUI Configuration Interface
 
 The application features a comprehensive, persistent configuration GUI with organized sections:
 
-### 🏠 Welcome & Status
+### Welcome & Status
 - **Real-Time Status**: Visual indicators show current application state
   - **Gray circle + "Ready to start"**: Application stopped
   - **Green circle + "Running - Use your configured hotkeys"**: Application running
 - **Active Settings Display**: Shows current hotkeys and enabled features when running
 
-### 🔑 API Settings
+### API Settings
 - **OpenAI API Key**: Secure entry with show/hide functionality
 - **Model Selection**: Choose Whisper and Refinement Models
 - **API Key Testing**: Validate your credentials
 
-### 🎵 Audio Settings
+### Audio Settings
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
 - **Chunk Size**: Buffer size configuration
 - **Channels**: Mono/stereo recording options
 - **Audio Processing**: Smart silence removal and pitch-preserving speed adjustment
 - **Helpful Recommendations**: Built-in guidance for optimal settings
 
-### ⌨️ Hotkey Configuration
+### Hotkey Configuration
 - **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+Space)
 - **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+T)
 - **Validation**: Prevents duplicate hotkey assignments
 - **Examples**: Common hotkey combinations provided
 
-### 📄 Text Insertion Settings
+### Text Insertion Settings
 - **Insertion Method**: Choose between clipboard (fast) or sendkeys (compatible)
 - **Insertion Delay**: Fine-tune timing for different applications
 - **Method Guidance**: Recommendations for each approach
 
 
-
 ## How to Use
 
-### Via GUI (Recommended)
-1. **Launch**: Double-click `PushToTalk.exe` or run `uv run python main_gui.py`
-2. **Configure**: Use the integrated setup interface with welcome guidance
-3. **Start**: Click "Start Application" - GUI stays open with status indicators
-4. **Monitor**: Watch real-time status and active settings display
-5. **Use**: Background operation with your configured hotkeys
-6. **Control**: Use "Stop Application" button to terminate, or restart anytime
-
-### Via Console
-1. **Run**: `uv run python main_console.py`
-2. **Configure**: Edit `push_to_talk_config.json` manually or set environment variables
-3. **Use**: Same hotkey functionality as GUI
+1. **Build**: Build the application using `build.bat` if first time running on Windows
+2. **Launch**: Double-click the built `PushToTalk.exe` or run `uv run python main.py`
+3. **Configure**: Use the integrated setup interface with welcome guidance
+4. **Start**: Click "Start Application" - GUI stays open with status indicators
+5. **Monitor**: Watch real-time status and active settings display
+6. **Use**: Background operation with your configured hotkeys
+7. **Control**: Use "Stop Application" button to terminate, or restart anytime
 
 ## Building the Application
 
-### Build GUI Executable
 ```bash
 .\build.bat
 ```
 This creates `dist\PushToTalk.exe` - a standalone GUI application.
 
-### Build Console Executable
-```bash
-# First, modify push_to_talk.spec to
-# 1. Replace main_gui.py with main_console.py
-# 2. Set console=True
-uv run pyinstaller push_to_talk.spec
-```
 
 ## Configuration
 
@@ -146,6 +135,7 @@ The application supports both GUI and file-based configuration:
 - Launch the application to access the integrated configuration interface
 - **All settings** validated and saved automatically to `push_to_talk_config.json`
 - **Real-time status** shows application state with visual indicators
+- Every time you start the application, your configuration is saved and overwrites the old configuration in the JSON file `push_to_talk_config.json`
 
 ### File-Based Configuration
 The application creates a `push_to_talk_config.json` file. Example configuration file:
@@ -188,7 +178,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
 | `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
-| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file and console. |
+| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 | `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
 | `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
@@ -240,9 +230,7 @@ You can configure different hotkey combinations for both modes:
 - `f12`
 
 **Toggle hotkey** (press once to start, press again to stop):
-- `ctrl+shift+t` (default)
-- `f11`
-- `ctrl+alt+t`
+- `ctrl+shift+^` (default)
 - `alt+t`
 
 Both hotkeys support any combination from the `keyboard` library.
@@ -264,27 +252,12 @@ The application includes clean and simple audio feedback:
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    %% GUI
-    GUI -->|"Save Configuration"| PushToTalkApp
-    GUI -.->|"Real-time Updates"| PushToTalkApp
-
-    %% Main Flow
-    PushToTalkApp -->|"Initialize"| HotkeyService
-    HotkeyService -->|"Start/Stop Recording"| AudioRecorder
-    AudioRecorder -->|"Audio File"| AudioProcessor
-    AudioProcessor -->|"Processed Audio"| Transcriber
-    Transcriber -->|"AI Transcription"| TextRefiner
-    TextRefiner -->|"AI Refinement"| TextInserter
-```
-
 The application consists of several modular components:
 
 ### Core Components
 
 - **ConfigurationGUI** (`src/config_gui.py`): User-friendly GUI for settings management
-- **MainGUI** (`main_gui.py`): Entry point with welcome flow and startup management
+- **MainGUI** (`main.py`): Entry point with welcome flow and startup management
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
 - **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
 - **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
@@ -303,7 +276,79 @@ The application consists of several modular components:
 6. **Control** → Easy start/stop with "Stop Application" button
 7. **Manage** → Multiple start/stop cycles without closing the interface
 
+### Threading Architecture
+
+The application uses multiple threads to ensure responsive operation and prevent blocking of the main GUI thread:
+
+```mermaid
+sequenceDiagram
+    participant Main as Main Thread
+    participant GUI as GUI Thread
+    participant HotkeyThread as Hotkey Service Thread
+    participant AudioThread as Audio Recording Thread
+    participant ProcessThread as Audio Processing Thread
+    participant FeedbackThread as Audio Feedback Thread
+
+    Note over Main,FeedbackThread: Application Startup
+    Main->>GUI: Create GUI window
+    Main->>+HotkeyThread: Start hotkey service
+    HotkeyThread-->>Main: Service running
+
+    Note over Main,FeedbackThread: User Presses Hotkey
+    HotkeyThread->>+FeedbackThread: Play start feedback (non-blocking)
+    HotkeyThread->>+AudioThread: Start audio recording
+    AudioThread-->>HotkeyThread: Recording started
+    FeedbackThread-->>HotkeyThread: Feedback played
+
+    Note over Main,FeedbackThread: User Releases Hotkey
+    HotkeyThread->>+FeedbackThread: Play stop feedback (non-blocking)
+    HotkeyThread->>+ProcessThread: Process recording (daemon thread)
+    ProcessThread->>AudioThread: Stop recording
+    AudioThread-->>ProcessThread: Audio file returned
+    FeedbackThread-->>HotkeyThread: Feedback played
+
+    Note over Main,FeedbackThread: Audio Processing Pipeline
+    ProcessThread->>ProcessThread: Process audio (silence removal, speed-up)
+    ProcessThread->>ProcessThread: Transcribe via OpenAI API
+    ProcessThread->>ProcessThread: Refine text via GPT API
+    ProcessThread->>ProcessThread: Insert text into active window
+    ProcessThread->>ProcessThread: Cleanup temp files
+
+    Note over Main,FeedbackThread: GUI Status Updates
+    GUI->>Main: Real-time status monitoring
+    Main-->>GUI: Application state updates
+    GUI->>Main: User configuration changes
+    Main->>HotkeyThread: Update hotkey bindings (if needed)
+
+    Note over Main,FeedbackThread: Application Shutdown
+    GUI->>Main: Stop application request
+    Main->>HotkeyThread: Stop service
+    HotkeyThread-->>Main: Service stopped
+```
+
+**Key Threading Features:**
+- **Non-blocking Operation**: Audio processing runs in daemon threads to avoid blocking hotkey detection
+- **Parallel Audio Feedback**: Start/stop feedback sounds play in separate threads for immediate response
+- **Thread-safe Processing**: Uses `threading.Lock()` to prevent concurrent audio processing operations
+- **Daemon Threads**: Processing threads are marked as daemon to prevent hanging on application exit
+- **GUI Responsiveness**: Main GUI thread remains responsive during audio processing operations
+
 ### Data Flow
+
+```mermaid
+flowchart TB
+    %% GUI
+    GUI -->|"Save Configuration"| PushToTalkApp
+    GUI -.->|"Real-time Updates"| PushToTalkApp
+
+    %% Main Flow
+    PushToTalkApp -->|"Initialize"| HotkeyService
+    HotkeyService -->|"Start/Stop Recording"| AudioRecorder
+    AudioRecorder -->|"Audio File"| AudioProcessor
+    AudioProcessor -->|"Processed Audio"| Transcriber
+    Transcriber -->|"AI Transcription"| TextRefiner
+    TextRefiner -->|"AI Refinement"| TextInserter
+```
 
 1. User presses hotkey → Audio recording starts
 2. User releases hotkey → Recording stops
@@ -387,12 +432,7 @@ The application consists of several modular components:
 
 ### Logging
 
-Logs are written to `push_to_talk.log`. The GUI application logs only to file for cleaner user experience, while console mode logs to both file and console.
-
-Log levels:
-- INFO: Normal operation events
-- WARNING: Non-critical issues
-- ERROR: Critical errors
+Logs are written to `push_to_talk.log`. The GUI application logs only to file for cleaner user experience.
 
 ## Advanced Usage
 

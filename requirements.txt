@@ -10,6 +10,8 @@ certifi==2025.7.14
     # via
     #   httpcore
     #   httpx
+cffi==1.17.1
+    # via soundfile
 colorama==0.4.6
     # via tqdm
 distro==1.9.0
@@ -28,29 +30,69 @@ jiter==0.10.0
     # via openai
 keyboard==0.13.5
     # via push-to-talk (pyproject.toml)
+mouseinfo==0.1.3
+    # via pyautogui
+numpy==2.3.2
+    # via
+    #   push-to-talk (pyproject.toml)
+    #   praat-parselmouth
+    #   psola
+    #   pypar
+    #   soundfile
 openai==1.97.1
+    # via push-to-talk (pyproject.toml)
+praat-parselmouth==0.4.6
+    # via psola
+psola==0.0.1
     # via push-to-talk (pyproject.toml)
 pyaudio==0.2.14
     # via push-to-talk (pyproject.toml)
+pyautogui==0.9.54
+    # via push-to-talk (pyproject.toml)
+pycparser==2.22
+    # via cffi
 pydantic==2.11.7
     # via openai
 pydantic-core==2.33.2
     # via pydantic
-pywin32==309
+pydub==0.25.1
     # via push-to-talk (pyproject.toml)
+pygame==2.6.1
+    # via push-to-talk (pyproject.toml)
+pygetwindow==0.0.9
+    # via pyautogui
+pymsgbox==1.0.9
+    # via pyautogui
+pypar==0.0.6
+    # via psola
+pyperclip==1.9.0
+    # via
+    #   push-to-talk (pyproject.toml)
+    #   mouseinfo
+pyrect==0.2.0
+    # via pygetwindow
+pyscreeze==1.0.1
+    # via pyautogui
+pytweening==1.2.0
+    # via pyautogui
 sniffio==1.3.1
     # via
     #   anyio
     #   openai
+soundfile==0.13.1
+    # via
+    #   push-to-talk (pyproject.toml)
+    #   psola
 tqdm==4.67.1
-    # via openai
+    # via
+    #   openai
+    #   psola
 typing-extensions==4.14.1
     # via
+    #   anyio
     #   openai
     #   pydantic
     #   pydantic-core
     #   typing-inspection
 typing-inspection==0.4.1
     # via pydantic
-websocket-client==1.8.0
-    # via push-to-talk (pyproject.toml)

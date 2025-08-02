@@ -504,36 +504,3 @@ class PushToTalkApp:
             "text_refinement_enabled": self.config.enable_text_refinement,
             "logging_enabled": self.config.enable_logging,
         }
-
-
-def main():
-    """Main entry point for the application."""
-    # Load config if it exists
-    config_file = "push_to_talk_config.json"
-    if os.path.exists(config_file):
-        config = PushToTalkConfig.load_from_file(config_file)
-        logger.info(f"Loaded configuration from {config_file}")
-    else:
-        config = PushToTalkConfig()
-        config.save_to_file(config_file)
-        logger.info(f"Created default configuration file: {config_file}")
-
-    # Create and run application
-    try:
-        app = PushToTalkApp(config)
-        app.run()
-    except Exception as e:
-        logger.error(f"Application error: {e}")
-        logger.error("Tip 1: Make sure you have a .env file with your OPENAI_API_KEY")
-        logger.error(
-            "Tip 2: or set the OPENAI_API_KEY in push_to_talk_config.json file created by the application."
-        )
-        logger.error("Exiting in 10 seconds...")
-        for i in range(10):
-            logger.error(f"Exiting in {10 - i} seconds...")
-            time.sleep(1)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

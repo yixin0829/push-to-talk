@@ -3,22 +3,14 @@
 block_cipher = None
 
 a = Analysis(
-    ['main_gui.py'],  # Changed from main_console.py to main_gui.py
+    ['main.py'],  # Changed from main_console.py to main.py
     pathex=[],
     binaries=[],
     datas=[
         ('src', 'src'),
-        ('.env.example', '.'),
         ('icon.ico', '.'),  # Include icon in data files
     ],
-    hiddenimports=[
-        'pywin32',
-        'pywintypes',
-        'tkinter',  # Added tkinter for GUI
-        'tkinter.ttk',  # Added ttk for modern widgets
-        'tkinter.messagebox',  # Added messagebox for dialogs
-        'tkinter.filedialog',  # Added filedialog for file operations
-    ],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
