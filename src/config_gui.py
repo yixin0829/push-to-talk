@@ -347,8 +347,8 @@ Configure your settings below, then click "Start Application" to begin:"""
         """Create audio processing configuration section."""
         frame = self._create_section_frame(parent, "Audio Processing Settings")
 
-        # Silence Threshold
-        ttk.Label(frame, text="Silence Threshold:").grid(
+        # Silence Threshold (dBFS)
+        ttk.Label(frame, text="Silence Threshold (dBFS):").grid(
             row=0, column=0, sticky="w", pady=2
         )
         self.config_vars["silence_threshold"] = tk.DoubleVar(
@@ -357,17 +357,17 @@ Configure your settings below, then click "Start Application" to begin:"""
         silence_spinbox = tk.Spinbox(
             frame,
             textvariable=self.config_vars["silence_threshold"],
-            from_=0.001,
-            to=0.1,
-            increment=0.001,
+            from_=-60.0,
+            to=0.0,
+            increment=1.0,
             width=15,
-            format="%.3f",
+            format="%.1f",
         )
         silence_spinbox.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
 
         ttk.Label(
             frame,
-            text="(lower = more sensitive)",
+            text="(higher = more sensitive)",
             font=("TkDefaultFont", 8),
             foreground="gray",
         ).grid(row=0, column=2, sticky="w", padx=(5, 0), pady=2)
@@ -382,17 +382,17 @@ Configure your settings below, then click "Start Application" to begin:"""
         duration_spinbox = tk.Spinbox(
             frame,
             textvariable=self.config_vars["min_silence_duration"],
-            from_=0.1,
-            to=2.0,
-            increment=0.1,
+            from_=100.0,
+            to=2000.0,
+            increment=50.0,
             width=15,
-            format="%.1f",
+            format="%.0f",
         )
         duration_spinbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
 
         ttk.Label(
             frame,
-            text="(minimum silence to remove)",
+            text="(minimum silence to split on)",
             font=("TkDefaultFont", 8),
             foreground="gray",
         ).grid(row=1, column=2, sticky="w", padx=(5, 0), pady=2)
@@ -419,7 +419,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         ).grid(row=2, column=2, sticky="w", padx=(5, 0), pady=2)
 
         # Add helpful text
-        help_text = "Audio processing removes silence and speeds up audio for faster transcription"
+        help_text = "Audio processing uses pydub for silence detection and psola for pitch-preserving speed adjustment"
         ttk.Label(
             frame, text=help_text, font=("TkDefaultFont", 8), foreground="gray"
         ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(5, 0))
