@@ -1,32 +1,31 @@
 # PushToTalk - AI Refined Speech-to-Text Dictation
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS, and Linux. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
 - **🤖 Speech-to-Text**: Uses OpenAI Whisper for accurate transcription
+- **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 - **🔊 Audio Feedback**: Optional audio cues for recording start/stop
-- **📋 Multiple Insertion Methods**: Support for clipboard and sendkeys insertion
+- **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
 
 ## Roadmap
 
 - [x] GUI for configuration
+- [x] Full cross-platform support (Windows, MacOS, Linux)
 - [ ] Customizable glossary for transcription refinement
-- [ ] Streaming transcription with ongoing audio
 - [ ] Local Whisper model support
-- [ ] Cross-platform support (MacOS, Linux)
+- [ ] Streaming transcription with ongoing audio (Optional)
 
 ## Requirements
 
-- Windows OS (10/11)
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - OpenAI API key (https://platform.openai.com/docs/api-reference/introduction)
 - Microphone access (for recording)
-- Administrator privileges (for global hotkey detection)
 
 ## Quick Start (GUI Application)
 
@@ -92,6 +91,7 @@ The application features a comprehensive, persistent configuration GUI with orga
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
 - **Chunk Size**: Buffer size configuration
 - **Channels**: Mono/stereo recording options
+- **Audio Processing**: Smart silence removal and pitch-preserving speed adjustment
 - **Helpful Recommendations**: Built-in guidance for optimal settings
 
 ### ⌨️ Hotkey Configuration
@@ -164,7 +164,12 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "insertion_delay": 0.005,
   "enable_text_refinement": true,
   "enable_logging": true,
-  "enable_audio_feedback": true
+  "enable_audio_feedback": true,
+  "enable_audio_processing": true,
+  "debug_mode": false,
+  "silence_threshold": -16.0,
+  "min_silence_duration": 400.0,
+  "speed_factor": 1.5
 }
 ```
 
@@ -185,6 +190,11 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file and console. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
+| `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
+| `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
+| `silence_threshold` | float | `-16.0` | dBFS threshold for silence detection. Higher values (closer to 0) are more sensitive to quiet sounds. |
+| `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
+| `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
 
 #### Audio Quality Settings
 
@@ -201,6 +211,23 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 - **channels**:
   - `1` - Mono recording (recommended for speech)
   - `2` - Stereo recording (unnecessary for speech-to-text)
+
+#### Audio Processing Settings
+
+- **silence_threshold**:
+  - `-16.0` (dBFS) - Recommended balance between noise removal and speech preservation
+  - `-10.0` - More aggressive silence removal (may cut quiet speech)
+  - `-30.0` - Less aggressive (keeps more background noise)
+
+- **min_silence_duration**:
+  - `400.0` ms - Recommended for natural speech patterns
+  - `200.0` ms - More aggressive silence removal (faster processing)
+  - `800.0` ms - Conservative (preserves natural pauses)
+
+- **speed_factor**:
+  - `1.5` - Recommended 1.5x speedup with pitch preservation
+  - `1.0` - No speed adjustment (original timing)
+  - `2.0` - 2x speedup (more aggressive, may affect quality)
 
 ### Hotkey Options
 
@@ -222,8 +249,8 @@ Both hotkeys support any combination from the `keyboard` library.
 
 ### Text Insertion Methods
 
-- **sendkeys** (default): Simulates individual keystrokes, better for special characters
-- **clipboard**: Faster and more reliable, uses Ctrl+V
+- **sendkeys** (default): Simulates individual keystrokes using pyautogui, better for special characters
+- **clipboard**: Faster and more reliable, uses pyperclip and pyautogui for Ctrl+V
 
 ### Audio Feedback
 
@@ -233,7 +260,7 @@ The application includes clean and simple audio feedback:
 - **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
 - **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via GUI or configuration JSON file
-- **Minimal Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
+- **Cross-Platform**: Uses `pygame` and `numpy` for tone generation - works on Windows, MacOS, and Linux
 
 ## Architecture
 
@@ -246,7 +273,8 @@ flowchart TB
     %% Main Flow
     PushToTalkApp -->|"Initialize"| HotkeyService
     HotkeyService -->|"Start/Stop Recording"| AudioRecorder
-    AudioRecorder -->|"Audio File"| Transcriber
+    AudioRecorder -->|"Audio File"| AudioProcessor
+    AudioProcessor -->|"Processed Audio"| Transcriber
     Transcriber -->|"AI Transcription"| TextRefiner
     TextRefiner -->|"AI Refinement"| TextInserter
 ```
@@ -258,9 +286,10 @@ The application consists of several modular components:
 - **ConfigurationGUI** (`src/config_gui.py`): User-friendly GUI for settings management
 - **MainGUI** (`main_gui.py`): Entry point with welcome flow and startup management
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
+- **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
 - **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models
-- **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
+- **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
 - **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator with dynamic configuration updates
 
@@ -278,17 +307,24 @@ The application consists of several modular components:
 
 1. User presses hotkey → Audio recording starts
 2. User releases hotkey → Recording stops
-3. Audio file is sent to OpenAI Whisper for transcription
-4. Raw transcription is refined using Refinement Models (if enabled)
-5. Refined text is inserted into the active window
+3. Audio file is processed (silence removal and speed adjustment for faster transcription)
+4. Processed audio is sent to OpenAI Whisper for transcription
+5. Raw transcription is refined using Refinement Models (if enabled)
+6. Refined text is inserted into the active window
 
 ## Dependencies
 
 - **tkinter**: GUI interface (built into Python)
 - **keyboard**: Global hotkey detection
+- **numpy**: Audio tone generation for feedback sounds
 - **pyaudio**: Audio recording
+- **pydub**: Smart silence detection and audio manipulation
+- **soundfile**: High-quality audio I/O
+- **psola**: Pitch-preserving time-scale modification
 - **openai**: Speech-to-text and text refinement
-- **pywin32**: Windows-specific text insertion and audio feedback (winsound)
+- **pyautogui**: Cross-platform text insertion and window management
+- **pyperclip**: Cross-platform clipboard operations
+- **pygame**: Cross-platform audio feedback
 - **python-dotenv**: Environment variable management
 
 ## Troubleshooting
@@ -317,9 +353,9 @@ The application consists of several modular components:
 
 ### Common Issues
 
-1. **"No module named 'pywin32'"** (Development):
+1. **"No module named 'pyautogui' or 'pyperclip'"** (Development):
    ```bash
-   uv add pywin32
+   uv add pyautogui pyperclip
    ```
 
 2. **"Could not find PyAudio"** (Development):
@@ -426,10 +462,12 @@ if result == "close":
 ## Performance Tips
 
 1. **Optimize audio settings**: Lower sample rates (8000-16000 Hz) for faster processing
-2. **Disable text refinement**: For faster transcription without GPT processing
-3. **Use clipboard method**: Generally faster than sendkeys for text insertion
-4. **Short recordings**: Keep recordings under 30 seconds for optimal performance
-5. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
+2. **Enable audio processing**: Smart silence removal and speed adjustment can significantly reduce transcription time
+3. **Adjust silence threshold**: Fine-tune -16 dBFS for your environment (higher for noisy environments)
+4. **Disable text refinement**: For faster transcription without GPT processing
+5. **Use clipboard method**: Generally faster than sendkeys for text insertion
+6. **Short recordings**: Keep recordings under 30 seconds for optimal performance
+7. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
 
 ## Security Considerations
 

@@ -15,3 +15,6 @@ wheels/
 
 push_to_talk.log
 push_to_talk_config.json
+
+.claude
+.ruff_cache
