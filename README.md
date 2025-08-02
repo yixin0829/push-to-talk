@@ -1,6 +1,6 @@
 # PushToTalk - AI Refined Speech-to-Text Dictation
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS, and Linux. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
@@ -10,23 +10,21 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 - **🔊 Audio Feedback**: Optional audio cues for recording start/stop
-- **📋 Multiple Insertion Methods**: Support for clipboard and sendkeys insertion
+- **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
 
 ## Roadmap
 
 - [x] GUI for configuration
+- [x] Full cross-platform support (Windows, MacOS, Linux)
 - [ ] Customizable glossary for transcription refinement
 - [ ] Streaming transcription with ongoing audio
 - [ ] Local Whisper model support
-- [ ] Cross-platform support (MacOS, Linux)
 
 ## Requirements
 
-- Windows OS (10/11)
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - OpenAI API key (https://platform.openai.com/docs/api-reference/introduction)
 - Microphone access (for recording)
-- Administrator privileges (for global hotkey detection)
 
 ## Quick Start (GUI Application)
 
@@ -222,8 +220,8 @@ Both hotkeys support any combination from the `keyboard` library.
 
 ### Text Insertion Methods
 
-- **sendkeys** (default): Simulates individual keystrokes, better for special characters
-- **clipboard**: Faster and more reliable, uses Ctrl+V
+- **sendkeys** (default): Simulates individual keystrokes using pyautogui, better for special characters
+- **clipboard**: Faster and more reliable, uses pyperclip and pyautogui for Ctrl+V
 
 ### Audio Feedback
 
@@ -233,7 +231,7 @@ The application includes clean and simple audio feedback:
 - **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
 - **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via GUI or configuration JSON file
-- **Minimal Dependencies**: Uses Windows' built-in `winsound` module - no additional packages required
+- **Cross-Platform**: Uses `pygame` and `numpy` for tone generation - works on Windows, MacOS, and Linux
 
 ## Architecture
 
@@ -260,7 +258,7 @@ The application consists of several modular components:
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
 - **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models
-- **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pywin32
+- **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
 - **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator with dynamic configuration updates
 
@@ -286,9 +284,12 @@ The application consists of several modular components:
 
 - **tkinter**: GUI interface (built into Python)
 - **keyboard**: Global hotkey detection
+- **numpy**: Audio tone generation for feedback sounds
 - **pyaudio**: Audio recording
 - **openai**: Speech-to-text and text refinement
-- **pywin32**: Windows-specific text insertion and audio feedback (winsound)
+- **pyautogui**: Cross-platform text insertion and window management
+- **pyperclip**: Cross-platform clipboard operations
+- **pygame**: Cross-platform audio feedback
 - **python-dotenv**: Environment variable management
 
 ## Troubleshooting
@@ -317,9 +318,9 @@ The application consists of several modular components:
 
 ### Common Issues
 
-1. **"No module named 'pywin32'"** (Development):
+1. **"No module named 'pyautogui' or 'pyperclip'"** (Development):
    ```bash
-   uv add pywin32
+   uv add pyautogui pyperclip
    ```
 
 2. **"Could not find PyAudio"** (Development):

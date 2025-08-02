@@ -6,10 +6,12 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "keyboard>=0.13.5",
+    "numpy>=1.24.0",
     "openai>=1.97.1",
     "pyaudio>=0.2.14",
     "pyautogui>=0.9.54",
     "pyperclip>=1.9.0",
+    "pygame>=2.5.0",
 ]
 
 [dependency-groups]
