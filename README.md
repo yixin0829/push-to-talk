@@ -17,8 +17,8 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - [x] GUI for configuration
 - [x] Full cross-platform support (Windows, MacOS, Linux)
 - [ ] Customizable glossary for transcription refinement
-- [ ] Streaming transcription with ongoing audio
 - [ ] Local Whisper model support
+- [ ] Streaming transcription with ongoing audio (Optional)
 
 ## Requirements
 

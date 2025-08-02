@@ -3,7 +3,7 @@ name = "push-to-talk"
 version = "0.1.0"
 description = "A push-to-talk speech-to-text application using OpenAI API for real-time transcription and support active window text insertion."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 dependencies = [
     "keyboard>=0.13.5",
     "numpy>=1.24.0",
@@ -12,6 +12,9 @@ dependencies = [
     "pyautogui>=0.9.54",
     "pyperclip>=1.9.0",
     "pygame>=2.5.0",
+    "soundfile>=0.13.1",
+    "psola>=0.0.1",
+    "pydub[scipy]>=0.25.1",
 ]
 
 [dependency-groups]
