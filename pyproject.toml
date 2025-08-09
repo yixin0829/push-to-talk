@@ -25,3 +25,12 @@ dev = [
     "python-dotenv>=1.1.1",
     "ruff>=0.12.5",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (may be slower)",
+    "slow: marks tests as slow running",
+    "unit: marks tests as unit tests (default)",
+]
+addopts = "--strict-markers"
+testpaths = ["tests"]

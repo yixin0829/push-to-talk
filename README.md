@@ -530,7 +530,256 @@ if result == "close":
 - **Network Access**: Required for OpenAI API calls
 - **File Permissions**: Ensure configuration files have appropriate access controls
 
+## Testing
+
+### Unit Test Suite
+
+The application includes comprehensive unit tests to ensure code quality and functionality. The test suite covers all core components with detailed logging for debugging.
+
+#### Running Tests
+
+```bash
+# Run all tests
+uv run pytest tests/ -v
+
+# Run unit tests only
+uv run pytest tests/ -v -m "not integration"
+
+# Run integration tests with real audio files
+uv run pytest tests/ -v -m integration
+
+# Run tests with coverage report
+uv run pytest tests/ --cov=src --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_audio_recorder.py -v
+
+# Run tests with detailed output
+uv run pytest tests/ -v --tb=long
+
+# Run format instruction tests specifically
+uv run pytest tests/test_format_instruction.py -v
+```
+
+#### Test Structure
+
+The test suite is organized by component in the `tests/` directory:
+
+```
+tests/
+├── __init__.py
+├── conftest.py                      # Test configuration and fixtures
+├── test_audio_recorder.py           # Audio recording functionality tests
+├── test_audio_processor.py          # Audio processing and silence removal tests
+├── test_transcription.py            # OpenAI Whisper integration tests
+├── test_text_refiner.py             # AI text refinement tests
+├── test_text_inserter.py            # Text insertion and clipboard tests
+├── test_hotkey_service.py           # Hotkey detection and management tests
+├── test_utils.py                    # Audio feedback and utility function tests
+├── test_integration_simplified.py  # Integration tests with real audio files
+├── test_format_instruction.py      # Format instruction processing tests
+└── fixtures/                       # Real audio files and scripts for integration testing
+    ├── audio1.wav                   # Business meeting audio
+    ├── audio1_script.txt
+    ├── audio2.wav                   # Product demo audio
+    ├── audio2_script.txt
+    ├── audio3.wav                   # To-do list with format instruction
+    └── audio3_script.txt
+```
+
+#### Test Coverage by Component
+
+##### AudioRecorder (`test_audio_recorder.py`)
+- **Initialization**: Default and custom parameter validation
+- **Recording Lifecycle**: Start/stop recording with thread management
+- **Error Handling**: PyAudio failures, cleanup on errors
+- **Audio Data Management**: Sample width detection, temporary file creation
+- **Thread Safety**: Recording thread management and termination
+
+**Key Test Cases:**
+- `test_start_recording_success`: Validates successful audio recording start
+- `test_stop_recording_success`: Tests proper audio file generation and cleanup
+- `test_sample_width_fallback`: Ensures fallback logic for different audio formats
+- `test_cleanup_with_exception`: Verifies graceful error handling
+
+##### AudioProcessor (`test_audio_processor.py`)
+- **Initialization Testing**: Default and custom parameter validation
+- **Audio Processing Pipeline**: Silence detection, removal, and speed adjustment (simplified)
+- **File Format Handling**: Basic audio file loading and error handling
+- **Error Handling**: Graceful failure handling for invalid audio files
+
+**Key Test Cases:**
+- `test_initialization`: Default parameter validation
+- `test_custom_initialization`: Custom parameter configuration
+- `test_process_audio_file_load_failure`: Audio file load error handling
+
+**Note**: Complex audio processing tests (PSOLA, stereo-to-mono conversion, debug mode) are simplified due to mocking complexity. Full audio processing functionality is validated in integration tests using real audio files.
+
+##### Transcriber (`test_transcription.py`)
+- **OpenAI API Integration**: Whisper model configuration and API calls
+- **Error Handling**: Network failures, invalid API keys, empty responses
+- **File Management**: Temporary file cleanup and error recovery
+- **Response Processing**: String and object response handling
+
+**Key Test Cases:**
+- `test_transcribe_audio_success`: Successful transcription workflow
+- `test_transcribe_audio_with_language`: Language parameter support
+- `test_transcribe_audio_api_failure`: API error handling and fallback
+- `test_transcribe_audio_cleanup_failure`: Cleanup error resilience
+
+##### TextRefiner (`test_text_refiner.py`)
+- **AI Text Refinement**: GPT model integration for text improvement
+- **Prompt Management**: Custom and default prompt handling
+- **Model Configuration**: GPT-4 and GPT-5 specific settings
+- **Length Optimization**: Skip refinement for short text snippets
+
+**Key Test Cases:**
+- `test_refine_text_success`: Complete text refinement pipeline
+- `test_refine_text_gpt5_model_settings`: GPT-5 reasoning parameter handling
+- `test_set_custom_prompt`: Custom refinement prompt configuration
+- `test_refine_text_too_short`: Length-based refinement optimization
+
+##### TextInserter (`test_text_inserter.py`)
+- **Cross-Platform Text Insertion**: Clipboard and sendkeys methods
+- **Window Management**: Active window detection and title retrieval
+- **Clipboard Operations**: Backup/restore clipboard content
+- **Platform-Specific Logic**: macOS vs Windows hotkey differences
+
+**Key Test Cases:**
+- `test_insert_via_clipboard_success`: Clipboard-based text insertion
+- `test_insert_via_sendkeys_success`: Keystroke simulation method
+- `test_get_active_window_title_success`: Window management functionality
+- `test_clipboard_restoration_no_original`: Clipboard state preservation
+
+##### HotkeyService (`test_hotkey_service.py`)
+- **Global Hotkey Detection**: Push-to-talk and toggle mode hotkeys
+- **Threading Management**: Service lifecycle and thread safety
+- **Key Parsing**: Hotkey combination validation and parsing
+- **Mode Management**: Push-to-talk vs toggle recording modes
+
+**Key Test Cases:**
+- `test_start_service_success`: Hotkey service initialization
+- `test_on_hotkey_press_not_recording`: Push-to-talk hotkey handling
+- `test_on_toggle_hotkey_press_start_recording`: Toggle mode functionality
+- `test_change_hotkey_success`: Dynamic hotkey reconfiguration
+
+##### Utils (`test_utils.py`)
+- **Audio Feedback**: Start/stop sound generation and playback
+- **Tone Generation**: Pure tone synthesis with envelope shaping
+- **pygame Integration**: Cross-platform audio output
+- **Threading**: Non-blocking audio feedback in daemon threads
+
+**Key Test Cases:**
+- `test_generate_tone_basic`: Audio tone generation and parameters
+- `test_play_start_feedback_success`: Start recording audio feedback
+- `test_generate_tone_fade_envelope`: Audio envelope and fade effects
+- `test_threading_daemon_mode`: Non-blocking audio playback
+
+##### Integration Tests (`test_integration_simplified.py`, `test_format_instruction.py`)
+- **Real Audio File Processing**: Tests with actual WAV files from fixtures directory
+- **Audio Processing Pipeline**: End-to-end audio processing with different settings
+- **Debug Mode Validation**: Verification of debug file generation and processing metadata
+- **Format Instruction Processing**: Special handling of text refinement instructions
+- **Fallback Behavior**: API failure handling and graceful degradation
+
+**Key Test Cases:**
+- `test_audio_processor_real_files_basic`: Process all three fixture audio files
+- `test_audio_processor_debug_mode_real_files`: Debug file generation with real audio
+- `test_format_instruction_text_processing`: Bullet point formatting with audio3
+- `test_text_refiner_format_instruction_bullet_points`: Specific format instruction handling
+- `test_audio_file_format_validation`: WAV format validation and compatibility
+
+**Fixture Audio Files:**
+- **audio1.wav**: Business meeting with filler words and stutters (~42s)
+- **audio2.wav**: Product demo with technical terminology (~35s)
+- **audio3.wav**: Personal to-do list with format instruction "Format this as a to-do list in bullet points" (~35s)
+
+#### Test Features
+
+##### Detailed Logging
+All tests include comprehensive logging for debugging:
+
+```python
+logger.info("Testing successful audio recording start")
+assert result is True
+logger.info("Audio recording start test passed")
+```
+
+##### Mock Integration
+Extensive use of `unittest.mock` to isolate components:
+
+```python
+@patch('pyaudio.PyAudio')
+@patch('tempfile.NamedTemporaryFile')
+def test_audio_recording(self, mock_temp_file, mock_pyaudio):
+    # Test implementation with mocked dependencies
+```
+
+##### Error Simulation
+Tests include error condition handling:
+
+```python
+def test_api_failure(self):
+    mock_api.side_effect = Exception("API request failed")
+    result = self.component.process()
+    assert result is None  # Graceful failure
+```
+
+##### Cross-Platform Testing
+Platform-specific behavior validation:
+
+```python
+@patch('sys.platform', 'darwin')  # macOS
+def test_macos_hotkeys(self):
+    # macOS-specific hotkey testing
+```
+
+#### Running Specific Test Categories
+
+```bash
+# Test audio components only
+uv run pytest tests/test_audio_*.py -v
+
+# Test API integrations only
+uv run pytest tests/test_transcription.py tests/test_text_refiner.py -v
+
+# Test GUI components (when implemented)
+uv run pytest tests/test_*gui*.py -v
+
+# Run tests with specific markers
+uv run pytest tests/ -m "not slow" -v
+```
+
+#### Continuous Integration
+
+The test suite is designed for CI/CD integration:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run Tests
+  run: |
+    uv sync --dev
+    uv run pytest tests/ --cov=src --cov-report=xml
+```
+
+#### Performance Testing
+
+While not yet implemented, the test structure supports performance benchmarks:
+
+```python
+# Future performance test example
+@pytest.mark.performance
+def test_transcription_speed(self):
+    start_time = time.time()
+    result = self.transcriber.transcribe_audio("test_audio.wav")
+    duration = time.time() - start_time
+    assert duration < 5.0  # Max 5 seconds for transcription
+```
+
+The test suite ensures reliability across all components and provides confidence when implementing new features or refactoring existing code.
+
 ## Version History
 
+- **0.3.0**: Enhanced Threading Architecture & Streamlined Experience
 - **0.2.0**: Persistent GUI interface, real-time status management, improved user experience, packaging as executable
 - **0.1.0**: Initial console-based release
