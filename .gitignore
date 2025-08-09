@@ -9,6 +9,9 @@ wheels/
 # PyInstaller specific
 *.spec.backup
 
+# Pytest cache
+.pytest_cache/
+
 # Virtual environments
 .venv
 .env
