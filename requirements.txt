@@ -41,6 +41,8 @@ numpy==2.3.2
     #   soundfile
 openai==1.97.1
     # via push-to-talk (pyproject.toml)
+playsound3==3.2.4
+    # via push-to-talk (pyproject.toml)
 praat-parselmouth==0.4.6
     # via psola
 psola==0.0.1
@@ -56,8 +58,6 @@ pydantic==2.11.7
 pydantic-core==2.33.2
     # via pydantic
 pydub==0.25.1
-    # via push-to-talk (pyproject.toml)
-pygame==2.6.1
     # via push-to-talk (pyproject.toml)
 pygetwindow==0.0.9
     # via pyautogui
@@ -75,6 +75,8 @@ pyscreeze==1.0.1
     # via pyautogui
 pytweening==1.2.0
     # via pyautogui
+pywin32==311
+    # via playsound3
 sniffio==1.3.1
     # via
     #   anyio

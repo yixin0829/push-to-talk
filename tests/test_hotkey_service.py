@@ -14,8 +14,9 @@ class TestHotkeyService:
     def setup_method(self):
         """Setup for each test method"""
         logger.info("Setting up HotkeyService test")
+        # Use explicit hotkeys to avoid platform-specific defaults
         self.service = HotkeyService(
-            hotkey="ctrl+shift+space", toggle_hotkey="ctrl+shift+t"
+            hotkey="ctrl+shift+space", toggle_hotkey="ctrl+shift+^"
         )
 
     def teardown_method(self):
@@ -29,7 +30,7 @@ class TestHotkeyService:
         logger.info("Testing HotkeyService initialization")
 
         assert self.service.hotkey == "ctrl+shift+space"
-        assert self.service.toggle_hotkey == "ctrl+shift+t"
+        assert self.service.toggle_hotkey == "ctrl+shift+^"
         assert self.service.is_running is False
         assert self.service.is_recording is False
         assert self.service.is_toggle_mode is False
@@ -81,7 +82,7 @@ class TestHotkeyService:
         # Mock parse_hotkey to fail
         mock_parse.side_effect = Exception("Parse failed")
 
-        service = HotkeyService("ctrl+shift+space", "ctrl+shift+t")
+        service = HotkeyService("ctrl+shift+space", "ctrl+shift+^")
 
         # Should have fallback keys for common combinations
         assert "ctrl" in service.hotkey_keys or "space" in service.hotkey_keys
@@ -558,7 +559,7 @@ class TestHotkeyService:
 
         toggle_hotkey = self.service.get_toggle_hotkey()
 
-        assert toggle_hotkey == "ctrl+shift+t"
+        assert toggle_hotkey == "ctrl+shift+^"
 
         logger.info("Get toggle hotkey test passed")
 
@@ -660,3 +661,123 @@ class TestHotkeyService:
         mock_unhook.assert_called_once()
 
         logger.info("Service loop exception test passed")
+
+
+class TestHotkeyServicePlatformSupport:
+    """Test platform-specific functionality"""
+
+    @patch("sys.platform", "darwin")
+    def test_macos_platform_detection(self):
+        """Test macOS platform detection"""
+        logger.info("Testing macOS platform detection")
+
+        # Test platform name
+        assert HotkeyService.get_platform_name() == "macOS"
+
+        # Test modifier key
+        assert HotkeyService.get_platform_modifier_key() == "cmd"
+
+        # Test default hotkeys
+        assert HotkeyService.get_platform_default_hotkey() == "cmd+shift+space"
+        assert HotkeyService.get_platform_default_toggle_hotkey() == "cmd+shift+^"
+
+        logger.info("macOS platform detection test passed")
+
+    @patch("sys.platform", "win32")
+    def test_windows_platform_detection(self):
+        """Test Windows platform detection"""
+        logger.info("Testing Windows platform detection")
+
+        # Test platform name
+        assert HotkeyService.get_platform_name() == "Windows"
+
+        # Test modifier key
+        assert HotkeyService.get_platform_modifier_key() == "ctrl"
+
+        # Test default hotkeys
+        assert HotkeyService.get_platform_default_hotkey() == "ctrl+shift+space"
+        assert HotkeyService.get_platform_default_toggle_hotkey() == "ctrl+shift+^"
+
+        logger.info("Windows platform detection test passed")
+
+    @patch("sys.platform", "linux")
+    def test_linux_platform_detection(self):
+        """Test Linux platform detection"""
+        logger.info("Testing Linux platform detection")
+
+        # Test platform name
+        assert HotkeyService.get_platform_name() == "Linux"
+
+        # Test modifier key
+        assert HotkeyService.get_platform_modifier_key() == "ctrl"
+
+        # Test default hotkeys
+        assert HotkeyService.get_platform_default_hotkey() == "ctrl+shift+space"
+        assert HotkeyService.get_platform_default_toggle_hotkey() == "ctrl+shift+^"
+
+        logger.info("Linux platform detection test passed")
+
+    @patch("sys.platform", "darwin")
+    def test_default_initialization_macos(self):
+        """Test default initialization on macOS"""
+        logger.info("Testing default initialization on macOS")
+
+        service = HotkeyService()  # No explicit hotkeys
+
+        assert service.hotkey == "cmd+shift+space"
+        assert service.toggle_hotkey == "cmd+shift+^"
+
+        logger.info("Default initialization macOS test passed")
+
+    @patch("sys.platform", "win32")
+    def test_default_initialization_windows(self):
+        """Test default initialization on Windows"""
+        logger.info("Testing default initialization on Windows")
+
+        service = HotkeyService()  # No explicit hotkeys
+
+        assert service.hotkey == "ctrl+shift+space"
+        assert service.toggle_hotkey == "ctrl+shift+^"
+
+        logger.info("Default initialization Windows test passed")
+
+    @patch("keyboard.parse_hotkey")
+    def test_macos_cmd_key_parsing_fallback(self, mock_parse):
+        """Test macOS cmd key parsing fallback"""
+        logger.info("Testing macOS cmd key parsing fallback")
+
+        # Mock parse_hotkey to fail
+        mock_parse.side_effect = Exception("Parse failed")
+
+        service = HotkeyService("cmd+shift+space", "cmd+shift+^")
+
+        # Should have fallback keys for macOS combinations
+        assert "cmd" in service.hotkey_keys or "space" in service.hotkey_keys
+        assert "cmd" in service.toggle_hotkey_keys or "t" in service.toggle_hotkey_keys
+
+        logger.info("macOS cmd key parsing fallback test passed")
+
+    def test_cmd_key_release_handling(self):
+        """Test macOS cmd key release handling"""
+        logger.info("Testing macOS cmd key release handling")
+
+        service = HotkeyService("cmd+shift+space", "cmd+shift+^")
+        service.is_running = True
+        service.is_recording = True
+        service.is_toggle_mode = False
+        service.hotkey_keys = {"cmd", "shift", "space"}
+
+        start_callback = MagicMock()
+        stop_callback = MagicMock()
+        service.set_callbacks(start_callback, stop_callback)
+
+        # Test cmd key release variations
+        mock_event = MagicMock()
+        mock_event.name = "left cmd"
+
+        service._on_key_release(mock_event)
+
+        assert service.is_recording is False
+        stop_callback.assert_called_once()
+
+        logger.info("macOS cmd key release handling test passed")

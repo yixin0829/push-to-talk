@@ -5,7 +5,7 @@ import logging
 import threading
 import signal
 from typing import Optional, Dict, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 import json
 
 from src.audio_recorder import AudioRecorder
@@ -40,9 +40,17 @@ class PushToTalkConfig:
     chunk_size: int = 1024
     channels: int = 1
 
-    # Hotkey settings
-    hotkey: str = "ctrl+shift+space"
-    toggle_hotkey: str = "ctrl+shift+^"  # New toggle hotkey
+    # Hotkey settings - will use platform-specific defaults if empty
+    hotkey: str = field(
+        default_factory=lambda: (
+            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
+        )
+    )
+    toggle_hotkey: str = field(
+        default_factory=lambda: (
+            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
+        )
+    )
 
     # Text insertion settings
     insertion_method: str = "sendkeys"  # "clipboard" or "sendkeys"
@@ -152,7 +160,8 @@ class PushToTalkApp:
         self.text_inserter = TextInserter(insertion_delay=self.config.insertion_delay)
 
         self.hotkey_service = HotkeyService(
-            hotkey=self.config.hotkey, toggle_hotkey=self.config.toggle_hotkey
+            hotkey=self.config.hotkey or None,
+            toggle_hotkey=self.config.toggle_hotkey or None,
         )
 
         # Setup hotkey callbacks

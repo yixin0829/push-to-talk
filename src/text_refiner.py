@@ -70,9 +70,11 @@ Output Format
             start_time = time.time()
             logger.info("Starting LLM completion for text refinement")
 
-            settings = {"temperature": 0.3}
+            settings = {}
             if self.model.startswith("gpt-5"):
                 settings["reasoning"] = {"effort": "minimal"}
+            else:
+                settings["temperature"] = 0.3
 
             response = self.client.responses.create(
                 model=self.model,

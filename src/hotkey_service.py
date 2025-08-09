@@ -1,6 +1,7 @@
 import keyboard
 import threading
 import logging
+import sys
 from typing import Callable, Optional, Set
 import time
 
@@ -8,18 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 class HotkeyService:
-    def __init__(
-        self, hotkey: str = "ctrl+shift+space", toggle_hotkey: str = "ctrl+shift+t"
-    ):
+    def __init__(self, hotkey: str = None, toggle_hotkey: str = None):
         """
         Initialize the hotkey service.
 
         Args:
-            hotkey: Hotkey combination for push-to-talk (default: ctrl+shift+space)
-            toggle_hotkey: Hotkey combination for toggle recording (default: ctrl+shift+t)
+            hotkey: Hotkey combination for push-to-talk (default: platform-specific)
+            toggle_hotkey: Hotkey combination for toggle recording (default: platform-specific)
         """
-        self.hotkey = hotkey
-        self.toggle_hotkey = toggle_hotkey
+        # Set platform-specific default hotkeys if none provided
+        self.hotkey = hotkey or self._get_default_hotkey()
+        self.toggle_hotkey = toggle_hotkey or self._get_default_toggle_hotkey()
         self.is_running = False
         self.is_recording = False
         self.is_toggle_mode = False  # Track if currently recording via toggle mode
@@ -39,6 +39,35 @@ class HotkeyService:
 
         # Parse both hotkeys to get individual keys
         self._parse_hotkeys()
+
+    @staticmethod
+    def _get_platform_modifier() -> str:
+        """Get the primary modifier key for the current platform."""
+        return "cmd" if sys.platform == "darwin" else "ctrl"
+
+    @staticmethod
+    def _get_default_hotkey() -> str:
+        """Get the default push-to-talk hotkey for the current platform."""
+        modifier = HotkeyService._get_platform_modifier()
+        return f"{modifier}+shift+space"
+
+    @staticmethod
+    def _get_default_toggle_hotkey() -> str:
+        """Get the default toggle hotkey for the current platform."""
+        modifier = HotkeyService._get_platform_modifier()
+        return f"{modifier}+shift+^"
+
+    @staticmethod
+    def get_platform_name() -> str:
+        """Get a human-readable platform name."""
+        if sys.platform == "darwin":
+            return "macOS"
+        elif sys.platform.startswith("linux"):
+            return "Linux"
+        elif sys.platform == "win32":
+            return "Windows"
+        else:
+            return sys.platform
 
     def _parse_hotkeys(self):
         """Parse both hotkey strings to extract individual keys."""
@@ -72,10 +101,18 @@ class HotkeyService:
         except Exception as e:
             logger.error(f"Error parsing hotkey '{hotkey}': {e}")
             # Fallback to manual parsing for common combinations
-            if hotkey == "ctrl+shift+space":
-                key_set.update({"ctrl", "shift", "space"})
-            elif hotkey == "ctrl+shift+t":
-                key_set.update({"ctrl", "shift", "t"})
+            modifier = self._get_platform_modifier()
+            default_hotkey = f"{modifier}+shift+space"
+            default_toggle = f"{modifier}+shift+^"
+
+            if hotkey == default_hotkey:
+                key_set.update({modifier, "shift", "space"})
+            elif hotkey == default_toggle:
+                key_set.update({modifier, "shift", "^"})
+            elif hotkey == "cmd+shift+space":  # macOS support
+                key_set.update({"cmd", "shift", "space"})
+            elif hotkey == "cmd+shift+^":  # macOS support
+                key_set.update({"cmd", "shift", "^"})
 
     def _parse_hotkey(self):
         """Parse the hotkey string to extract individual keys."""
@@ -115,8 +152,10 @@ class HotkeyService:
             )
             self.service_thread.start()
 
+            platform_name = self.get_platform_name()
             logger.info(
-                f"Hotkey service started. Press and hold '{self.hotkey}' to record."
+                f"Hotkey service started on {platform_name}. "
+                f"Press and hold '{self.hotkey}' to record, '{self.toggle_hotkey}' to toggle."
             )
             return True
 
@@ -211,6 +250,11 @@ class HotkeyService:
                     key_variations.extend(["left ctrl", "right ctrl"])
                 elif key_name == "shift":
                     key_variations.extend(["left shift", "right shift"])
+                # macOS command key variations
+                elif key_name == "left cmd" or key_name == "right cmd":
+                    key_variations.extend(["cmd", "left cmd", "right cmd", "command"])
+                elif key_name == "cmd" or key_name == "command":
+                    key_variations.extend(["left cmd", "right cmd", "cmd", "command"])
 
                 # If any variation of the released key is part of our push-to-talk hotkey, stop recording
                 if any(
@@ -370,3 +414,33 @@ class HotkeyService:
             True if service is running, False otherwise
         """
         return self.is_running
+
+    @staticmethod
+    def get_platform_default_hotkey() -> str:
+        """
+        Get the default push-to-talk hotkey for the current platform.
+
+        Returns:
+            Default push-to-talk hotkey string for current platform
+        """
+        return HotkeyService._get_default_hotkey()
+
+    @staticmethod
+    def get_platform_default_toggle_hotkey() -> str:
+        """
+        Get the default toggle hotkey for the current platform.
+
+        Returns:
+            Default toggle hotkey string for current platform
+        """
+        return HotkeyService._get_default_toggle_hotkey()
+
+    @staticmethod
+    def get_platform_modifier_key() -> str:
+        """
+        Get the primary modifier key for the current platform.
+
+        Returns:
+            "cmd" for macOS, "ctrl" for Windows/Linux
+        """
+        return HotkeyService._get_platform_modifier()

@@ -36,7 +36,7 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 
 - [x] GUI for configuration
 - [x] Full cross-platform support (Windows, MacOS, Linux)
-- [ ] Add a voice instruction feature to refine the transcription
+- [x] Add a voice instruction feature to refine the transcription
 - [ ] Non-blocking transcription feature
 - [ ] Improve UI/UX using PyQt6 or Flet
 - [ ] Local Whisper model support
@@ -112,7 +112,7 @@ The application features a comprehensive, persistent configuration GUI with orga
 
 ### Hotkey Configuration
 - **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+Space)
-- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+T)
+- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+^)
 - **Validation**: Prevents duplicate hotkey assignments
 - **Examples**: Common hotkey combinations provided
 
@@ -162,7 +162,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "chunk_size": 1024,
   "channels": 1,
   "hotkey": "ctrl+shift+space",
-  "toggle_hotkey": "ctrl+shift+t",
+  "toggle_hotkey": "ctrl+shift+^",
   "insertion_method": "sendkeys",
   "insertion_delay": 0.005,
   "enable_text_refinement": true,
@@ -187,7 +187,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
 | `hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for push-to-talk. See [Hotkey Options](#hotkey-options) for examples. |
-| `toggle_hotkey` | string | `"ctrl+shift+t"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
+| `toggle_hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
 | `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
 | `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
@@ -238,13 +238,12 @@ You can configure different hotkey combinations for both modes:
 
 **Push-to-talk hotkey** (hold to record):
 - `ctrl+shift+space` (default)
-- `alt+space`
 - `ctrl+alt+r`
 - `f12`
 
 **Toggle hotkey** (press once to start, press again to stop):
 - `ctrl+shift+^` (default)
-- `alt+t`
+- `ctrl+shift+t`
 
 Both hotkeys support any combination from the `keyboard` library.
 
@@ -261,7 +260,7 @@ The application includes clean and simple audio feedback:
 - **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
 - **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via GUI or configuration JSON file
-- **Cross-Platform**: Uses `pygame` and `numpy` for tone generation - works on Windows, MacOS, and Linux
+- **Cross-Platform**: Uses `playsound3` for audio playback - works on Windows, MacOS, and Linux
 
 ## Architecture
 
@@ -374,7 +373,6 @@ flowchart TB
 
 - **tkinter**: GUI interface (built into Python)
 - **keyboard**: Global hotkey detection
-- **numpy**: Audio tone generation for feedback sounds
 - **pyaudio**: Audio recording
 - **pydub**: Smart silence detection and audio manipulation
 - **soundfile**: High-quality audio I/O
@@ -382,8 +380,7 @@ flowchart TB
 - **openai**: Speech-to-text and text refinement
 - **pyautogui**: Cross-platform text insertion and window management
 - **pyperclip**: Cross-platform clipboard operations
-- **pygame**: Cross-platform audio feedback
-- **python-dotenv**: Environment variable management
+- **playsound3**: Cross-platform audio feedback (lightweight alternative to pygame)
 
 ## Troubleshooting
 
@@ -483,7 +480,7 @@ app.update_configuration(new_config)
 
 # Change hotkeys
 app.change_hotkey("ctrl+alt+r")  # Change push-to-talk hotkey
-app.change_toggle_hotkey("ctrl+alt+t")  # Change toggle hotkey
+app.change_toggle_hotkey("ctrl+alt+^")  # Change toggle hotkey
 
 # Toggle features
 app.toggle_audio_feedback()  # Toggle audio feedback
