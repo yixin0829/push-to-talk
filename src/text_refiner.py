@@ -25,15 +25,21 @@ class TextRefiner:
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
 
-        # Default system prompt for transcription text refinement
-        self.system_prompt = """You are a helpful text refinement assistant. Your task is to improve transcribed speech-to-text output by:
+        # Default developer prompt (aka instructions) for transcription text refinement
+        self.developer_prompt = """Role and Objective
+- Enhance transcribed speech-to-text outputs by refining them for clarity, accuracy, and format compliance.
 
-1. Adding appropriate punctuation and capitalization.
-2. Removing stop words and other filler words.
-3. Improving grammar and sentence structure for clarity and readability.
-4. Maintaining the original meaning and intent.
+Instructions
+- Add appropriate punctuation and capitalization.
+- Remove filler and unnecessary stop words.
+- Improve grammar and sentence structure for optimal readability and clarity.
+- Ensure the original meaning and intent of the message are preserved.
+- If a user-provided format instruction is present at the end of the transcribed text, apply it to the refined output, but do not include the instruction in the final text.
+- Do not introduce content that is not implied in the original input.
+- Return only the refined text, without explanations or commentary.
 
-Do not add extra content that wasn't implied in the original text. Return only the refined text without any explanations or additional commentary."""
+Output Format
+- Output only the refined text as a single string."""
 
     def refine_text(
         self, raw_text: str, custom_prompt: Optional[str] = None
@@ -58,22 +64,21 @@ Do not add extra content that wasn't implied in the original text. Return only t
             return raw_text.strip()
 
         try:
-            system_prompt = custom_prompt or self.system_prompt
+            developer_prompt = custom_prompt or self.developer_prompt
 
             # Start timing the LLM completion
             start_time = time.time()
             logger.info("Starting LLM completion for text refinement")
 
+            settings = {"temperature": 0.3}
+            if self.model.startswith("gpt-5"):
+                settings["reasoning"] = {"effort": "minimal"}
+
             response = self.client.responses.create(
                 model=self.model,
-                input=[
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": f"Please refine this transcribed text:\n\n{raw_text}",
-                    },
-                ],
-                temperature=0.3,  # Lower temperature for more consistent results
+                instructions=developer_prompt,
+                input=f"Please refine this transcribed text:\n\n{raw_text}",
+                **settings,
             )
 
             # Calculate and log completion time
@@ -103,7 +108,7 @@ Do not add extra content that wasn't implied in the original text. Return only t
         Args:
             prompt: Custom system prompt for the refiner
         """
-        self.system_prompt = prompt
+        self.developer_prompt = prompt
         logger.info("Custom refinement prompt set")
 
     def get_current_prompt(self) -> str:
@@ -113,4 +118,4 @@ Do not add extra content that wasn't implied in the original text. Return only t
         Returns:
             Current system prompt string
         """
-        return self.system_prompt
+        return self.developer_prompt
