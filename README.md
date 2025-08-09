@@ -663,18 +663,6 @@ tests/
 - `test_on_toggle_hotkey_press_start_recording`: Toggle mode functionality
 - `test_change_hotkey_success`: Dynamic hotkey reconfiguration
 
-##### Utils (`test_utils.py`)
-- **Audio Feedback**: Start/stop sound generation and playback
-- **Tone Generation**: Pure tone synthesis with envelope shaping
-- **pygame Integration**: Cross-platform audio output
-- **Threading**: Non-blocking audio feedback in daemon threads
-
-**Key Test Cases:**
-- `test_generate_tone_basic`: Audio tone generation and parameters
-- `test_play_start_feedback_success`: Start recording audio feedback
-- `test_generate_tone_fade_envelope`: Audio envelope and fade effects
-- `test_threading_daemon_mode`: Non-blocking audio playback
-
 ##### Integration Tests (`test_integration_simplified.py`, `test_format_instruction.py`)
 - **Real Audio File Processing**: Tests with actual WAV files from fixtures directory
 - **Audio Processing Pipeline**: End-to-end audio processing with different settings

@@ -33,7 +33,7 @@ class PushToTalkConfig:
     # OpenAI settings
     openai_api_key: str = ""
     stt_model: str = "gpt-4o-mini-transcribe"
-    refinement_model: str = "gpt-4.1-mini"
+    refinement_model: str = "gpt-5-nano"
 
     # Audio settings
     sample_rate: int = 16000
