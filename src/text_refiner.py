@@ -3,6 +3,7 @@ import logging
 import time
 from typing import Optional
 from openai import OpenAI
+from src.prompts import text_refiner_prompt_wo_glossary, text_refiner_prompt_w_glossary
 
 logger = logging.getLogger(__name__)
 
@@ -25,21 +26,11 @@ class TextRefiner:
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
 
+        # Custom glossary for transcription refinement
+        self.glossary = []
+
         # Default developer prompt (aka instructions) for transcription text refinement
-        self.developer_prompt = """Role and Objective
-- Enhance transcribed speech-to-text outputs by refining them for clarity, accuracy, and format compliance.
-
-Instructions
-- Add appropriate punctuation and capitalization.
-- Remove filler and unnecessary stop words.
-- Improve grammar and sentence structure for optimal readability and clarity.
-- Ensure the original meaning and intent of the message are preserved.
-- If a user-provided format instruction is present at the end of the transcribed text, apply it to the refined output, but do not include the instruction in the final text.
-- Do not introduce content that is not implied in the original input.
-- Return only the refined text, without explanations or commentary.
-
-Output Format
-- Output only the refined text as a single string."""
+        self.developer_prompt = text_refiner_prompt_wo_glossary
 
     def refine_text(
         self, raw_text: str, custom_prompt: Optional[str] = None
@@ -64,7 +55,7 @@ Output Format
             return raw_text.strip()
 
         try:
-            developer_prompt = custom_prompt or self.developer_prompt
+            developer_prompt = custom_prompt or self._get_appropriate_prompt()
 
             # Start timing the LLM completion
             start_time = time.time()
@@ -121,3 +112,45 @@ Output Format
             Current system prompt string
         """
         return self.developer_prompt
+
+    def set_glossary(self, glossary: list[str]):
+        """
+        Set the custom glossary for transcription refinement.
+
+        Args:
+            glossary: List of domain-specific terms, acronyms, and technical words
+        """
+        self.glossary = glossary if glossary else []
+        logger.info(f"Glossary updated with {len(self.glossary)} terms")
+
+    def get_glossary(self) -> list[str]:
+        """
+        Get the current custom glossary.
+
+        Returns:
+            List of glossary terms
+        """
+        return self.glossary.copy()
+
+    def clear_glossary(self):
+        """Clear the custom glossary."""
+        self.glossary = []
+        logger.info("Glossary cleared")
+
+    def _get_appropriate_prompt(self) -> str:
+        """
+        Get the appropriate prompt based on glossary availability.
+
+        Returns:
+            Formatted prompt string
+        """
+        if self.glossary:
+            # Format glossary terms into a bullet list
+            formatted_glossary = "\n".join(
+                f"- {term}" for term in sorted(self.glossary, key=str.lower)
+            )
+            return text_refiner_prompt_w_glossary.format(
+                custom_glossary=formatted_glossary
+            )
+        else:
+            return text_refiner_prompt_wo_glossary

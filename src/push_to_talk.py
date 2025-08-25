@@ -68,6 +68,9 @@ class PushToTalkConfig:
     min_silence_duration: float = 400.0  # milliseconds for pydub
     speed_factor: float = 1.5
 
+    # Custom glossary for transcription refinement
+    custom_glossary: list[str] = field(default_factory=list)
+
     def save_to_file(self, filepath: str):
         """Save configuration to JSON file."""
         with open(filepath, "w") as f:
@@ -157,6 +160,10 @@ class PushToTalkApp:
             else None
         )
 
+        # Set glossary if text refiner is enabled
+        if self.text_refiner and self.config.custom_glossary:
+            self.text_refiner.set_glossary(self.config.custom_glossary)
+
         self.text_inserter = TextInserter(insertion_delay=self.config.insertion_delay)
 
         self.hotkey_service = HotkeyService(
@@ -200,6 +207,7 @@ class PushToTalkApp:
             or old_config.silence_threshold != new_config.silence_threshold
             or old_config.min_silence_duration != new_config.min_silence_duration
             or old_config.speed_factor != new_config.speed_factor
+            or old_config.custom_glossary != new_config.custom_glossary
         )
 
         if needs_reinit:
@@ -477,6 +485,10 @@ class PushToTalkApp:
                 if self.config.enable_text_refinement
                 else None
             )
+
+            # Set glossary if text refiner is enabled
+            if self.text_refiner and self.config.custom_glossary:
+                self.text_refiner.set_glossary(self.config.custom_glossary)
 
         logger.info(
             f"Text refinement {'enabled' if self.config.enable_text_refinement else 'disabled'}"
