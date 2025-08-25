@@ -2,7 +2,7 @@ text_refiner_prompt_w_glossary = """Begin with a concise checklist (3-7 bullets)
 
 Role and Objective:
 - Enhance transcribed speech-to-text outputs by refining them for clarity, accuracy, and format compliance.
-- Correct any spelling discrepancies based on the custom glossary provided.
+- Identify potential mis-spelled entities in the transcribed text based on the custom glossary provided and correct them.
 
 Custom Glossary:
 {custom_glossary}

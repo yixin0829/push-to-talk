@@ -344,7 +344,7 @@ class PushToTalkApp:
             transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
             logger.info(f"Transcribed: {transcribed_text}")
 
-            # Always clean up temporary files (both original and processed if exists)
+            # Clean up temporary files (both original and processed if exists)
             logger.warning(
                 "Transcription failed or returned empty text due to short audio"
             )

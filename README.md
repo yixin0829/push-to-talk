@@ -17,6 +17,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 - **🔊 Audio Feedback**: Optional audio cues for recording start/stop
 - **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
+- **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
 
 ## Demo
 A demo for v0.2.0. Some new features have been added since then.
@@ -37,10 +38,10 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 - [x] GUI for configuration
 - [x] Full cross-platform support (Windows, MacOS, Linux)
 - [x] Add a voice instruction feature to refine the transcription
+- [x] Customizable glossary for transcription refinement
 - [ ] Non-blocking transcription feature
 - [ ] Improve UI/UX using PyQt6 or Flet
 - [ ] Local Whisper model support
-- [ ] Customizable glossary for transcription refinement
 - [ ] Streaming transcription with ongoing audio (Optional)
 
 ## Requirements
@@ -121,6 +122,12 @@ The application features a comprehensive, persistent configuration GUI with orga
 - **Insertion Delay**: Fine-tune timing for different applications
 - **Method Guidance**: Recommendations for each approach
 
+### Custom Glossary
+- **Domain-Specific Terms**: Add specialized vocabulary, acronyms, and proper names
+- **Easy Management**: Add, edit, and delete glossary terms through the GUI
+- **Search Functionality**: Quickly find and manage existing terms
+- **Automatic Integration**: Glossary terms are automatically included in transcription refinement
+
 
 ## How to Use
 
@@ -172,7 +179,8 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "debug_mode": false,
   "silence_threshold": -16.0,
   "min_silence_duration": 400.0,
-  "speed_factor": 1.5
+  "speed_factor": 1.5,
+  "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"]
 }
 ```
 
@@ -198,6 +206,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `silence_threshold` | float | `-16.0` | dBFS threshold for silence detection. Higher values (closer to 0) are more sensitive to quiet sounds. |
 | `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
 | `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
+| `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
 
 #### Audio Quality Settings
 
@@ -252,6 +261,22 @@ Both hotkeys support any combination from the `keyboard` library.
 - **sendkeys** (default): Simulates individual keystrokes using pyautogui, better for special characters
 - **clipboard**: Faster and more reliable, uses pyperclip and pyautogui for Ctrl+V
 
+### Custom Glossary
+
+The application supports custom glossary terms to improve transcription accuracy for domain-specific vocabulary:
+
+- **Add Terms**: Use the GUI to add specialized vocabulary, acronyms, and proper names
+- **Automatic Integration**: Glossary terms are automatically included in text refinement prompts
+- **Smart Processing**: TextRefiner switches between prompts with and without glossary automatically
+- **Persistent Storage**: Terms are saved in the configuration file and restored on startup
+- **Easy Management**: Add, edit, delete, and search glossary terms through the GUI interface
+
+**Example use cases**:
+- Technical terms: "API", "OAuth", "microservices", "PostgreSQL"
+- Company names: "Anthropic", "OpenAI"
+- Acronyms: "CEO", "CTO", "AI/ML", "SaaS"
+- Domain-specific vocabulary: Medical terms, legal terminology, etc.
+
 ### Audio Feedback
 
 The application includes clean and simple audio feedback:
@@ -273,7 +298,7 @@ The application consists of several modular components:
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
 - **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
 - **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
-- **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models
+- **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models with custom glossary support
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
 - **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
 - **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator with dynamic configuration updates
@@ -457,6 +482,29 @@ app = PushToTalkApp()
 app.text_refiner.set_custom_prompt(
     "Your custom refinement instructions here..."
 )
+```
+
+### Custom Glossary Management
+
+You can programmatically manage custom glossary terms:
+
+```python
+from src import PushToTalkApp, PushToTalkConfig
+
+# Create config with custom glossary
+config = PushToTalkConfig()
+config.custom_glossary = ["API", "OAuth", "microservices", "PostgreSQL"]
+
+app = PushToTalkApp(config)
+
+# Update glossary dynamically
+app.text_refiner.set_glossary(["API", "OAuth", "JWT", "GraphQL"])
+
+# Add terms to existing glossary
+current_glossary = config.custom_glossary.copy()
+current_glossary.extend(["Docker", "Kubernetes"])
+config.custom_glossary = current_glossary
+app.update_configuration(config)
 ```
 
 ### Programmatic Control

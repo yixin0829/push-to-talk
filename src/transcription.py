@@ -72,6 +72,7 @@ class Transcriber:
                     response_format="text",
                 )
 
+            transcribed_text = transcribed_text.strip()
             transcription_time = time.time() - start_time
 
             logger.info(
