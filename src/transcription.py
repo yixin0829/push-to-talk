@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+import wave
 from typing import Optional
 from openai import OpenAI
 
@@ -42,12 +43,29 @@ class Transcriber:
             logger.error(f"Audio file not found: {audio_file_path}")
             return None
 
+        # Skip very short audio clips (< 0.5s) to avoid unnecessary API calls
+        try:
+            with wave.open(audio_file_path, "rb") as wf:
+                frames = wf.getnframes()
+                rate = wf.getframerate() or 0
+                duration_seconds = frames / float(rate) if rate else 0.0
+            if duration_seconds < 0.5:
+                logger.info(
+                    f"Audio too short ({duration_seconds:.3f}s); skipping transcription"
+                )
+                return None
+        except Exception as e:
+            # If duration cannot be determined (e.g., not a valid WAV), handle it gracefully
+            logger.debug(
+                f"Could not determine audio duration for {audio_file_path}: {e}"
+            )
+
         try:
             start_time = time.time()
             logger.debug(f"Starting transcription for: {audio_file_path}")
 
             with open(audio_file_path, "rb") as audio_file:
-                transcript = self.client.audio.transcriptions.create(
+                transcribed_text = self.client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
                     language=language,
@@ -56,33 +74,11 @@ class Transcriber:
 
             transcription_time = time.time() - start_time
 
-            # Clean up temporary file
-            try:
-                os.remove(audio_file_path)
-                logger.debug(f"Cleaned up temporary audio file: {audio_file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to clean up audio file {audio_file_path}: {e}")
-
-            if isinstance(transcript, str):
-                text = transcript.strip()
-            else:
-                text = (
-                    transcript.text.strip()
-                    if hasattr(transcript, "text")
-                    else str(transcript).strip()
-                )
-
             logger.info(
-                f"Transcription successful: {len(text)} characters in {transcription_time:.2f}s"
+                f"Transcription successful: {len(transcribed_text)} characters in {transcription_time:.2f}s"
             )
-            return text if text else None
+            return transcribed_text if transcribed_text else None
 
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
-            # Clean up temporary file even on error
-            try:
-                if os.path.exists(audio_file_path):
-                    os.remove(audio_file_path)
-            except Exception:
-                pass
             return None

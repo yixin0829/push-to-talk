@@ -33,7 +33,7 @@ class PushToTalkConfig:
     # OpenAI settings
     openai_api_key: str = ""
     stt_model: str = "gpt-4o-mini-transcribe"
-    refinement_model: str = "gpt-5-nano"
+    refinement_model: str = "gpt-4.1-nano"
 
     # Audio settings
     sample_rate: int = 16000
@@ -53,7 +53,7 @@ class PushToTalkConfig:
     )
 
     # Text insertion settings
-    insertion_method: str = "sendkeys"  # "clipboard" or "sendkeys"
+    insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
     insertion_delay: float = 0.005
 
     # Feature flags
@@ -330,17 +330,26 @@ class PushToTalkApp:
                 )
                 if not processed_audio_file:
                     logger.warning("Audio processing failed, using original audio")
-                    processed_audio_file = audio_file
 
             # Transcribe audio
             logger.info("Transcribing audio...")
             transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
-
-            if not transcribed_text:
-                logger.warning("Transcription failed or returned empty text")
-                return
-
             logger.info(f"Transcribed: {transcribed_text}")
+
+            # Always clean up temporary files (both original and processed if exists)
+            logger.warning(
+                "Transcription failed or returned empty text due to short audio"
+            )
+            for temp_file in set([audio_file, processed_audio_file]):
+                if temp_file and os.path.exists(temp_file):
+                    try:
+                        os.remove(temp_file)
+                        logger.debug(f"Cleaned up temporary file: {temp_file}")
+                    except Exception as e:
+                        logger.warning(f"Failed to clean up {temp_file}: {e}")
+
+            if transcribed_text is None:
+                return
 
             # Refine text if enabled (if failed, fallback to the original transcription)
             final_text = transcribed_text

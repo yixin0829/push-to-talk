@@ -138,7 +138,7 @@ class AudioProcessor:
         processed_path: str,
         original_audio: AudioSegment,
         cropped_audio: AudioSegment,
-        sped_up_samples: np.ndarray,
+        stretched_samples: np.ndarray,
         sample_rate: int,
     ):
         """
@@ -149,7 +149,7 @@ class AudioProcessor:
             processed_path: Path to processed audio file
             original_audio: Original audio as AudioSegment
             cropped_audio: Audio after silence cropping as AudioSegment
-            sped_up_samples: Audio after speed adjustment as numpy array
+            stretched_samples: Audio after speed adjustment as numpy array
             sample_rate: Sample rate
         """
         try:
@@ -172,7 +172,7 @@ class AudioProcessor:
 
             # Save speed-adjusted audio
             speed_debug_path = os.path.join(debug_dir, "03_speed_adjusted.wav")
-            sf.write(speed_debug_path, sped_up_samples, sample_rate)
+            sf.write(speed_debug_path, stretched_samples, sample_rate)
             logger.info(f"Debug: Speed adjusted audio saved to {speed_debug_path}")
 
             # Copy final processed file
@@ -193,13 +193,13 @@ class AudioProcessor:
                 f.write(f"  Original Length: {len(original_audio) / 1000:.3f}s\n")
                 f.write(f"  After Cropping: {len(cropped_audio) / 1000:.3f}s\n")
                 f.write(
-                    f"  After Speed-up: {len(sped_up_samples) / sample_rate:.3f}s\n"
+                    f"  After Speed-up: {len(stretched_samples) / sample_rate:.3f}s\n"
                 )
                 f.write(
-                    f"  Time Saved: {(len(original_audio) / 1000) - (len(sped_up_samples) / sample_rate):.3f}s\n"
+                    f"  Time Saved: {(len(original_audio) / 1000) - (len(stretched_samples) / sample_rate):.3f}s\n"
                 )
                 f.write(
-                    f"  Compression Ratio: {(len(sped_up_samples) / sample_rate) / (len(original_audio) / 1000):.3f}\n"
+                    f"  Compression Ratio: {(len(stretched_samples) / sample_rate) / (len(original_audio) / 1000):.3f}\n"
                 )
 
             logger.info(f"Debug files saved to directory: {debug_dir}")
