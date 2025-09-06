@@ -8,7 +8,7 @@ if exist "dist\PushToTalk.zip" del /f /q "dist\PushToTalk.zip"
 
 REM Build the executable
 echo Building GUI application with PyInstaller...
-uv run pyinstaller push_to_talk.spec
+uv run pyinstaller build_script/push_to_talk.spec
 
 REM Check if build was successful
 if exist "dist\PushToTalk.exe" (

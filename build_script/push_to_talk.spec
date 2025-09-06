@@ -3,12 +3,12 @@
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],  # Changed from main_console.py to main.py
+    ['../main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('src', 'src'),
-        ('icon.ico', '.'),  # Include icon in data files
+        ('../src', 'src'),
+        ('../icon.ico', '.'),  # Include icon in data files
     ],
     hiddenimports=[],
     hookspath=[],
@@ -42,5 +42,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico',
+    icon='../icon.ico',  # Application icon
 )

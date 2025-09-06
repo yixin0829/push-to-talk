@@ -25,3 +25,6 @@ CLAUDE.md
 
 # Ruff
 .ruff_cache/
+
+# Cursor
+.cursor/
