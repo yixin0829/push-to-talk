@@ -2,7 +2,7 @@ name: test-cov
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,7 +11,7 @@ permissions:
   # id-token: write  # needed if you choose OIDC auth for Codecov
 
 jobs:
-  test:
+  test-cov:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
