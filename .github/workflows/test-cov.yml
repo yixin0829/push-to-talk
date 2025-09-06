@@ -24,8 +24,6 @@ jobs:
 
       - name: Set up Python
         run: uv python install
-        with:
-          python-version-file: ".python-version"
 
       - name: Install the project
         run: uv sync --locked --all-extras --dev
@@ -38,6 +36,3 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          # files: ./coverage.xml
-          # use_oidc: true      # preferred (no token needed)
-          # fail_ci_if_error: true
