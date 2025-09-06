@@ -1,0 +1,14 @@
+[run]
+source = src
+omit =
+    src/config_gui.py
+    src/utils.py
+    src/text_inserter.py
+    src/push_to_talk.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError

@@ -32,18 +32,15 @@ class TextRefiner:
         # Custom glossary for transcription refinement
         self.glossary = []
 
-        # Default developer prompt (aka instructions) for transcription text refinement
-        self.developer_prompt = text_refiner_prompt_wo_glossary
+        # Custom refinement prompt (aka instructions) for transcription text refinement
+        self.custom_refinement_prompt = None
 
-    def refine_text(
-        self, raw_text: str, custom_prompt: Optional[str] = None
-    ) -> Optional[str]:
+    def refine_text(self, raw_text: str) -> Optional[str]:
         """
         Refine the transcribed text using Refinement Model.
 
         Args:
             raw_text: Raw transcribed text to refine
-            custom_prompt: Optional custom system prompt to override default
 
         Returns:
             Refined text or None if refinement failed
@@ -58,7 +55,10 @@ class TextRefiner:
             return raw_text.strip()
 
         try:
-            developer_prompt = custom_prompt or self._get_appropriate_prompt()
+            if self.custom_refinement_prompt:
+                developer_prompt = self.custom_refinement_prompt
+            else:
+                developer_prompt = self._get_default_developer_prompt()
 
             # Start timing the LLM completion
             start_time = time.time()
@@ -104,8 +104,8 @@ class TextRefiner:
         Args:
             prompt: Custom system prompt for the refiner
         """
-        self.developer_prompt = prompt
-        logger.info("Custom refinement prompt set")
+        self.custom_refinement_prompt = prompt
+        logger.info(f"Custom refinement prompt set to:\n{prompt}")
 
     def get_current_prompt(self) -> str:
         """
@@ -114,7 +114,7 @@ class TextRefiner:
         Returns:
             Current system prompt string
         """
-        return self.developer_prompt
+        return self.custom_refinement_prompt
 
     def set_glossary(self, glossary: list[str]):
         """
@@ -140,12 +140,12 @@ class TextRefiner:
         self.glossary = []
         logger.info("Glossary cleared")
 
-    def _get_appropriate_prompt(self) -> str:
+    def _get_default_developer_prompt(self) -> str:
         """
-        Get the appropriate prompt based on glossary availability.
+        Get the default developer prompt based on glossary availability.
 
         Returns:
-            Formatted prompt string
+            Formatted developer prompt string
         """
         if self.glossary:
             # Format glossary terms into a bullet list

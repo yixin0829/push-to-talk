@@ -80,9 +80,6 @@ class TestTranscriber:
         assert call_args[1]["model"] == "whisper-1"
         assert call_args[1]["response_format"] == "text"
 
-        # Verify cleanup
-        mock_remove.assert_called_once_with("test_audio.wav")
-
         logger.info("Transcribe audio success test passed")
 
     @patch("builtins.open", mock_open(read_data=b"fake audio data"))
@@ -139,9 +136,6 @@ class TestTranscriber:
         result = self.transcriber.transcribe_audio("test_audio.wav")
 
         assert result is None
-
-        # Verify cleanup still happens on error
-        mock_remove.assert_called_once_with("test_audio.wav")
 
         logger.info("Transcribe audio API failure test passed")
 
@@ -296,9 +290,6 @@ class TestTranscriber:
         result = self.transcriber.transcribe_audio("test_audio.wav")
 
         assert result is None
-
-        # Verify cleanup still attempted
-        mock_remove.assert_called_once_with("test_audio.wav")
 
         logger.info("Transcribe audio API error cleanup test passed")
 

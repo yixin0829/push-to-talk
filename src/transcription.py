@@ -65,12 +65,24 @@ class Transcriber:
             logger.debug(f"Starting transcription for: {audio_file_path}")
 
             with open(audio_file_path, "rb") as audio_file:
-                transcribed_text = self.client.audio.transcriptions.create(
+                response = self.client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
                     language=language,
                     response_format="text",
                 )
+
+            # Handle both string and object responses
+            if hasattr(response, "text"):
+                transcribed_text = response.text
+            elif isinstance(response, str):
+                transcribed_text = response
+            else:
+                # Fallback to string representation
+                logger.warning(
+                    "Unknown transcription response format, using string representation"
+                )
+                transcribed_text = str(response)
 
             transcribed_text = transcribed_text.strip()
             transcription_time = time.time() - start_time

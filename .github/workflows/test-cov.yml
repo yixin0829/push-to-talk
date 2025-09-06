@@ -2,7 +2,7 @@ name: test-cov
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,10 +11,16 @@ permissions:
   # id-token: write  # needed if you choose OIDC auth for Codecov
 
 jobs:
-  test:
+  test-cov:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Install system dependencies for PyAudio on GitHub Actions' Ubuntu env
+      - name: Install system libs (PortAudio)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev libasound2-dev
 
       # https://docs.astral.sh/uv/guides/integration/github/
       - name: Install uv
@@ -29,7 +35,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
       # Upload coverage to Codecov (Action v5)
       - name: Upload coverage to Codecov

@@ -4,6 +4,7 @@
 
 
 # PushToTalk - AI Refined Speech-to-Text Dictation
+[![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS, and Linux. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 

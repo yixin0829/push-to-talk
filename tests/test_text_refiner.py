@@ -28,7 +28,7 @@ class TestTextRefiner:
             assert refiner.api_key == "env-api-key"
             assert refiner.model == "gpt-4.1-nano"
             assert refiner.client is not None
-            assert "Role and Objective" in refiner.developer_prompt
+            assert refiner.custom_refinement_prompt is None
 
         logger.info("TextRefiner initialization with env var test passed")
 
@@ -74,7 +74,9 @@ class TestTextRefiner:
         self.refiner.client.responses.create.assert_called_once()
         call_args = self.refiner.client.responses.create.call_args
         assert call_args[1]["model"] == "gpt-4.1-nano"
-        assert call_args[1]["instructions"] == self.refiner.developer_prompt
+        # Should use default prompt since no custom prompt is set
+        expected_prompt = self.refiner._get_default_developer_prompt()
+        assert call_args[1]["instructions"] == expected_prompt
         assert raw_text in call_args[1]["input"]
 
         logger.info("Refine text success test passed")
@@ -86,12 +88,15 @@ class TestTextRefiner:
         mock_response = MagicMock()
         mock_response.output_text = "Custom refined text."
 
+        # Set custom prompt first
+        custom_prompt = "Custom refinement instructions"
+        self.refiner.set_custom_prompt(custom_prompt)
+
         with patch.object(
             self.refiner.client.responses, "create", return_value=mock_response
         ) as mock_create:
-            custom_prompt = "Custom refinement instructions"
             raw_text = "some text to refine with custom prompt that is long enough"  # >20 chars
-            result = self.refiner.refine_text(raw_text, custom_prompt=custom_prompt)
+            result = self.refiner.refine_text(raw_text)
 
             assert result == "Custom refined text."
 
@@ -256,7 +261,7 @@ class TestTextRefiner:
         new_prompt = "This is a custom refinement prompt for testing."
         self.refiner.set_custom_prompt(new_prompt)
 
-        assert self.refiner.developer_prompt == new_prompt
+        assert self.refiner.custom_refinement_prompt == new_prompt
 
         logger.info("Set custom prompt test passed")
 
@@ -264,9 +269,16 @@ class TestTextRefiner:
         """Test getting current prompt"""
         logger.info("Testing getting current prompt")
 
+        # Test when no custom prompt is set
+        current_prompt = self.refiner.get_current_prompt()
+        assert current_prompt is None
+
+        # Test when custom prompt is set
+        custom_prompt = "Custom test prompt with Role and Objective"
+        self.refiner.set_custom_prompt(custom_prompt)
         current_prompt = self.refiner.get_current_prompt()
 
-        assert current_prompt == self.refiner.developer_prompt
+        assert current_prompt == custom_prompt
         assert "Role and Objective" in current_prompt
 
         logger.info("Get current prompt test passed")
@@ -298,15 +310,16 @@ class TestTextRefiner:
         """Test that default prompt contains expected content"""
         logger.info("Testing default prompt content")
 
-        default_prompt = self.refiner.get_current_prompt()
+        # Get the default developer prompt directly since get_current_prompt() returns None when no custom prompt is set
+        default_prompt = self.refiner._get_default_developer_prompt()
 
         # Check for key elements of the default prompt
         assert "Role and Objective" in default_prompt
         assert "Instructions" in default_prompt
         assert "Output Format" in default_prompt
         assert "punctuation and capitalization" in default_prompt
-        assert "Remove filler and unnecessary stop words" in default_prompt
-        assert "preserve" in default_prompt.lower()
+        assert "Remove filler words and unnecessary stop words" in default_prompt
+        assert "preserved" in default_prompt.lower()
 
         logger.info("Default prompt content test passed")
 
