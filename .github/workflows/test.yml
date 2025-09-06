@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  id-token: write  # needed if you choose OIDC auth for Codecov
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install uv and (optionally) Python via uv
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python (uv)
+        run: uv python install
+
+      - name: Install project (dev deps)
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=<your_top_level_pkg> --cov-report=xml --cov-report=term-missing
+
+      # Upload coverage to Codecov (Action v5)
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # files: ./coverage.xml
+          # use_oidc: true      # preferred (no token needed)
+          # fail_ci_if_error: true
