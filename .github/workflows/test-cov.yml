@@ -35,7 +35,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing --no-cov-fail-under
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=20
 
       # Upload coverage to Codecov (Action v5)
       - name: Upload coverage to Codecov
