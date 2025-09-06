@@ -6,44 +6,24 @@
 # PushToTalk - AI Refined Speech-to-Text Dictation
 [![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS, and Linux. **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (to be built), and Linux (to be built). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
-- **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
-- **🤖 Speech-to-Text**: Uses OpenAI Whisper for accurate transcription
-- **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
-- **✨ Text Refinement**: Improves transcription quality using Refinement Models
-- **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
-- **🔊 Audio Feedback**: Optional audio cues for recording start/stop
-- **📋 Multiple Insertion Methods**: Support for `clipboard` and `sendkeys` insertion
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
+- **✨ Text Refinement**: Improves transcription quality using Refinement Models
+- **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
+- **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
+- **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
+- **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
-## Demo
-A demo for v0.2.0. Some new features have been added since then.
-<div>
-   <a href="https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6">
-     <p>Push-to-Talk: Personal Voice Transcription Powered by AI - Watch Video</p>
-   </a>
-   <a href="https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6">
-     <div align="center">
-       <img style="width:100%;max-width:700px;border-radius:10px;" src="https://cdn.loom.com/sessions/thumbnails/fbabb2da83c249d3a0a09b3adcc4a4e6-ab814d7527bfa513-full-play.gif">
-     </div>
-   </a>
-</div>
+## Demos
+- v0.3.0 - v0.4.0: https://www.loom.com/share/71ecc05d4bb440ecb708d980505b9000
+- v0.2.0: https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6
 
 ## Roadmap
 See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
-
-- [x] GUI for configuration
-- [x] Full cross-platform support (Windows, MacOS, Linux)
-- [x] Add a voice instruction feature to refine the transcription
-- [x] Customizable glossary for transcription refinement
-- [ ] Non-blocking transcription feature
-- [ ] Improve UI/UX using PyQt6 or Flet
-- [ ] Local Whisper model support
-- [ ] Streaming transcription with ongoing audio (Optional)
 
 ## Requirements
 
@@ -470,93 +450,6 @@ flowchart TB
 
 Logs are written to `push_to_talk.log`. The GUI application logs only to file for cleaner user experience.
 
-## Advanced Usage
-
-### Custom Text Refinement Prompts
-
-You can customize the text refinement behavior:
-
-```python
-from src import PushToTalkApp, PushToTalkConfig
-
-app = PushToTalkApp()
-app.text_refiner.set_custom_prompt(
-    "Your custom refinement instructions here..."
-)
-```
-
-### Custom Glossary Management
-
-You can programmatically manage custom glossary terms:
-
-```python
-from src import PushToTalkApp, PushToTalkConfig
-
-# Create config with custom glossary
-config = PushToTalkConfig()
-config.custom_glossary = ["API", "OAuth", "microservices", "PostgreSQL"]
-
-app = PushToTalkApp(config)
-
-# Update glossary dynamically
-app.text_refiner.set_glossary(["API", "OAuth", "JWT", "GraphQL"])
-
-# Add terms to existing glossary
-current_glossary = config.custom_glossary.copy()
-current_glossary.extend(["Docker", "Kubernetes"])
-config.custom_glossary = current_glossary
-app.update_configuration(config)
-```
-
-### Programmatic Control
-
-```python
-from src import PushToTalkApp, PushToTalkConfig
-
-# Create custom config
-config = PushToTalkConfig()
-config.hotkey = "f12"
-config.toggle_hotkey = "f11"
-config.enable_text_refinement = False
-
-# Run application
-app = PushToTalkApp(config)
-
-# Update configuration dynamically
-new_config = PushToTalkConfig()
-new_config.openai_api_key = "new_key"
-app.update_configuration(new_config)
-
-# Change hotkeys
-app.change_hotkey("ctrl+alt+r")  # Change push-to-talk hotkey
-app.change_toggle_hotkey("ctrl+alt+^")  # Change toggle hotkey
-
-# Toggle features
-app.toggle_audio_feedback()  # Toggle audio feedback
-app.toggle_text_refinement()  # Toggle text refinement
-
-# Check status
-status = app.get_status()
-print(f"Push-to-talk hotkey: {status['hotkey']}")
-print(f"Toggle hotkey: {status['toggle_hotkey']}")
-print(f"Recording mode: {status['recording_mode']}")
-print(f"Audio feedback enabled: {status['audio_feedback_enabled']}")
-
-app.run()
-```
-
-### GUI Integration
-
-```python
-from src.config_gui import show_configuration_gui
-from src.push_to_talk import PushToTalkConfig
-
-# Show persistent configuration GUI
-result, config = show_configuration_gui()
-if result == "close":
-    # User closed the application
-    print("Application closed by user")
-```
 
 ## Performance Tips
 
@@ -586,25 +479,16 @@ The application includes comprehensive unit tests to ensure code quality and fun
 
 ```bash
 # Run all tests
-uv run pytest tests/ -v
-
-# Run unit tests only
-uv run pytest tests/ -v -m "not integration"
-
-# Run integration tests with real audio files
-uv run pytest tests/ -v -m integration
+uv run pytest
 
 # Run tests with coverage report
-uv run pytest tests/ --cov=src --cov-report=html
+uv run pytest tests/ --cov=src --cov-report=html --cov-fail-under=80
 
 # Run specific test file
 uv run pytest tests/test_audio_recorder.py -v
 
 # Run tests with detailed output
 uv run pytest tests/ -v --tb=long
-
-# Run format instruction tests specifically
-uv run pytest tests/test_format_instruction.py -v
 ```
 
 #### Test Structure
@@ -619,7 +503,6 @@ tests/
 ├── test_audio_processor.py          # Audio processing and silence removal tests
 ├── test_transcription.py            # OpenAI Whisper integration tests
 ├── test_text_refiner.py             # AI text refinement tests
-├── test_text_inserter.py            # Text insertion and clipboard tests
 ├── test_hotkey_service.py           # Hotkey detection and management tests
 ├── test_utils.py                    # Audio feedback and utility function tests
 ├── test_integration_simplified.py  # Integration tests with real audio files
@@ -684,18 +567,6 @@ tests/
 - `test_refine_text_gpt5_model_settings`: GPT-5 reasoning parameter handling
 - `test_set_custom_prompt`: Custom refinement prompt configuration
 - `test_refine_text_too_short`: Length-based refinement optimization
-
-##### TextInserter (`test_text_inserter.py`)
-- **Cross-Platform Text Insertion**: Clipboard and sendkeys methods
-- **Window Management**: Active window detection and title retrieval
-- **Clipboard Operations**: Backup/restore clipboard content
-- **Platform-Specific Logic**: macOS vs Windows hotkey differences
-
-**Key Test Cases:**
-- `test_insert_via_clipboard_success`: Clipboard-based text insertion
-- `test_insert_via_sendkeys_success`: Keystroke simulation method
-- `test_get_active_window_title_success`: Window management functionality
-- `test_clipboard_restoration_no_original`: Clipboard state preservation
 
 ##### HotkeyService (`test_hotkey_service.py`)
 - **Global Hotkey Detection**: Push-to-talk and toggle mode hotkeys
@@ -811,9 +682,3 @@ def test_transcription_speed(self):
 ```
 
 The test suite ensures reliability across all components and provides confidence when implementing new features or refactoring existing code.
-
-## Version History
-
-- **0.3.0**: Enhanced Threading Architecture & Streamlined Experience
-- **0.2.0**: Persistent GUI interface, real-time status management, improved user experience, packaging as executable
-- **0.1.0**: Initial console-based release
