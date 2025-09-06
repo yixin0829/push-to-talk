@@ -34,12 +34,10 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
+      # Start a virtual framebuffer & run tests inside it. Otherwise will face DISPLAY key error in pyautogui
       - name: Run tests with coverage (Xvfb)
         run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
-          # Give Xvfb a moment to start
-          sleep 3
+          xvfb-run -a --server-args="-screen 0 1920x1080x24" \
           uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
 
       # Upload coverage to Codecov (Action v5)
