@@ -16,6 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install system dependencies for PyAudio on GitHub Actions' Ubuntu env
+      - name: Install system libs (PortAudio)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev libasound2-dev
+
       # https://docs.astral.sh/uv/guides/integration/github/
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -26,7 +32,7 @@ jobs:
         run: uv python install
 
       - name: Install the project
-        run: uv sync --all-extras --dev
+        run: uv sync --locked --all-extras --dev
 
       - name: Run tests with coverage
         run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing

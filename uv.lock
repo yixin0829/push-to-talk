@@ -996,7 +996,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.97.1" },
     { name = "playsound3", specifier = ">=3.2.4" },
     { name = "psola", specifier = ">=0.0.1" },
-    { name = "pyaudio", specifier = ">=0.2.14" },
+    { name = "pyaudio", specifier = "==0.2.14" },
     { name = "pyautogui", specifier = ">=0.9.54" },
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "pyperclip", specifier = ">=1.9.0" },
