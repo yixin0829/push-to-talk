@@ -276,16 +276,10 @@ class TestAudioIntegrationWithRealFiles:
             # Should return None due to API failure, but not crash
             assert result is None, "Invalid API key should result in None return"
 
-            # Verify temp file was cleaned up even on failure
-            assert not os.path.exists(temp_path), (
-                "Temp file should be cleaned up on failure"
-            )
-
-        except Exception as e:
-            # If temp file still exists, clean it up
+        finally:
+            # Clean up temp file since transcriber no longer handles cleanup
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            raise e
 
         logger.info("Transcription fallback behavior test passed")
 
