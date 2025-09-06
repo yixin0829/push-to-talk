@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # needed if you choose OIDC auth for Codecov
+  # id-token: write  # needed if you choose OIDC auth for Codecov
 
 jobs:
   test:
@@ -16,24 +16,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install uv and (optionally) Python via uv
+      # https://docs.astral.sh/uv/guides/integration/github/
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.15"
 
-      - name: Install Python (uv)
+      - name: Set up Python
         run: uv python install
+        with:
+          python-version-file: ".python-version"
 
-      - name: Install project (dev deps)
+      - name: Install the project
         run: uv sync --locked --all-extras --dev
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=<your_top_level_pkg> --cov-report=xml --cov-report=term-missing
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
 
       # Upload coverage to Codecov (Action v5)
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
+          files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
-          # files: ./coverage.xml
           # use_oidc: true      # preferred (no token needed)
           # fail_ci_if_error: true

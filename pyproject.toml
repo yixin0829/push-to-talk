@@ -1,7 +1,7 @@
 [project]
 name = "push-to-talk"
-version = "0.1.0"
-description = "A push-to-talk speech-to-text application using OpenAI API for real-time transcription and support active window text insertion."
+version = "0.4.0"
+description = "A push-to-talk speech-to-text application using STT AI models for real-time transcription and support active window text insertion."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -13,25 +13,16 @@ dependencies = [
     "pyperclip>=1.9.0",
     "soundfile>=0.13.1",
     "psola>=0.0.1",
-    "pydub[scipy]>=0.25.1",
+    "pydub>=0.25.1",
     "playsound3>=3.2.4",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.2.0",
-    "pyinstaller>=6.14.2",
     "pytest>=8.4.1",
     "pytest-cov>=6.3.0",
+    "pre-commit>=4.2.0",
+    "pyinstaller>=6.14.2",
     "python-dotenv>=1.1.1",
     "ruff>=0.12.5",
 ]
-
-[tool.pytest.ini_options]
-markers = [
-    "integration: marks tests as integration tests (may be slower)",
-    "slow: marks tests as slow running",
-    "unit: marks tests as unit tests (default)",
-]
-addopts = "--strict-markers"
-testpaths = ["tests"]
