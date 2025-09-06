@@ -1,10 +1,7 @@
 import pytest
 import logging
-import os
 import sys
 
-# Add the src directory to Python path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Configure logging for tests
 logging.basicConfig(

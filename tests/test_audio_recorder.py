@@ -1,11 +1,8 @@
 import threading
-import os
 import logging
 from unittest.mock import patch, MagicMock
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from audio_recorder import AudioRecorder
+from src.audio_recorder import AudioRecorder
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

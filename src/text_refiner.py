@@ -3,7 +3,10 @@ import logging
 import time
 from typing import Optional
 from openai import OpenAI
-from src.prompts import text_refiner_prompt_wo_glossary, text_refiner_prompt_w_glossary
+from src.config.prompts import (
+    text_refiner_prompt_wo_glossary,
+    text_refiner_prompt_w_glossary,
+)
 
 logger = logging.getLogger(__name__)
 

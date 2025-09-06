@@ -3,14 +3,11 @@ import os
 import logging
 import tempfile
 from pathlib import Path
-import sys
 import shutil
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-from audio_processor import AudioProcessor
-from transcription import Transcriber
-from text_refiner import TextRefiner
+from src.audio_processor import AudioProcessor
+from src.transcription import Transcriber
+from src.text_refiner import TextRefiner
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

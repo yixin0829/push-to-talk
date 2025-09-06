@@ -1,10 +1,7 @@
-import sys
 import logging
 from unittest.mock import patch, MagicMock
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from text_inserter import TextInserter
+from src.text_inserter import TextInserter
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

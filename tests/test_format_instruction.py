@@ -1,12 +1,9 @@
 import pytest
-import os
 import logging
 from pathlib import Path
-import sys
 from unittest.mock import patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from text_refiner import TextRefiner
+from src.text_refiner import TextRefiner
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,7 +40,7 @@ class TestFormatInstructionIntegration:
         )
 
         # Mock the OpenAI client at module import level
-        with patch("text_refiner.OpenAI") as mock_openai:
+        with patch("src.text_refiner.OpenAI") as mock_openai:
             mock_client = mock_openai.return_value
             mock_response = type("MockResponse", (), {})()
 
@@ -199,7 +196,7 @@ class TestFormatInstructionIntegration:
         for i, test_case in enumerate(test_cases):
             logger.info(f"Testing format case {i + 1}: {test_case['expected_format']}")
 
-            with patch("text_refiner.OpenAI") as mock_openai:
+            with patch("src.text_refiner.OpenAI") as mock_openai:
                 mock_client = mock_openai.return_value
                 mock_response = type("MockResponse", (), {})()
                 mock_response.output_text = test_case["mock_response"]
@@ -230,7 +227,7 @@ class TestFormatInstructionIntegration:
         # Text shorter than 20 characters with format instruction
         short_text = "A, B, C. Bullet list."  # 22 characters - just above threshold
 
-        with patch("text_refiner.OpenAI") as mock_openai:
+        with patch("src.text_refiner.OpenAI") as mock_openai:
             mock_client = mock_openai.return_value
             mock_response = type("MockResponse", (), {})()
             mock_response.output_text = "• A\n• B\n• C"

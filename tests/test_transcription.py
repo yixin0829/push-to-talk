@@ -2,10 +2,8 @@ import pytest
 import os
 import logging
 from unittest.mock import patch, MagicMock, mock_open
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from transcription import Transcriber
+from src.transcription import Transcriber
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

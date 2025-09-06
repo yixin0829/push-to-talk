@@ -2,10 +2,8 @@ import pytest
 import os
 import logging
 from unittest.mock import patch, MagicMock
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from text_refiner import TextRefiner
+from src.text_refiner import TextRefiner
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

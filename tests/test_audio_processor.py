@@ -1,10 +1,7 @@
-import os
 import logging
 from unittest.mock import patch
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from audio_processor import AudioProcessor
+from src.audio_processor import AudioProcessor
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
