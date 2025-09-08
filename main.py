@@ -15,24 +15,16 @@ Usage:
 
 import sys
 import os
-import logging
 import tkinter as tk
 from tkinter import messagebox
-
-# Add src directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+from loguru import logger
 
 from src.push_to_talk import PushToTalkConfig
 from src.config_gui import show_configuration_gui
 
-# Configure logging for GUI mode
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("push_to_talk.log")],  # Only log to file in GUI mode
-)
-
-logger = logging.getLogger(__name__)
+# Configure loguru for GUI mode - only log to file
+logger.remove()  # Remove default handler
+logger.add("push_to_talk.log", level="INFO")
 
 
 def main():

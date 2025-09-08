@@ -1,14 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
-import logging
+from loguru import logger
 import threading
 from typing import Callable, Optional
 from dataclasses import asdict
 
 from src.push_to_talk import PushToTalkConfig
-
-logger = logging.getLogger(__name__)
 
 
 class ConfigurationGUI:

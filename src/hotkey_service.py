@@ -1,11 +1,9 @@
 import keyboard
 import threading
-import logging
+from loguru import logger
 import sys
 from typing import Callable, Optional, Set
 import time
-
-logger = logging.getLogger(__name__)
 
 
 class HotkeyService:

@@ -1,14 +1,11 @@
 import pytest
-import logging
 import sys
+from loguru import logger
 
 
-# Configure logging for tests
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+# Configure loguru for tests
+logger.remove()  # Remove default handler
+logger.add(sys.stdout, level="DEBUG")
 
 
 @pytest.fixture(autouse=True)

@@ -1,6 +1,6 @@
 import pytest
 import os
-import logging
+from loguru import logger
 import tempfile
 from pathlib import Path
 import shutil
@@ -8,9 +8,6 @@ import shutil
 from src.audio_processor import AudioProcessor
 from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 @pytest.mark.integration

@@ -1,5 +1,5 @@
 import os
-import logging
+from loguru import logger
 import time
 from typing import Optional
 from openai import OpenAI
@@ -7,8 +7,6 @@ from src.config.prompts import (
     text_refiner_prompt_wo_glossary,
     text_refiner_prompt_w_glossary,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class TextRefiner:

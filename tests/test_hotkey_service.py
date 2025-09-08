@@ -1,10 +1,7 @@
-import logging
+from loguru import logger
 from unittest.mock import patch, MagicMock
 
 from src.hotkey_service import HotkeyService
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class TestHotkeyService:

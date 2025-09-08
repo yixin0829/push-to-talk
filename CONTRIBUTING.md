@@ -288,7 +288,7 @@ tests/
 
 **Test Guidelines:**
 - Use descriptive test names: `test_audio_recorder_start_success`
-- Include comprehensive logging for debugging
+- Include comprehensive logging using loguru for debugging
 - Mock external dependencies (OpenAI API, PyAudio)
 - Test both success and failure scenarios
 - Use real audio fixtures for integration tests
@@ -296,13 +296,10 @@ tests/
 **Test Template:**
 ```python
 import pytest
-import logging
+from loguru import logger
 from unittest.mock import patch, MagicMock
 
 from src.your_module import YourClass
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 class TestYourClass:
     def setup_method(self):
@@ -393,9 +390,7 @@ We follow PEP 8 with some project-specific conventions:
 **Example:**
 ```python
 from typing import Optional, List
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 class AudioProcessor:
     """Processes audio files with silence removal and speed adjustment.
