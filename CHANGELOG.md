@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 ### Changed
+- Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
+
 ### Deprecated
 ### Removed
 ### Fixed
