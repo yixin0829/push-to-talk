@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-import logging
+from loguru import logger
 import threading
 import signal
 from typing import Optional, Dict, Any
@@ -15,15 +15,6 @@ from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("push_to_talk.log")],
-)
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

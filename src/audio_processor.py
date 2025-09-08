@@ -1,6 +1,6 @@
 import numpy as np
 import tempfile
-import logging
+from loguru import logger
 import os
 import shutil
 from datetime import datetime
@@ -9,8 +9,6 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence
 import soundfile as sf
 from psola import vocode
-
-logger = logging.getLogger(__name__)
 
 
 class AudioProcessor:

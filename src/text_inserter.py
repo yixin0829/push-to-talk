@@ -1,12 +1,10 @@
 import time
-import logging
+from loguru import logger
 import sys
 from typing import Optional
 
 import pyautogui
 import pyperclip
-
-logger = logging.getLogger(__name__)
 
 
 class TextInserter:

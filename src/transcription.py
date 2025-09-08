@@ -1,11 +1,9 @@
 import os
-import logging
+from loguru import logger
 import time
 import wave
 from typing import Optional
 from openai import OpenAI
-
-logger = logging.getLogger(__name__)
 
 
 class Transcriber:

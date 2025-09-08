@@ -1,8 +1,7 @@
-import logging
+from loguru import logger
 from pathlib import Path
 from playsound3 import playsound
 
-logger = logging.getLogger(__name__)
 
 # Audio file paths
 _ASSETS_DIR = Path(__file__).parent / "assets" / "audio"

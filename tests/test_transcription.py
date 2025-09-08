@@ -1,12 +1,9 @@
 import pytest
 import os
-import logging
+from loguru import logger
 from unittest.mock import patch, MagicMock, mock_open
 
 from src.transcription import Transcriber
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class TestTranscriber:

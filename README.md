@@ -180,7 +180,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
 | `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
-| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file. |
+| `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 | `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
 | `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
@@ -379,6 +379,7 @@ flowchart TB
 
 - **tkinter**: GUI interface (built into Python)
 - **keyboard**: Global hotkey detection
+- **loguru**: Enhanced logging with better formatting and features
 - **pyaudio**: Audio recording
 - **pydub**: Smart silence detection and audio manipulation
 - **soundfile**: High-quality audio I/O
@@ -448,7 +449,7 @@ flowchart TB
 
 ### Logging
 
-Logs are written to `push_to_talk.log`. The GUI application logs only to file for cleaner user experience.
+Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The GUI application logs only to file for cleaner user experience.
 
 
 ## Performance Tips
@@ -473,7 +474,7 @@ Logs are written to `push_to_talk.log`. The GUI application logs only to file fo
 
 ### Unit Test Suite
 
-The application includes comprehensive unit tests to ensure code quality and functionality. The test suite covers all core components with detailed logging for debugging.
+The application includes comprehensive unit tests to ensure code quality and functionality. The test suite covers all core components with detailed logging using loguru for debugging.
 
 #### Running Tests
 
@@ -602,7 +603,7 @@ tests/
 #### Test Features
 
 ##### Detailed Logging
-All tests include comprehensive logging for debugging:
+All tests include comprehensive logging using loguru for debugging:
 
 ```python
 logger.info("Testing successful audio recording start")

@@ -1,12 +1,9 @@
 import pytest
 import os
-import logging
+from loguru import logger
 from unittest.mock import patch, MagicMock
 
 from src.text_refiner import TextRefiner
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class TestTextRefiner:

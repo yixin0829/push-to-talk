@@ -1,12 +1,9 @@
 import pytest
-import logging
+from loguru import logger
 from pathlib import Path
 from unittest.mock import patch
 
 from src.text_refiner import TextRefiner
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 @pytest.mark.integration
