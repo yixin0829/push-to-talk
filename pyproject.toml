@@ -5,7 +5,6 @@ description = "A push-to-talk speech-to-text application using STT AI models for
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "keyboard>=0.13.5",
     "loguru>=0.7.2",
     "numpy>=1.24.0",
     "openai>=1.97.1",
@@ -16,6 +15,7 @@ dependencies = [
     "psola>=0.0.1",
     "pydub>=0.25.1",
     "playsound3>=3.2.4",
+    "pynput>=1.7.7",
 ]
 
 [dependency-groups]
