@@ -132,7 +132,13 @@ class AudioRecorder:
         try:
             while self.is_recording and self.stream:
                 data = self.stream.read(self.chunk_size, exception_on_overflow=False)
-                self.audio_data.append(data)
+                if isinstance(data, (bytes, bytearray)):
+                    self.audio_data.append(data)
+                else:  # pragma: no cover - defensive guard for mocked objects
+                    logger.debug(
+                        "Skipping non-bytes audio chunk during recording: %s",
+                        type(data).__name__,
+                    )
         except Exception as e:
             logger.error(f"Error during recording: {e}")
             self.is_recording = False
