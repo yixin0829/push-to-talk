@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
-- Added AGENTS.md and CLAUDE.md for facilitating AI code agents (Claude Code, OpenAI Codex, GitHub Copilot, etc.) when working with the PushToTalk codebase.
 - Added unit tests for utils and push_to_talk to reach 80% coverage.
 
 ### Changed
