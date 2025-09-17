@@ -9,21 +9,27 @@ wheels/
 # PyInstaller specific
 *.spec.backup
 
-# Pytest cache
+# Pytest
 .pytest_cache/
+.coverage
 
 # Virtual environments
 .venv
 .env
 
+# Application files
 push_to_talk.log
 push_to_talk_config.json
 
 # Claude
 .claude/
+CLAUDE.md
 
 # Ruff
 .ruff_cache/
 
 # Cursor
 .cursor/
+
+# Codex
+AGENTS.md
