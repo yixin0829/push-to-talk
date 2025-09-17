@@ -173,6 +173,7 @@ class TestHotkeyService:
         assert self.service.is_running is False
         assert self.service.is_recording is False
 
+
     def test_push_to_talk_flow(self):
         """Pressing and releasing the push-to-talk hotkey should start/stop recording."""
 
