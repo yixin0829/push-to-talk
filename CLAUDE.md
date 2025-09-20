@@ -102,8 +102,14 @@ The application uses multiple threads to prevent blocking:
 - **Primary**: `push_to_talk_config.json` file with all settings including custom glossary
 - **Fallback**: Environment variable `OPENAI_API_KEY` for API key
 - **Platform-specific defaults**: Different hotkeys for macOS (cmd) vs Windows/Linux (ctrl)
-- **Real-time updates**: Configuration changes trigger component reinitialization
+- **Real-time updates**: Tk variable traces call `_notify_config_changed()` which debounces GUI edits and pushes new `PushToTalkConfig` objects into the running app via `PushToTalkApp.update_configuration()`
 - **Custom Glossary**: Stored as `custom_glossary: ["term1", "term2"]` in config JSON
+
+### Live Configuration Updates
+- `_setup_variable_traces()` attaches `trace_add("write", ...)` listeners to every Tk variable once the GUI is built.
+- `_on_config_var_changed()` debounces edits via `after(300, ...)` to avoid excessive reinitialization and supports headless invocation when no Tk root exists (see `tests/test_config_gui.py`).
+- `_notify_config_changed()` copies glossary lists, short-circuits when values are unchanged unless `force=True`, and relays updates to `on_config_changed` callbacks and active app instances.
+- When adding new config fields, update both `ConfigurationGUI.config_vars` setup and `tests/test_config_gui.CONFIG_VAR_KEYS` so tests keep covering auto-update behaviour.
 
 ### Testing Structure
 

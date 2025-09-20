@@ -14,7 +14,7 @@ pyautogui_stub = types.SimpleNamespace(
 sys.modules.setdefault("mouseinfo", types.SimpleNamespace())
 sys.modules.setdefault("pyautogui", pyautogui_stub)
 
-from src import push_to_talk
+from src import push_to_talk  # noqa: E402
 
 
 class InstanceTracker(defaultdict):
@@ -329,7 +329,9 @@ def test_process_recorded_audio_pipeline(
     assert not processed_path.exists()
 
 
-def test_process_recorded_audio_without_text(make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path):
+def test_process_recorded_audio_without_text(
+    make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path
+):
     app = make_app()
     app.config.enable_audio_feedback = False
 

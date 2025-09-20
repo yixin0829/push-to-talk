@@ -11,6 +11,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
+- **🔄 Live Config Sync**: GUI edits instantly push updates to the running background service—no restart required
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
 - **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
@@ -46,10 +47,12 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
    - **Monitor status** with real-time indicators (green = running, gray = stopped)
    - **View active settings** displayed when running
    - **Easy control** with "Stop Application" button to terminate
+   - **Tweak settings live**—changes made while running apply instantly
 
 3. **Daily usage**:
    - GUI provides persistent control and status monitoring
    - Use your configured hotkeys to record and transcribe
+   - Tune preferences without stopping the service; hotkeys update in real time
    - Start/stop the service anytime from the GUI
 
 ### For Developers
@@ -79,6 +82,13 @@ The application features a comprehensive, persistent configuration GUI with orga
   - **Gray circle + "Ready to start"**: Application stopped
   - **Green circle + "Running - Use your configured hotkeys"**: Application running
 - **Active Settings Display**: Shows current hotkeys and enabled features when running
+- **Live Updates Banner**: Status automatically refreshes when settings change mid-session
+
+### Live Configuration Updates
+- **Instant Propagation**: Editing any field triggers a debounced update to the running PushToTalk service
+- **Callback Support**: Optional listeners receive configuration dataclasses whenever values change
+- **Glossary Sync**: Glossary edits are copied before rebuilds to prevent UI/model divergence
+- **Safe Programmatic Updates**: GUI refreshes suspend traces to avoid infinite callback loops
 
 ### API Settings
 - **OpenAI API Key**: Secure entry with show/hide functionality
@@ -136,6 +146,7 @@ The application supports both GUI and file-based configuration:
 - Launch the application to access the integrated configuration interface
 - **All settings** validated and saved automatically to `push_to_talk_config.json`
 - **Real-time status** shows application state with visual indicators
+- **Auto-sync**: Edits instantly update the running background service and any registered callbacks
 - Every time you start the application, your configuration is saved and overwrites the old configuration in the JSON file `push_to_talk_config.json`
 
 ### File-Based Configuration

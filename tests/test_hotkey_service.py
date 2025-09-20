@@ -62,7 +62,7 @@ keyboard_stub = types.SimpleNamespace(
 sys.modules.setdefault("pynput", types.SimpleNamespace(keyboard=keyboard_stub))
 sys.modules["pynput.keyboard"] = keyboard_stub
 
-from src.hotkey_service import HotkeyService
+from src.hotkey_service import HotkeyService  # noqa: E402
 
 pynput_keyboard = keyboard_stub
 
@@ -173,7 +173,6 @@ class TestHotkeyService:
         assert self.service.is_running is False
         assert self.service.is_recording is False
 
-
     def test_push_to_talk_flow(self):
         """Pressing and releasing the push-to-talk hotkey should start/stop recording."""
 
@@ -262,10 +261,7 @@ class TestHotkeyService:
 
         service = HotkeyService(hotkey="ctrl+shift+space", toggle_hotkey="ctrl+shift+^")
         assert "caret" in service.toggle_hotkey_keys
-        assert (
-            service._key_to_name(pynput_keyboard.KeyCode(char="^"))
-            == "caret"
-        )
+        assert service._key_to_name(pynput_keyboard.KeyCode(char="^")) == "caret"
 
     def test_is_service_running_property(self):
         """Helper accessor should reflect running state."""
