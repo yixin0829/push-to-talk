@@ -7,11 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Updated local Whisper model list**: Refactored available models to match whisper.cpp make targets with proper English-only variants and updated size estimates
 - **Local Whisper Model Support**: Comprehensive local speech-to-text transcription using whisper.cpp (via pywhispercpp) with GPU acceleration capabilities, on-demand model downloads, and seamless integration with existing workflow.
   - Local Whisper transcriber with automatic GPU/CPU detection and optimization
   - Model management system with download progress dialogs and status indicators
   - Enhanced GUI with model type selection (OpenAI API vs Local Whisper)
-  - Support for multiple Whisper model sizes (base, small, medium, large-v3, distil-large-v3)
+  - Support for all 12 Whisper model variants matching whisper.cpp make targets: tiny.en, tiny, base.en, base, small.en, small, medium.en, medium, large-v1, large-v2, large-v3, large-v3-turbo
   - GPU acceleration support with automatic device and compute type selection
   - Transcriber factory pattern for flexible model switching
 - **Enhanced Model Download UX**: Improved user experience for local Whisper model downloads
