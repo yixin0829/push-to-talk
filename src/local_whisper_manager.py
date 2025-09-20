@@ -17,6 +17,9 @@ except ImportError:
 class LocalWhisperManager:
     """Manager for local Whisper model downloads and status."""
 
+    # Class-level cache for GPU information (static during session)
+    _gpu_info_cache = None
+
     # Model information with sizes (approximate)
     MODEL_INFO = {
         "tiny.en": {
@@ -265,13 +268,22 @@ class LocalWhisperManager:
         }
 
     @staticmethod
-    def get_gpu_info() -> Dict:
+    def get_gpu_info(force_refresh: bool = False) -> Dict:
         """
         Get GPU information for display using nvidia-smi.
+        Results are cached to avoid repeated subprocess calls.
+
+        Args:
+            force_refresh: If True, bypass cache and re-detect GPU info
 
         Returns:
             Dictionary with GPU information
         """
+        # Return cached result if available and not forcing refresh
+        if LocalWhisperManager._gpu_info_cache is not None and not force_refresh:
+            return LocalWhisperManager._gpu_info_cache
+
+        logger.debug("Detecting GPU information using nvidia-smi")
         gpu_info = {
             "available": False,
             "device_count": 0,
@@ -282,12 +294,20 @@ class LocalWhisperManager:
 
         try:
             import subprocess
+            import sys
+
+            # Prepare subprocess arguments to prevent cmd windows on Windows
+            subprocess_kwargs = {
+                "stderr": subprocess.DEVNULL,
+                "universal_newlines": True,
+            }
+            if sys.platform == "win32":
+                subprocess_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
 
             # Check if nvidia-smi is available and GPUs exist
             subprocess.check_output(
                 ["nvidia-smi", "--query-gpu=count", "--format=csv,noheader,nounits"],
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True,
+                **subprocess_kwargs,
             )
             gpu_info["available"] = True
             gpu_info["recommended_compute_type"] = "float16"
@@ -296,8 +316,7 @@ class LocalWhisperManager:
             try:
                 count_output = subprocess.check_output(
                     ["nvidia-smi", "-L"],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 gpu_info["device_count"] = len(
                     [
@@ -313,8 +332,7 @@ class LocalWhisperManager:
             try:
                 names_output = subprocess.check_output(
                     ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader,nounits"],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 gpu_info["device_names"] = [
                     name.strip()
@@ -332,8 +350,7 @@ class LocalWhisperManager:
                         "--query-gpu=driver_version",
                         "--format=csv,noheader,nounits",
                     ],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 # Use first GPU's driver version
                 gpu_info["cuda_version"] = driver_output.strip().split("\n")[0].strip()
@@ -344,6 +361,8 @@ class LocalWhisperManager:
             # nvidia-smi not found, not working, or no GPUs
             logger.debug("NVIDIA GPU not detected or nvidia-smi not available")
 
+        # Cache the result for future calls
+        LocalWhisperManager._gpu_info_cache = gpu_info
         return gpu_info
 
     @staticmethod

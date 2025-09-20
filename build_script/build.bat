@@ -2,6 +2,17 @@
 echo Building PushToTalk GUI Windows Executable...
 echo.
 
+REM Kill any running PushToTalk processes to avoid file locks
+echo Checking for running PushToTalk processes...
+tasklist /FI "IMAGENAME eq PushToTalk.exe" 2>nul | find "PushToTalk.exe" >nul
+if %errorlevel% == 0 (
+    echo Found running PushToTalk processes. Terminating...
+    taskkill /F /IM "PushToTalk.exe" 2>nul
+    timeout /t 2 /nobreak >nul
+) else (
+    echo No running PushToTalk processes found.
+)
+
 REM Clean previous .exe and .zip files
 if exist "dist\PushToTalk.exe" del /f /q "dist\PushToTalk.exe"
 if exist "dist\PushToTalk.zip" del /f /q "dist\PushToTalk.zip"
