@@ -786,14 +786,12 @@ Configure your settings below, then click "Start Application" to begin:"""
         msg_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=20)
 
         # Icon and message with better text wrapping
-        warning_text = f"⚠️ Recording cannot start: The selected local Whisper model '{model_name}' is not downloaded."
-        size_text = f"Size: ~{size_mb} MB"
-        download_text = (
-            "Download may take several minutes depending on your internet speed."
+        full_text = (
+            f"⚠️ Recording cannot start: The selected local Whisper model '{model_name}' is not downloaded. "
+            "Download may take a few minutes depending on your internet speed.\n\n"
+            f"Size: ~{size_mb} MB\n\n"
+            "What would you like to do?"
         )
-        question_text = "What would you like to do?"
-
-        full_text = f"{warning_text}\n\n{size_text}\n{download_text}\n\n{question_text}"
 
         msg_label = ttk.Label(
             msg_frame,
