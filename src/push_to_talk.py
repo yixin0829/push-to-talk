@@ -10,7 +10,7 @@ import json
 
 from src.audio_recorder import AudioRecorder
 from src.audio_processor import AudioProcessor
-from src.transcription import Transcriber
+from src.transcriber_factory import TranscriberFactory
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
@@ -25,6 +25,12 @@ class PushToTalkConfig:
     openai_api_key: str = ""
     stt_model: str = "gpt-4o-mini-transcribe"
     refinement_model: str = "gpt-4.1-nano"
+
+    # Local Whisper settings
+    use_local_whisper: bool = False
+    local_whisper_model: str = "base"
+    local_whisper_device: str = "auto"  # "auto", "cpu", "cuda"
+    local_whisper_compute_type: str = "auto"  # "auto", "float16", "int8", "float32"
 
     # Audio settings
     sample_rate: int = 16000
@@ -135,13 +141,17 @@ class PushToTalkApp:
         """
         self.config = config or PushToTalkConfig()
 
-        # Validate OpenAI API key
-        if not self.config.openai_api_key:
-            self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+        # Validate transcription configuration
+        if not self.config.use_local_whisper:
+            # For OpenAI API models, validate API key
             if not self.config.openai_api_key:
-                raise ValueError(
-                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
-                )
+                self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+                if not self.config.openai_api_key:
+                    raise ValueError(
+                        "OpenAI API key is required for API-based transcription. "
+                        "Set OPENAI_API_KEY environment variable or provide in config, "
+                        "or enable local Whisper transcription."
+                    )
 
         # Initialize components - this will be called by _initialize_components
         self.audio_recorder = None
@@ -190,8 +200,15 @@ class PushToTalkApp:
             else None
         )
 
-        self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.stt_model
+        # Create transcriber using factory
+        self.transcriber = TranscriberFactory.create_transcriber(
+            model_name=self.config.local_whisper_model
+            if self.config.use_local_whisper
+            else self.config.stt_model,
+            use_local_whisper=self.config.use_local_whisper,
+            openai_api_key=self.config.openai_api_key,
+            local_whisper_device=self.config.local_whisper_device,
+            local_whisper_compute_type=self.config.local_whisper_compute_type,
         )
 
         self.text_refiner = (
