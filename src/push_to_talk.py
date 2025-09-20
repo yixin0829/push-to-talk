@@ -29,7 +29,7 @@ class PushToTalkConfig:
 
     # Local Whisper settings
     use_local_whisper: bool = False
-    local_whisper_model: str = "base"
+    local_whisper_model: str = "small"
     local_whisper_device: str = "auto"  # "auto", "cpu", "cuda"
     local_whisper_compute_type: str = "auto"  # "auto", "float16", "int8", "float32"
 

@@ -19,52 +19,76 @@ class LocalWhisperManager:
 
     # Model information with sizes (approximate)
     MODEL_INFO = {
-        "base": {
-            "size_mb": 150,
-            "description": "Fastest, lower accuracy",
+        "tiny.en": {
+            "size_mb": 39,
+            "description": "Smallest English-only model",
+            "parameters": "39M",
+            "multilingual": False,
+        },
+        "tiny": {
+            "size_mb": 39,
+            "description": "Smallest multilingual model",
             "parameters": "39M",
             "multilingual": True,
         },
+        "base.en": {
+            "size_mb": 142,
+            "description": "Fast English-only model",
+            "parameters": "74M",
+            "multilingual": False,
+        },
+        "base": {
+            "size_mb": 142,
+            "description": "Fast multilingual model",
+            "parameters": "74M",
+            "multilingual": True,
+        },
+        "small.en": {
+            "size_mb": 466,
+            "description": "Good balance English-only model",
+            "parameters": "244M",
+            "multilingual": False,
+        },
         "small": {
-            "size_mb": 250,
-            "description": "Good balance of speed and accuracy",
+            "size_mb": 466,
+            "description": "Good balance multilingual model",
             "parameters": "244M",
             "multilingual": True,
         },
+        "medium.en": {
+            "size_mb": 1500,
+            "description": "Better accuracy English-only model",
+            "parameters": "769M",
+            "multilingual": False,
+        },
         "medium": {
-            "size_mb": 770,
-            "description": "Better accuracy, slower",
+            "size_mb": 1500,
+            "description": "Better accuracy multilingual model",
             "parameters": "769M",
             "multilingual": True,
         },
-        "large-v3": {
-            "size_mb": 1550,
-            "description": "Best accuracy, slowest",
-            "parameters": "1550M",
-            "multilingual": True,
-        },
-        "large-v2": {
-            "size_mb": 1550,
-            "description": "Previous best accuracy model",
-            "parameters": "1550M",
-            "multilingual": True,
-        },
-        "large": {
-            "size_mb": 1550,
+        "large-v1": {
+            "size_mb": 2900,
             "description": "Legacy large model",
             "parameters": "1550M",
             "multilingual": True,
         },
-        "distil-large-v3": {
-            "size_mb": 800,
-            "description": "Faster large model with similar accuracy",
-            "parameters": "756M",
+        "large-v2": {
+            "size_mb": 2900,
+            "description": "Improved large model",
+            "parameters": "1550M",
             "multilingual": True,
         },
-        "distil-large-v2": {
+        "large-v3": {
+            "size_mb": 2900,
+            "description": "Latest large model",
+            "parameters": "1550M",
+            "multilingual": True,
+        },
+        "large-v3-turbo": {
             "size_mb": 800,
-            "description": "Previous distilled large model",
-            "parameters": "756M",
+            "description": "Faster version of large-v3",
+            "parameters": "809M",
             "multilingual": True,
         },
     }
