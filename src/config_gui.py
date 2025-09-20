@@ -1399,7 +1399,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             # Use a minimal completion request to test the key
             client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": "test"}],
+                messages=[{"role": "user", "content": "test api key"}],
                 max_tokens=1,
             )
 
