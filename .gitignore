@@ -23,9 +23,13 @@ push_to_talk_config.json
 
 # Claude
 .claude/
+CLAUDE.md
 
 # Ruff
 .ruff_cache/
 
 # Cursor
 .cursor/
+
+# Codex
+AGENTS.md

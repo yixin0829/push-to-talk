@@ -1398,7 +1398,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             # Try a simple API call to validate the key
             # Use a minimal completion request to test the key
             client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": "test"}],
                 max_tokens=1,
             )
