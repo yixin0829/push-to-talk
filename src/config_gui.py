@@ -5,6 +5,7 @@ from loguru import logger
 import threading
 from typing import Callable, Optional
 from dataclasses import asdict
+import json
 
 from src.push_to_talk import PushToTalkConfig
 
@@ -45,6 +46,10 @@ class ConfigurationGUI:
         self._variable_traces: list[tuple[tk.Variable, str]] = []
         self._suspend_change_events = False
         self._pending_update_job: Optional[str] = None
+
+        # Non-blocking save functionality
+        self._save_lock = threading.Lock()
+        self._save_pending = False
 
         # Glossary state (available even before the GUI is created)
         self.glossary_terms = list(self.config.custom_glossary)
@@ -269,14 +274,16 @@ Configure your settings below, then click "Start Application" to begin:"""
         Debouncing process:
         1. User makes a change → This method is called
         2. Cancel any pending update timer
-        3. Schedule new update in 300ms
-        4. If user makes another change within 300ms → Cancel and reschedule
-        5. When 300ms passes with no new changes → Execute the update
+        3. Schedule new update after debounce delay
+        4. If user makes another change within delay period → Cancel and reschedule
+        5. When delay period passes with no new changes → Execute the update
 
         Example:
         User types "ctrl+alt+space" (16 characters):
         - Without debouncing: 16 component reinitializations
         - With debouncing: 1 component reinitialization after typing stops
+
+        Note: See the code implementation for exact debounce timing values.
         """
         if self._suspend_change_events:
             return
@@ -287,7 +294,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                     self.root.after_cancel(self._pending_update_job)
                 except Exception:
                     pass
-            self._pending_update_job = self.root.after(300, self._apply_config_changes)
+            self._pending_update_job = self.root.after(1000, self._apply_config_changes)
         else:
             self._apply_config_changes()
 
@@ -334,6 +341,59 @@ Configure your settings below, then click "Start Application" to begin:"""
 
         if self.is_running:
             self._update_status_display()
+
+        # Save configuration to JSON file for persistence
+        self._save_config_to_file_async()
+
+    def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json"):
+        """
+        Save configuration to JSON file asynchronously for persistence.
+
+        This method provides non-blocking save functionality during runtime updates,
+        ensuring configuration changes are persisted without affecting GUI responsiveness.
+
+        Features:
+        - Thread-safe with lock to prevent concurrent save operations
+        - Non-blocking background save using daemon thread
+        - Deduplication: skips save if another save is already in progress
+        - Error handling with logging but no GUI interruption
+
+        Args:
+            filepath: Path to save the configuration JSON file
+        """
+
+        def _save_worker():
+            """Background worker for saving configuration."""
+            try:
+                with self._save_lock:
+                    if not self._save_pending:
+                        return  # Another thread already completed the save
+
+                    # Perform the actual save
+                    config_data = asdict(self.config)
+                    with open(filepath, "w") as f:
+                        json.dump(config_data, f, indent=2)
+
+                    logger.debug(f"Configuration auto-saved to {filepath}")
+                    self._save_pending = False
+
+            except Exception as error:
+                logger.error(
+                    f"Failed to auto-save configuration to {filepath}: {error}"
+                )
+                self._save_pending = False
+
+        # Thread-safe check and mark save as pending
+        with self._save_lock:
+            if self._save_pending:
+                # Save already in progress, skip this request
+                return
+
+            self._save_pending = True
+
+        # Start background save
+        save_thread = threading.Thread(target=_save_worker, daemon=True)
+        save_thread.start()
 
     def _create_section_frame(self, parent: ttk.Widget, title: str) -> ttk.LabelFrame:
         """Create a labeled frame for a configuration section."""

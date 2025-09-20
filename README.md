@@ -90,15 +90,17 @@ The application features a sophisticated real-time configuration system that app
 
 #### How It Works
 - **Variable Tracing**: Every GUI field (text boxes, checkboxes, dropdowns) automatically detects changes using Tkinter variable traces
-- **Smart Debouncing**: Rapid typing is intelligently handled with a 300ms delay to prevent excessive updates
+- **Smart Debouncing**: Rapid typing is intelligently handled with configurable delay to prevent excessive updates
 - **Selective Reinitialization**: Only components affected by changes are reinitialized (e.g., hotkey changes → restart hotkey service)
 - **Service Continuity**: Critical services like hotkey detection automatically restart after updates
 
 #### Technical Features
 - **Instant Propagation**: Editing any field triggers a debounced update to the running PushToTalk service
+- **Persistent Storage**: Changes are automatically saved to JSON file asynchronously for permanent persistence
 - **Callback Support**: Optional listeners receive configuration dataclasses whenever values change
 - **Glossary Sync**: Glossary edits are copied before rebuilds to prevent UI/model divergence
 - **Safe Programmatic Updates**: GUI refreshes suspend traces to avoid infinite callback loops
+- **Thread-Safe Saves**: Non-blocking background saves with deduplication prevent file conflicts
 
 #### Example Scenarios
 - **Hotkey Change**: Type "ctrl+alt+space" → Only final result triggers one hotkey service restart
