@@ -305,3 +305,18 @@ class TestHotkeyServicePlatformSupport:
         assert service.toggle_hotkey == "ctrl+shift+^"
         assert HotkeyService.get_platform_name() == "Linux"
         assert HotkeyService.get_platform_modifier_key() == "ctrl"
+
+
+class TestHotkeyServiceErrorHandling:
+    """Test simple error handling cases in HotkeyService."""
+
+    def test_unknown_platform_name(self):
+        with patch("sys.platform", "unknown"):
+            assert HotkeyService.get_platform_name() == "unknown"
+
+    def test_normalize_key_name_empty_string(self):
+        assert HotkeyService._normalize_key_name("") is None
+        assert HotkeyService._normalize_key_name("   ") is None
+
+    def test_normalize_key_name_caret(self):
+        assert HotkeyService._normalize_key_name("^") == "caret"

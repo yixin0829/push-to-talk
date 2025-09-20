@@ -61,3 +61,33 @@ def test_play_stop_feedback_logs_error_on_failure(tmp_path, monkeypatch, mock_lo
     utils.play_stop_feedback()
 
     mock_logger.error.assert_called_once()
+
+
+def test_play_stop_feedback_missing_file_warns(monkeypatch, mock_logger):
+    """Test stop feedback with missing file warns and doesn't crash."""
+    missing_path = Path("/does/not/exist/stop.wav")
+    playsound = MagicMock()
+
+    monkeypatch.setattr(utils, "_STOP_SOUND_PATH", missing_path)
+    monkeypatch.setattr(utils, "playsound", playsound)
+
+    utils.play_stop_feedback()
+
+    playsound.assert_not_called()
+    mock_logger.warning.assert_called_once()
+
+
+def test_play_start_feedback_logs_error_on_failure(tmp_path, monkeypatch, mock_logger):
+    """Test start feedback logs error when playsound fails."""
+    audio_path = tmp_path / "start.wav"
+    audio_path.write_bytes(b"data")
+
+    def failing_playsound(*_, **__):
+        raise Exception("Playback failed")
+
+    monkeypatch.setattr(utils, "_START_SOUND_PATH", audio_path)
+    monkeypatch.setattr(utils, "playsound", failing_playsound)
+
+    utils.play_start_feedback()
+
+    mock_logger.error.assert_called_once()

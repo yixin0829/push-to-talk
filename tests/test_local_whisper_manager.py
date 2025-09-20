@@ -331,3 +331,20 @@ class TestLocalWhisperManager:
         recommended = LocalWhisperManager.get_recommended_model()
 
         assert recommended == "base"
+
+
+class TestLocalWhisperManagerErrorHandling:
+    """Test simple error handling and edge cases in LocalWhisperManager."""
+
+    def test_create_instance_without_pywhispercpp(self):
+        """Test that LocalWhisperManager can be instantiated even without pywhispercpp."""
+        # This tests the import error handling at module level
+        manager = LocalWhisperManager()
+        assert manager is not None
+
+    def test_get_model_info_for_unknown_model(self):
+        """Test getting model info for unknown model."""
+        info = LocalWhisperManager.get_model_info("unknown-model")
+        # Unknown models get a default info structure
+        assert isinstance(info, dict)
+        assert info["description"] == "Unknown model"

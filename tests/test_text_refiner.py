@@ -363,3 +363,20 @@ class TestTextRefiner:
         assert result == text_19_chars  # Should return original
 
         logger.info("Refine text length boundary test passed")
+
+
+class TestTextRefinerErrorHandling:
+    """Test simple error handling cases in TextRefiner."""
+
+    def test_glossary_operations(self):
+        """Test glossary operations."""
+        refiner = TextRefiner("test-api-key", "gpt-4o-mini")
+
+        # Test with empty glossary
+        refiner.set_glossary([])
+        assert refiner.glossary == []
+
+        # Test with terms
+        terms = ["zebra", "apple", "banana"]
+        refiner.set_glossary(terms)
+        assert refiner.glossary == terms

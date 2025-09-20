@@ -154,9 +154,16 @@ def dependency_stubs(monkeypatch):
         def is_service_running(self):
             return self.is_running
 
+    class StubTranscriberFactory:
+        @staticmethod
+        def create_transcriber(
+            model_name, use_local_whisper=False, openai_api_key=None, **kwargs
+        ):
+            return StubTranscriber(openai_api_key or "test_key", model_name)
+
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
     monkeypatch.setattr(push_to_talk, "AudioProcessor", StubAudioProcessor)
-    monkeypatch.setattr(push_to_talk, "Transcriber", StubTranscriber)
+    monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
     monkeypatch.setattr(push_to_talk, "TextRefiner", StubTextRefiner)
     monkeypatch.setattr(push_to_talk, "TextInserter", StubTextInserter)
     monkeypatch.setattr(push_to_talk, "HotkeyService", StubHotkeyService)
@@ -649,3 +656,23 @@ def test_update_configuration_uses_requires_reinitialization(
     assert dependency_stubs.last("audio_recorder") is current_recorder
     assert current_service.stop_service_calls == 0  # No additional stops
     assert app.config == non_critical_config
+
+
+class TestPushToTalkErrorHandling:
+    """Test simple error handling cases in PushToTalkApp."""
+
+    def test_config_dataclass_field_defaults(self):
+        """Test that config dataclass fields have correct defaults."""
+        config = push_to_talk.PushToTalkConfig()
+
+        # Test platform-specific defaults are applied
+        import sys
+
+        expected_modifier = "cmd" if sys.platform == "darwin" else "ctrl"
+        assert expected_modifier in config.hotkey
+        assert expected_modifier in config.toggle_hotkey
+
+        # Test other defaults
+        assert config.sample_rate == 16000
+        assert config.channels == 1
+        assert config.use_local_whisper is False
