@@ -103,7 +103,7 @@ The application features a sophisticated real-time configuration system that app
 - **Thread-Safe Saves**: Non-blocking background saves with deduplication prevent file conflicts
 
 #### Example Scenarios
-- **Hotkey Change**: Type "ctrl+alt+space" → Only final result triggers one hotkey service restart
+- **Hotkey Change**: Type "ctrl+shift+space" → Only final result triggers one hotkey service restart
 - **Non-Critical Change**: Toggle "Audio Feedback" → Updates instantly without restarting core components
 - **API Key Change**: Update OpenAI key → Only transcription/refinement components reinitialize
 

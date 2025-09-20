@@ -7,11 +7,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Local Whisper Model Support**: Comprehensive local speech-to-text transcription using whisper.cpp (via pywhispercpp) with GPU acceleration capabilities, on-demand model downloads, and seamless integration with existing workflow.
+  - Local Whisper transcriber with automatic GPU/CPU detection and optimization
+  - Model management system with download progress dialogs and status indicators
+  - Enhanced GUI with model type selection (OpenAI API vs Local Whisper)
+  - Support for multiple Whisper model sizes (base, small, medium, large-v3, distil-large-v3)
+  - GPU acceleration support with automatic device and compute type selection
+  - Transcriber factory pattern for flexible model switching
+- **Enhanced Model Download UX**: Improved user experience for local Whisper model downloads
+  - Pre-start confirmation dialog when attempting to start with undownloaded models
+  - Smart download options: download model, switch to OpenAI API, or cancel
+  - Progress dialogs with automatic closure (3 seconds) and real-time status updates
+  - Automatic application startup after successful model downloads
 - Added unit tests for utils and push_to_talk to reach 80% coverage.
 - Live configuration callbacks in the GUI so running sessions immediately pick up updated settings and glossary edits.
 - **Non-blocking configuration persistence**: Runtime GUI changes are now automatically saved to JSON file asynchronously, ensuring changes persist across application restarts without blocking the user interface.
 
 ### Changed
+- **Refactored local Whisper implementation**: Migrated from faster-whisper to whisper.cpp (via pywhispercpp) for improved performance and simplicity
+- **Updated model cache directory**: Windows users now have models stored in `%LOCALAPPDATA%\pywhispercpp\pywhispercpp\models` for better platform compliance
+- **Updated documentation**: All references to "faster-whisper" in documentation, comments, and variable names have been updated to reflect the migration to "pywhispercpp"
+- **Lightweight GPU detection**: Replaced heavy PyTorch-based GPU detection with zero-dependency subprocess nvidia-smi calls, reducing memory footprint by ~2GB while maintaining full CUDA acceleration support
 - Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
 - Configuration GUI now traces Tk variables, debounces updates, and refreshes the status banner whenever settings change mid-session.
 
@@ -21,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed the hotkey service inactivity issue by switching to use `pynput` library instead of `keyboard` library.
+- **Fixed pywhispercpp API compatibility**: Resolved model downloading error ("_pywhispercpp.whisper_full_params' object has no attribute 'model_path'") by updating to correct pywhispercpp API usage with `WhisperModel(model=..., n_threads=..., print_realtime=..., print_progress=...)`
+- **Fixed GPU detection system**: Replaced heavy PyTorch dependency with lightweight subprocess-based nvidia-smi calls for CUDA GPU detection, reducing memory footprint and eliminating ~2GB dependency while maintaining full GPU acceleration support
 
 ### Security
 
@@ -42,6 +60,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Technical
 - Extended configuration schema to support custom glossary arrays
 - Enhanced prompt management system for context-aware text refinement
+- Comprehensive test suite for local Whisper components (60+ tests covering LocalWhisperManager, LocalWhisperTranscriber, and TranscriberFactory)
+- Updated test infrastructure to support pywhispercpp API testing with proper mocking and subprocess simulation
 
 ## [0.3.0] - 2025-08-02
 
