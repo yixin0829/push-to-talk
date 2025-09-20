@@ -14,7 +14,7 @@ pyautogui_stub = types.SimpleNamespace(
 sys.modules.setdefault("mouseinfo", types.SimpleNamespace())
 sys.modules.setdefault("pyautogui", pyautogui_stub)
 
-from src import push_to_talk
+from src import push_to_talk  # noqa: E402
 
 
 class InstanceTracker(defaultdict):
@@ -133,6 +133,7 @@ def dependency_stubs(monkeypatch):
             self.stop_calls = 0
             self.should_start = True
             self.recording_state = "idle"
+            self.is_running = False
             tracker["hotkey_service"].append(self)
 
         def set_callbacks(self, on_start_recording, on_stop_recording):
@@ -140,13 +141,18 @@ def dependency_stubs(monkeypatch):
 
         def start_service(self):
             self.start_calls += 1
+            self.is_running = self.should_start
             return self.should_start
 
         def stop_service(self):
             self.stop_service_calls += 1
+            self.is_running = False
 
         def stop(self):
             self.stop_calls += 1
+
+        def is_service_running(self):
+            return self.is_running
 
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
     monkeypatch.setattr(push_to_talk, "AudioProcessor", StubAudioProcessor)
@@ -329,7 +335,9 @@ def test_process_recorded_audio_pipeline(
     assert not processed_path.exists()
 
 
-def test_process_recorded_audio_without_text(make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path):
+def test_process_recorded_audio_without_text(
+    make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path
+):
     app = make_app()
     app.config.enable_audio_feedback = False
 
@@ -404,7 +412,7 @@ def test_update_configuration_reinitializes(make_app, dependency_stubs):
     app.update_configuration(new_config)
 
     assert dependency_stubs.last("audio_recorder") is not initial_recorder
-    assert initial_service.stop_calls == 1
+    assert initial_service.stop_service_calls == 1
     assert app.config == new_config
 
 
@@ -420,6 +428,33 @@ def test_update_configuration_skips_reinit_when_unchanged(make_app, dependency_s
 
     assert dependency_stubs.last("audio_recorder") is initial_recorder
     assert initial_service.stop_calls == 0
+
+
+def test_update_configuration_restarts_hotkey_service_when_running(
+    make_app, dependency_stubs
+):
+    """Test that hotkey service is restarted during configuration updates when app is running."""
+    app = make_app()
+
+    # Start the application (which should start the hotkey service)
+    app.start(setup_signals=False)
+
+    initial_service = dependency_stubs.last("hotkey_service")
+    assert initial_service.start_calls == 1
+    assert initial_service.is_service_running()
+
+    # Update configuration with a change that requires component reinitialization
+    new_config = replace(app.config, chunk_size=app.config.chunk_size + 1)
+    app.update_configuration(new_config)
+
+    # Should have a new service instance that's been started automatically
+    new_service = dependency_stubs.last("hotkey_service")
+    assert new_service is not initial_service
+    assert initial_service.stop_service_calls == 1
+    assert new_service.start_calls == 1  # New service should be started
+    assert new_service.is_service_running()
+
+    app.stop()
 
 
 def test_toggle_text_refinement_recreates_refiner(make_app, dependency_stubs):
@@ -501,3 +536,116 @@ def test_change_toggle_hotkey_replaces_service(make_app, dependency_stubs):
     assert original_service.stop_calls == 1
     assert new_service.toggle_hotkey == "ctrl+alt+y"
     assert new_service.callbacks == (app._on_start_recording, app._on_stop_recording)
+
+
+def test_config_requires_component_reinitialization():
+    """Test that the requires_component_reinitialization method correctly identifies changes."""
+    base_config = push_to_talk.PushToTalkConfig(
+        openai_api_key="test-key",
+        stt_model="whisper-1",
+        refinement_model="gpt-4o-mini",
+        sample_rate=16000,
+        chunk_size=1024,
+        channels=1,
+        hotkey="ctrl+shift+space",
+        toggle_hotkey="ctrl+shift+^",
+        insertion_delay=0.005,
+        enable_text_refinement=True,
+        enable_audio_processing=True,
+        debug_mode=False,
+        silence_threshold=-16.0,
+        min_silence_duration=400.0,
+        speed_factor=1.5,
+        custom_glossary=["term1", "term2"],
+    )
+
+    # Test that identical configs don't require reinitialization
+    identical_config = replace(base_config)
+    assert not base_config.requires_component_reinitialization(identical_config)
+    assert not identical_config.requires_component_reinitialization(base_config)
+
+    # Test each field that should trigger reinitialization
+    test_cases = [
+        ("openai_api_key", "different-key"),
+        ("stt_model", "whisper-2"),
+        ("refinement_model", "gpt-4"),
+        ("sample_rate", 44100),
+        ("chunk_size", 2048),
+        ("channels", 2),
+        ("hotkey", "ctrl+alt+space"),
+        ("toggle_hotkey", "ctrl+alt+^"),
+        ("insertion_delay", 0.01),
+        ("enable_text_refinement", False),
+        ("enable_audio_processing", False),
+        ("debug_mode", True),
+        ("silence_threshold", -20.0),
+        ("min_silence_duration", 500.0),
+        ("speed_factor", 2.0),
+        ("custom_glossary", ["different", "terms"]),
+    ]
+
+    for field_name, new_value in test_cases:
+        changed_config = replace(base_config, **{field_name: new_value})
+        assert base_config.requires_component_reinitialization(changed_config), (
+            f"Change to {field_name} should require reinitialization"
+        )
+        assert changed_config.requires_component_reinitialization(base_config), (
+            f"Change from {field_name} should require reinitialization"
+        )
+
+
+def test_config_requires_reinitialization_ignores_non_critical_fields():
+    """Test that changes to non-critical fields don't trigger reinitialization."""
+    base_config = push_to_talk.PushToTalkConfig(
+        openai_api_key="test-key",
+        insertion_method="clipboard",
+        enable_logging=True,
+        enable_audio_feedback=True,
+    )
+
+    # Test fields that should NOT trigger reinitialization
+    non_critical_changes = [
+        ("insertion_method", "sendkeys"),
+        ("enable_logging", False),
+        ("enable_audio_feedback", False),
+    ]
+
+    for field_name, new_value in non_critical_changes:
+        changed_config = replace(base_config, **{field_name: new_value})
+        assert not base_config.requires_component_reinitialization(changed_config), (
+            f"Change to {field_name} should NOT require reinitialization"
+        )
+        assert not changed_config.requires_component_reinitialization(base_config), (
+            f"Change from {field_name} should NOT require reinitialization"
+        )
+
+
+def test_update_configuration_uses_requires_reinitialization(
+    make_app, dependency_stubs
+):
+    """Test that update_configuration properly uses the requires_component_reinitialization method."""
+    app = make_app()
+
+    initial_recorder = dependency_stubs.last("audio_recorder")
+    initial_service = dependency_stubs.last("hotkey_service")
+
+    # Change a field that requires reinitialization
+    new_config = replace(app.config, chunk_size=app.config.chunk_size + 1)
+    app.update_configuration(new_config)
+
+    # Should have created new components
+    assert dependency_stubs.last("audio_recorder") is not initial_recorder
+    assert initial_service.stop_service_calls == 1
+    assert app.config == new_config
+
+    # Now test with a change that doesn't require reinitialization
+    current_recorder = dependency_stubs.last("audio_recorder")
+    current_service = dependency_stubs.last("hotkey_service")
+
+    non_critical_config = replace(app.config, insertion_method="sendkeys")
+    app.update_configuration(non_critical_config)
+
+    # Should NOT have created new components
+    assert dependency_stubs.last("audio_recorder") is current_recorder
+    assert current_service.stop_service_calls == 0  # No additional stops
+    assert app.config == non_critical_config

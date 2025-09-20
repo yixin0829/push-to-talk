@@ -5,7 +5,7 @@ from loguru import logger
 import threading
 import signal
 from typing import Optional, Dict, Any
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict, field, fields
 import json
 
 from src.audio_recorder import AudioRecorder
@@ -78,6 +78,52 @@ class PushToTalkConfig:
             logger.warning(f"Failed to load config from {filepath}: {e}")
             return cls()
 
+    def requires_component_reinitialization(self, other: "PushToTalkConfig") -> bool:
+        """
+        Check if component reinitialization is required when comparing with another config.
+
+        This method implements smart component reinitialization by categorizing fields
+        as either "critical" (requiring expensive component recreation) or "non-critical"
+        (runtime-only settings that can be updated without reinitialization).
+
+        Critical Fields (require reinitialization):
+        - API keys, model settings (transcriber/refiner must be recreated)
+        - Audio parameters (audio recorder must be recreated)
+        - Hotkeys (hotkey service must be recreated)
+        - Processing settings (audio processor must be recreated)
+        - Custom glossary (text refiner must be updated)
+
+        Non-Critical Fields (runtime-only changes):
+        - insertion_method: Can be changed on TextInserter without recreation
+        - enable_logging: Runtime logging toggle
+        - enable_audio_feedback: Runtime audio feedback toggle
+
+        Args:
+            other: The other configuration to compare against
+
+        Returns:
+            True if component reinitialization is needed, False otherwise
+        """
+        # Fields that do NOT require component reinitialization when changed
+        # These are UI-only or runtime-only settings that don't affect core components
+        non_critical_fields = {
+            "insertion_method",  # Text insertion method (clipboard vs sendkeys)
+            "enable_logging",  # Logging toggle (runtime setting)
+            "enable_audio_feedback",  # Audio feedback toggle (runtime setting)
+        }
+
+        # Get all fields from the dataclass
+        all_fields = {f.name for f in fields(self)}
+
+        # Compare all fields except the non-critical ones
+        critical_fields = all_fields - non_critical_fields
+
+        for field_name in critical_fields:
+            if getattr(self, field_name) != getattr(other, field_name):
+                return True
+
+        return False
+
 
 class PushToTalkApp:
     def __init__(self, config: Optional[PushToTalkConfig] = None):
@@ -116,9 +162,14 @@ class PushToTalkApp:
 
     def _initialize_components(self):
         """Initialize or reinitialize all components with current configuration."""
+        # Store whether hotkey service was running before cleanup
+        hotkey_service_was_running = (
+            self.hotkey_service and self.hotkey_service.is_service_running()
+        )
+
         # Clean up existing components if they exist
         if self.hotkey_service:
-            self.hotkey_service.stop()
+            self.hotkey_service.stop_service()
 
         # Initialize components
         self.audio_recorder = AudioRecorder(
@@ -168,6 +219,10 @@ class PushToTalkApp:
             on_stop_recording=self._on_stop_recording,
         )
 
+        # Restart hotkey service if it was running before and application is still running
+        if hotkey_service_was_running and self.is_running:
+            self.hotkey_service.start_service()
+
     def update_configuration(self, new_config: PushToTalkConfig):
         """
         Update the application configuration and reinitialize components.
@@ -182,26 +237,7 @@ class PushToTalkApp:
         self.config = new_config
 
         # Check if we need to reinitialize components
-        needs_reinit = (
-            old_config.openai_api_key != new_config.openai_api_key
-            or old_config.stt_model != new_config.stt_model
-            or old_config.refinement_model != new_config.refinement_model
-            or old_config.sample_rate != new_config.sample_rate
-            or old_config.chunk_size != new_config.chunk_size
-            or old_config.channels != new_config.channels
-            or old_config.hotkey != new_config.hotkey
-            or old_config.toggle_hotkey != new_config.toggle_hotkey
-            or old_config.insertion_delay != new_config.insertion_delay
-            or old_config.enable_text_refinement != new_config.enable_text_refinement
-            or old_config.enable_audio_processing != new_config.enable_audio_processing
-            or old_config.debug_mode != new_config.debug_mode
-            or old_config.silence_threshold != new_config.silence_threshold
-            or old_config.min_silence_duration != new_config.min_silence_duration
-            or old_config.speed_factor != new_config.speed_factor
-            or old_config.custom_glossary != new_config.custom_glossary
-        )
-
-        if needs_reinit:
+        if new_config.requires_component_reinitialization(old_config):
             logger.info("Configuration changes require component reinitialization")
             self._initialize_components()
         else:
@@ -333,12 +369,9 @@ class PushToTalkApp:
             # Transcribe audio
             logger.info("Transcribing audio...")
             transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
-            logger.info(f"Transcribed: {transcribed_text}")
+            logger.info(f"Transcribed text: {transcribed_text}")
 
             # Clean up temporary files (both original and processed if exists)
-            logger.warning(
-                "Transcription failed or returned empty text due to short audio"
-            )
             for temp_file in set([audio_file, processed_audio_file]):
                 if temp_file and os.path.exists(temp_file):
                     try:
@@ -348,6 +381,7 @@ class PushToTalkApp:
                         logger.warning(f"Failed to clean up {temp_file}: {e}")
 
             if transcribed_text is None:
+                logger.warning("Transcribed text is None, skipping refinement")
                 return
 
             # Refine text if enabled (if failed, fallback to the original transcription)

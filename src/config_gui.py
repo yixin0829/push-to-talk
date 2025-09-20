@@ -41,6 +41,14 @@ class ConfigurationGUI:
         self.status_indicator = None
         self.settings_frame = None
 
+        # Configuration change tracking
+        self._variable_traces: list[tuple[tk.Variable, str]] = []
+        self._suspend_change_events = False
+        self._pending_update_job: Optional[str] = None
+
+        # Glossary state (available even before the GUI is created)
+        self.glossary_terms = list(self.config.custom_glossary)
+
     def create_gui(self) -> tk.Tk:
         """Create and return the main GUI window."""
         self.root = tk.Tk()
@@ -92,6 +100,9 @@ class ConfigurationGUI:
         self._create_feature_flags_section(scrollable_frame)
         self._create_status_section(scrollable_frame)
         self._create_buttons_section(scrollable_frame)
+
+        # Monitor configuration variables for live updates
+        self._setup_variable_traces()
 
         # Center the window
         self.root.update_idletasks()
@@ -223,6 +234,106 @@ Configure your settings below, then click "Start Application" to begin:"""
         """Hide the active settings display."""
         if self.settings_frame:
             self.settings_frame.pack_forget()
+
+    def _setup_variable_traces(self):
+        """
+        Attach trace callbacks to configuration variables for live updates.
+
+        This implements the variable tracing system that automatically detects
+        when any GUI field changes and triggers real-time configuration updates.
+
+        How it works:
+        - Each Tkinter variable (StringVar, IntVar, BooleanVar, etc.) gets a "write" trace
+        - When ANY variable changes, _on_config_var_changed() is called automatically
+        - This enables event-driven updates without manual polling
+        - Traces are suspended during programmatic updates to prevent infinite loops
+        """
+        if self._variable_traces:
+            return
+
+        self._suspend_change_events = True
+        try:
+            for var in self.config_vars.values():
+                trace_id = var.trace_add("write", self._on_config_var_changed)
+                self._variable_traces.append((var, trace_id))
+        finally:
+            self._suspend_change_events = False
+
+    def _on_config_var_changed(self, *args):
+        """
+        Handle configuration variable changes from the GUI.
+
+        This implements the debouncing system that prevents excessive updates
+        during rapid user input (e.g., typing in a text field).
+
+        Debouncing process:
+        1. User makes a change → This method is called
+        2. Cancel any pending update timer
+        3. Schedule new update in 300ms
+        4. If user makes another change within 300ms → Cancel and reschedule
+        5. When 300ms passes with no new changes → Execute the update
+
+        Example:
+        User types "ctrl+alt+space" (16 characters):
+        - Without debouncing: 16 component reinitializations
+        - With debouncing: 1 component reinitialization after typing stops
+        """
+        if self._suspend_change_events:
+            return
+
+        if self.root and self.root.winfo_exists():
+            if self._pending_update_job:
+                try:
+                    self.root.after_cancel(self._pending_update_job)
+                except Exception:
+                    pass
+            self._pending_update_job = self.root.after(300, self._apply_config_changes)
+        else:
+            self._apply_config_changes()
+
+    def _apply_config_changes(self, force: bool = False):
+        """Apply GUI-driven configuration changes."""
+        self._pending_update_job = None
+        self._notify_config_changed(force=force)
+
+    def _notify_config_changed(self, *, force: bool = False):
+        """
+        Notify listeners and running app about configuration changes.
+
+        This is the final step in the auto-update pipeline that:
+        1. Builds a new PushToTalkConfig object from current GUI state
+        2. Compares with previous config to avoid unnecessary updates
+        3. Updates the running application via app_instance.update_configuration()
+        4. Calls optional configuration change callbacks
+        5. Refreshes the status display
+
+        Args:
+            force: If True, skip the config comparison and force an update
+                  (used during programmatic GUI updates)
+        """
+        new_config = self._get_config_from_gui()
+
+        if not force and new_config == self.config:
+            return
+
+        self.config = new_config
+
+        if self.on_config_changed:
+            try:
+                self.on_config_changed(new_config)
+            except Exception as error:
+                logger.error(f"Error in configuration change callback: {error}")
+
+        if self.is_running and self.app_instance:
+            try:
+                self.app_instance.update_configuration(new_config)
+            except Exception as error:
+                logger.error(
+                    f"Failed to update running application configuration: {error}"
+                )
+
+        if self.is_running:
+            self._update_status_display()
 
     def _create_section_frame(self, parent: ttk.Widget, title: str) -> ttk.LabelFrame:
         """Create a labeled frame for a configuration section."""
@@ -634,6 +745,9 @@ Configure your settings below, then click "Start Application" to begin:"""
 
     def _refresh_glossary_list(self):
         """Refresh the glossary list display."""
+        if not hasattr(self, "glossary_listbox") or self.glossary_listbox is None:
+            return
+
         self.glossary_listbox.delete(0, tk.END)
         for term in sorted(self.glossary_terms, key=str.lower):
             self.glossary_listbox.insert(tk.END, term)
@@ -648,6 +762,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             if term not in self.glossary_terms:
                 self.glossary_terms.append(term)
                 self._refresh_glossary_list()
+                self._notify_config_changed()
             else:
                 messagebox.showinfo(
                     "Duplicate Term", f"The term '{term}' is already in the glossary."
@@ -674,6 +789,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                     actual_index = self.glossary_terms.index(current_term)
                     self.glossary_terms[actual_index] = new_term
                     self._refresh_glossary_list()
+                    self._notify_config_changed()
                 else:
                     messagebox.showinfo(
                         "Duplicate Term",
@@ -695,6 +811,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         ):
             self.glossary_terms.remove(term)
             self._refresh_glossary_list()
+            self._notify_config_changed()
 
     def _create_buttons_section(self, parent: ttk.Widget):
         """Create buttons section."""
@@ -784,24 +901,37 @@ Configure your settings below, then click "Start Application" to begin:"""
 
     def _update_gui_from_config(self, config: PushToTalkConfig):
         """Update GUI fields from a configuration object."""
-        self.config_vars["openai_api_key"].set(config.openai_api_key)
-        self.config_vars["stt_model"].set(config.stt_model)
-        self.config_vars["refinement_model"].set(config.refinement_model)
-        self.config_vars["sample_rate"].set(config.sample_rate)
-        self.config_vars["chunk_size"].set(config.chunk_size)
-        self.config_vars["channels"].set(config.channels)
-        self.config_vars["hotkey"].set(config.hotkey)
-        self.config_vars["toggle_hotkey"].set(config.toggle_hotkey)
-        self.config_vars["insertion_method"].set(config.insertion_method)
-        self.config_vars["insertion_delay"].set(config.insertion_delay)
-        self.config_vars["enable_text_refinement"].set(config.enable_text_refinement)
-        self.config_vars["enable_logging"].set(config.enable_logging)
-        self.config_vars["enable_audio_feedback"].set(config.enable_audio_feedback)
-        self.config_vars["enable_audio_processing"].set(config.enable_audio_processing)
-        self.config_vars["debug_mode"].set(config.debug_mode)
-        self.config_vars["silence_threshold"].set(config.silence_threshold)
-        self.config_vars["min_silence_duration"].set(config.min_silence_duration)
-        self.config_vars["speed_factor"].set(config.speed_factor)
+        self._suspend_change_events = True
+        try:
+            self.config_vars["openai_api_key"].set(config.openai_api_key)
+            self.config_vars["stt_model"].set(config.stt_model)
+            self.config_vars["refinement_model"].set(config.refinement_model)
+            self.config_vars["sample_rate"].set(config.sample_rate)
+            self.config_vars["chunk_size"].set(config.chunk_size)
+            self.config_vars["channels"].set(config.channels)
+            self.config_vars["hotkey"].set(config.hotkey)
+            self.config_vars["toggle_hotkey"].set(config.toggle_hotkey)
+            self.config_vars["insertion_method"].set(config.insertion_method)
+            self.config_vars["insertion_delay"].set(config.insertion_delay)
+            self.config_vars["enable_text_refinement"].set(
+                config.enable_text_refinement
+            )
+            self.config_vars["enable_logging"].set(config.enable_logging)
+            self.config_vars["enable_audio_feedback"].set(config.enable_audio_feedback)
+            self.config_vars["enable_audio_processing"].set(
+                config.enable_audio_processing
+            )
+            self.config_vars["debug_mode"].set(config.debug_mode)
+            self.config_vars["silence_threshold"].set(config.silence_threshold)
+            self.config_vars["min_silence_duration"].set(config.min_silence_duration)
+            self.config_vars["speed_factor"].set(config.speed_factor)
+        finally:
+            self._suspend_change_events = False
+
+        self.glossary_terms = list(config.custom_glossary)
+        self._refresh_glossary_list()
+
+        self._notify_config_changed(force=True)
 
     def _get_config_from_gui(self) -> PushToTalkConfig:
         """Create a configuration object from current GUI values."""
@@ -824,7 +954,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             silence_threshold=self.config_vars["silence_threshold"].get(),
             min_silence_duration=self.config_vars["min_silence_duration"].get(),
             speed_factor=self.config_vars["speed_factor"].get(),
-            custom_glossary=self.glossary_terms,
+            custom_glossary=list(self.glossary_terms),
         )
 
     def _toggle_application(self):

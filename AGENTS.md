@@ -270,9 +270,11 @@ export PUSHTOALK_CONFIG_PATH="/custom/path/config.json"
 
 ### Configuration Integration
 - **JSON Config**: All settings persisted locally
-- **Real-time Updates**: GUI changes trigger component reinitialization
+- **Real-time Updates**: GUI changes trigger component reinitialization and now propagate instantly to running sessions through `_notify_config_changed()`
 - **Platform Defaults**: OS-specific hotkey and path defaults
 - **Validation**: Input validation in GUI with error handling
+- **Live Update Internals**: Tk variables use `trace_add`/`trace` to call `_on_config_var_changed()`, which debounces updates and forwards new configs to `PushToTalkApp.update_configuration()` and optional callbacks. Suspend traces with `_suspend_change_events` during programmatic GUI refreshes to avoid loops.
+- **Testing Expectations**: When adding config fields, update both GUI variable initialization and `tests/test_config_gui.CONFIG_VAR_KEYS` so auto-update tests remain accurate.
 
 ## Performance and Scalability Notes
 

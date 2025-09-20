@@ -8,9 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - Added unit tests for utils and push_to_talk to reach 80% coverage.
+- Live configuration callbacks in the GUI so running sessions immediately pick up updated settings and glossary edits.
 
 ### Changed
 - Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
+- Configuration GUI now traces Tk variables, debounces updates, and refreshes the status banner whenever settings change mid-session.
 
 ### Deprecated
 
