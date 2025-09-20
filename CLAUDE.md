@@ -144,11 +144,11 @@ User types "ctrl+alt+space":
 **Solution With Debouncing**:
 ```
 User types "ctrl+alt+space":
-'c' → Schedule update in 300ms
-'t' → Cancel previous, schedule new update in 300ms
-'r' → Cancel previous, schedule new update in 300ms
+'c' → Schedule update after debounce delay
+'t' → Cancel previous, schedule new update after debounce delay
+'r' → Cancel previous, schedule new update after debounce delay
 ... (continue canceling and rescheduling)
-User stops typing → 300ms passes → Single update executed
+User stops typing → Debounce delay passes → Single update executed
 ```
 
 **Implementation** (`src/config_gui.py:251-267`):
@@ -162,15 +162,15 @@ def _on_config_var_changed(self, *args):
     if self._pending_update_job:
         self.root.after_cancel(self._pending_update_job)
 
-    # Schedule new update with 300ms delay
-    self._pending_update_job = self.root.after(300, self._apply_config_changes)
+    # Schedule new update with debounce delay (see code for exact timing)
+    self._pending_update_job = self.root.after(1000, self._apply_config_changes)
 ```
 
 #### Configuration Update Pipeline
 
 **Step 1: Trace Fires** → `_on_config_var_changed()`
 - Cancels any pending update timer
-- Schedules new update in 300ms
+- Schedules new update after debounce delay
 
 **Step 2: Timer Expires** → `_apply_config_changes()`
 - Clears timer reference
@@ -182,6 +182,7 @@ def _on_config_var_changed(self, *args):
 - Updates internal config reference
 - Calls optional `on_config_changed` callback
 - Updates running application via `app_instance.update_configuration()`
+- **Saves configuration to JSON file asynchronously** via `_save_config_to_file_async()`
 - Refreshes status display
 
 **Step 4: Application Update** → `PushToTalkApp.update_configuration()`
@@ -241,6 +242,50 @@ def _initialize_components(self):
     if hotkey_service_was_running and self.is_running:
         self.hotkey_service.start_service()
 ```
+
+#### Non-Blocking Configuration Persistence
+
+**What it does**: Automatically saves configuration changes to JSON file during runtime without blocking the GUI.
+
+**Problem**: Previously, configuration changes during runtime were applied to the running application but not persisted to the JSON file, meaning changes would be lost on restart.
+
+**Solution**: Asynchronous file saving with thread safety and deduplication.
+
+**Implementation** (`src/config_gui.py:346-391`):
+```python
+def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json"):
+    """Save configuration to JSON file asynchronously for persistence."""
+    def _save_worker():
+        try:
+            with self._save_lock:
+                if not self._save_pending:
+                    return  # Another thread already completed the save
+
+                config_data = asdict(self.config)
+                with open(filepath, "w") as f:
+                    json.dump(config_data, f, indent=2)
+
+                self._save_pending = False
+        except Exception as error:
+            logger.error(f"Failed to auto-save configuration: {error}")
+            self._save_pending = False
+
+    # Thread-safe deduplication
+    with self._save_lock:
+        if self._save_pending:
+            return  # Save already in progress
+        self._save_pending = True
+
+    # Start background save
+    threading.Thread(target=_save_worker, daemon=True).start()
+```
+
+**Key Features**:
+- **Thread-Safe**: Uses locks to prevent race conditions
+- **Non-Blocking**: Saves happen in background daemon threads
+- **Deduplication**: Multiple rapid changes trigger only one save
+- **Error Handling**: Failures are logged but don't interrupt the GUI
+- **Automatic**: Triggered by any configuration change during runtime
 
 #### Development Guidelines
 

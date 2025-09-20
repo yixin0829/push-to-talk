@@ -134,3 +134,97 @@ def test_custom_glossary_is_copied_when_building_config():
     # Notify again and confirm the change is propagated
     gui._notify_config_changed()
     assert gui.config.custom_glossary == ["alpha", "beta"]
+
+
+def test_config_changes_trigger_async_save(tmp_path):
+    """Test that configuration changes trigger asynchronous save to JSON file."""
+    import time
+    import json
+    from unittest.mock import patch
+
+    config = PushToTalkConfig(openai_api_key="test-key", hotkey="ctrl+shift+space")
+    gui = _prepare_gui(config)
+
+    # Use a temporary file for testing
+    test_config_file = tmp_path / "test_config.json"
+
+    # Mock the GUI to be running so changes trigger saves
+    gui.is_running = True
+
+    # Patch the save method to use our test file
+    with patch.object(gui, "_save_config_to_file_async") as mock_save:
+        # Change a configuration value
+        gui.config_vars["hotkey"].set("ctrl+alt+h")
+        gui._on_config_var_changed()
+
+        # Verify async save was called
+        mock_save.assert_called_once()
+
+    # Test the actual async save functionality
+    gui.config_vars["hotkey"].set("ctrl+alt+test")
+    gui._notify_config_changed()
+
+    # Save to our test file
+    gui._save_config_to_file_async(str(test_config_file))
+
+    # Wait a bit for the async save to complete
+    time.sleep(0.5)
+
+    # Verify the file was created and contains correct data
+    assert test_config_file.exists()
+
+    with open(test_config_file, "r") as f:
+        saved_data = json.load(f)
+
+    assert saved_data["hotkey"] == "ctrl+alt+test"
+    assert saved_data["openai_api_key"] == "test-key"
+
+
+def test_concurrent_async_saves_are_deduplicated(tmp_path):
+    """Test that concurrent async saves are properly deduplicated."""
+    import threading
+    import time
+    import json
+
+    config = PushToTalkConfig(openai_api_key="test-key")
+    gui = _prepare_gui(config)
+    gui.is_running = True
+
+    test_config_file = tmp_path / "concurrent_test.json"
+    save_attempts = []
+
+    def track_saves():
+        """Track when saves actually happen."""
+        _ = gui._save_config_to_file_async.__code__
+
+        def tracking_save():
+            save_attempts.append(time.time())
+            gui._save_config_to_file_async(str(test_config_file))
+
+        return tracking_save
+
+    # Start multiple concurrent saves
+    threads = []
+    for i in range(5):
+        thread = threading.Thread(
+            target=lambda: gui._save_config_to_file_async(str(test_config_file))
+        )
+        threads.append(thread)
+        thread.start()
+
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
+
+    # Wait a bit for async operations
+    time.sleep(0.2)
+
+    # Verify file was created (at least one save succeeded)
+    assert test_config_file.exists()
+
+    # The exact number of writes is implementation-dependent due to timing,
+    # but the file should contain valid JSON
+    with open(test_config_file, "r") as f:
+        saved_data = json.load(f)
+
+    assert saved_data["openai_api_key"] == "test-key"

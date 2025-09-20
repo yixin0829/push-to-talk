@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added unit tests for utils and push_to_talk to reach 80% coverage.
 - Live configuration callbacks in the GUI so running sessions immediately pick up updated settings and glossary edits.
+- **Non-blocking configuration persistence**: Runtime GUI changes are now automatically saved to JSON file asynchronously, ensuring changes persist across application restarts without blocking the user interface.
 
 ### Changed
 - Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
