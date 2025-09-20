@@ -54,6 +54,9 @@ CONFIG_VAR_KEYS = [
     "openai_api_key",
     "stt_model",
     "refinement_model",
+    "use_local_whisper",
+    "local_whisper_model",
+    "local_whisper_device",
     "sample_rate",
     "chunk_size",
     "channels",
@@ -161,7 +164,7 @@ def test_config_changes_trigger_async_save(tmp_path):
         mock_save.assert_called_once()
 
     # Test the actual async save functionality
-    gui.config_vars["hotkey"].set("ctrl+alt+test")
+    gui.config_vars["hotkey"].set("ctrl+shift+space")
     gui._notify_config_changed()
 
     # Save to our test file
@@ -176,7 +179,7 @@ def test_config_changes_trigger_async_save(tmp_path):
     with open(test_config_file, "r") as f:
         saved_data = json.load(f)
 
-    assert saved_data["hotkey"] == "ctrl+alt+test"
+    assert saved_data["hotkey"] == "ctrl+shift+space"
     assert saved_data["openai_api_key"] == "test-key"
 
 
