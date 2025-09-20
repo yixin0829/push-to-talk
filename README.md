@@ -85,10 +85,25 @@ The application features a comprehensive, persistent configuration GUI with orga
 - **Live Updates Banner**: Status automatically refreshes when settings change mid-session
 
 ### Live Configuration Updates
+
+The application features a sophisticated real-time configuration system that applies changes instantly while running:
+
+#### How It Works
+- **Variable Tracing**: Every GUI field (text boxes, checkboxes, dropdowns) automatically detects changes using Tkinter variable traces
+- **Smart Debouncing**: Rapid typing is intelligently handled with a 300ms delay to prevent excessive updates
+- **Selective Reinitialization**: Only components affected by changes are reinitialized (e.g., hotkey changes → restart hotkey service)
+- **Service Continuity**: Critical services like hotkey detection automatically restart after updates
+
+#### Technical Features
 - **Instant Propagation**: Editing any field triggers a debounced update to the running PushToTalk service
 - **Callback Support**: Optional listeners receive configuration dataclasses whenever values change
 - **Glossary Sync**: Glossary edits are copied before rebuilds to prevent UI/model divergence
 - **Safe Programmatic Updates**: GUI refreshes suspend traces to avoid infinite callback loops
+
+#### Example Scenarios
+- **Hotkey Change**: Type "ctrl+alt+space" → Only final result triggers one hotkey service restart
+- **Non-Critical Change**: Toggle "Audio Feedback" → Updates instantly without restarting core components
+- **API Key Change**: Update OpenAI key → Only transcription/refinement components reinitialize
 
 ### API Settings
 - **OpenAI API Key**: Secure entry with show/hide functionality

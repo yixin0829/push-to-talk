@@ -236,23 +236,48 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.settings_frame.pack_forget()
 
     def _setup_variable_traces(self):
-        """Attach trace callbacks to configuration variables for live updates."""
+        """
+        Attach trace callbacks to configuration variables for live updates.
+
+        This implements the variable tracing system that automatically detects
+        when any GUI field changes and triggers real-time configuration updates.
+
+        How it works:
+        - Each Tkinter variable (StringVar, IntVar, BooleanVar, etc.) gets a "write" trace
+        - When ANY variable changes, _on_config_var_changed() is called automatically
+        - This enables event-driven updates without manual polling
+        - Traces are suspended during programmatic updates to prevent infinite loops
+        """
         if self._variable_traces:
             return
 
         self._suspend_change_events = True
         try:
             for var in self.config_vars.values():
-                try:
-                    trace_id = var.trace_add("write", self._on_config_var_changed)
-                except AttributeError:
-                    trace_id = var.trace("w", self._on_config_var_changed)
+                trace_id = var.trace_add("write", self._on_config_var_changed)
                 self._variable_traces.append((var, trace_id))
         finally:
             self._suspend_change_events = False
 
     def _on_config_var_changed(self, *args):
-        """Handle configuration variable changes from the GUI."""
+        """
+        Handle configuration variable changes from the GUI.
+
+        This implements the debouncing system that prevents excessive updates
+        during rapid user input (e.g., typing in a text field).
+
+        Debouncing process:
+        1. User makes a change → This method is called
+        2. Cancel any pending update timer
+        3. Schedule new update in 300ms
+        4. If user makes another change within 300ms → Cancel and reschedule
+        5. When 300ms passes with no new changes → Execute the update
+
+        Example:
+        User types "ctrl+alt+space" (16 characters):
+        - Without debouncing: 16 component reinitializations
+        - With debouncing: 1 component reinitialization after typing stops
+        """
         if self._suspend_change_events:
             return
 
@@ -272,7 +297,20 @@ Configure your settings below, then click "Start Application" to begin:"""
         self._notify_config_changed(force=force)
 
     def _notify_config_changed(self, *, force: bool = False):
-        """Notify listeners and running app about configuration changes."""
+        """
+        Notify listeners and running app about configuration changes.
+
+        This is the final step in the auto-update pipeline that:
+        1. Builds a new PushToTalkConfig object from current GUI state
+        2. Compares with previous config to avoid unnecessary updates
+        3. Updates the running application via app_instance.update_configuration()
+        4. Calls optional configuration change callbacks
+        5. Refreshes the status display
+
+        Args:
+            force: If True, skip the config comparison and force an update
+                  (used during programmatic GUI updates)
+        """
         new_config = self._get_config_from_gui()
 
         if not force and new_config == self.config:

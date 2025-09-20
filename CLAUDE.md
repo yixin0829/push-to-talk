@@ -106,10 +106,154 @@ The application uses multiple threads to prevent blocking:
 - **Custom Glossary**: Stored as `custom_glossary: ["term1", "term2"]` in config JSON
 
 ### Live Configuration Updates
-- `_setup_variable_traces()` attaches `trace_add("write", ...)` listeners to every Tk variable once the GUI is built.
-- `_on_config_var_changed()` debounces edits via `after(300, ...)` to avoid excessive reinitialization and supports headless invocation when no Tk root exists (see `tests/test_config_gui.py`).
-- `_notify_config_changed()` copies glossary lists, short-circuits when values are unchanged unless `force=True`, and relays updates to `on_config_changed` callbacks and active app instances.
-- When adding new config fields, update both `ConfigurationGUI.config_vars` setup and `tests/test_config_gui.CONFIG_VAR_KEYS` so tests keep covering auto-update behaviour.
+
+The application implements a sophisticated auto-update system that applies configuration changes in real-time while the application is running, using **variable tracing** and **debouncing** mechanisms.
+
+#### Variable Tracing System
+
+**What it does**: Automatically detects when any GUI field changes and triggers update callbacks.
+
+**Implementation** (`src/config_gui.py:238-250`):
+```python
+def _setup_variable_traces(self):
+    """Attach trace callbacks to configuration variables for live updates."""
+    for var in self.config_vars.values():
+        trace_id = var.trace_add("write", self._on_config_var_changed)
+        self._variable_traces.append((var, trace_id))
+```
+
+**Key Components**:
+- **Trace Registration**: Each Tkinter variable (StringVar, IntVar, BooleanVar, etc.) gets a "write" trace
+- **Automatic Detection**: No manual polling needed - changes are detected instantly
+- **Event-Driven**: Triggers `_on_config_var_changed()` whenever any field changes
+- **Trace Management**: Traces can be suspended via `_suspend_change_events` to prevent infinite loops during programmatic GUI updates
+
+#### Debouncing System
+
+**What it does**: Prevents excessive updates during rapid user input (e.g., typing).
+
+**Problem Without Debouncing**:
+```
+User types "ctrl+alt+space":
+'c' → Update triggered → Component reinitialization
+'t' → Update triggered → Component reinitialization
+'r' → Update triggered → Component reinitialization
+... (16 total updates for one hotkey change!)
+```
+
+**Solution With Debouncing**:
+```
+User types "ctrl+alt+space":
+'c' → Schedule update in 300ms
+'t' → Cancel previous, schedule new update in 300ms
+'r' → Cancel previous, schedule new update in 300ms
+... (continue canceling and rescheduling)
+User stops typing → 300ms passes → Single update executed
+```
+
+**Implementation** (`src/config_gui.py:251-267`):
+```python
+def _on_config_var_changed(self, *args):
+    """Handle configuration variable changes from the GUI."""
+    if self._suspend_change_events:
+        return
+
+    # Cancel any pending update
+    if self._pending_update_job:
+        self.root.after_cancel(self._pending_update_job)
+
+    # Schedule new update with 300ms delay
+    self._pending_update_job = self.root.after(300, self._apply_config_changes)
+```
+
+#### Configuration Update Pipeline
+
+**Step 1: Trace Fires** → `_on_config_var_changed()`
+- Cancels any pending update timer
+- Schedules new update in 300ms
+
+**Step 2: Timer Expires** → `_apply_config_changes()`
+- Clears timer reference
+- Calls `_notify_config_changed()`
+
+**Step 3: Configuration Processing** → `_notify_config_changed()`
+- Builds new `PushToTalkConfig` from current GUI state
+- Short-circuits if no actual changes detected
+- Updates internal config reference
+- Calls optional `on_config_changed` callback
+- Updates running application via `app_instance.update_configuration()`
+- Refreshes status display
+
+**Step 4: Application Update** → `PushToTalkApp.update_configuration()`
+- Compares old vs new config using `requires_component_reinitialization()`
+- Only reinitializes components when critical settings change
+- Automatically restarts services (like hotkey detection) if they were running
+
+#### Smart Component Reinitialization
+
+The system intelligently determines which changes require expensive component reinitialization:
+
+**Critical Fields** (require reinitialization):
+- API keys, model settings, audio parameters, hotkeys, processing settings
+
+**Non-Critical Fields** (runtime-only changes):
+- `insertion_method`, `enable_logging`, `enable_audio_feedback`
+
+**Implementation** (`src/push_to_talk.py:81-109`):
+```python
+def requires_component_reinitialization(self, other: "PushToTalkConfig") -> bool:
+    """Check if component reinitialization is required."""
+    non_critical_fields = {
+        "insertion_method",
+        "enable_logging",
+        "enable_audio_feedback",
+    }
+
+    all_fields = {f.name for f in fields(self)}
+    critical_fields = all_fields - non_critical_fields
+
+    for field_name in critical_fields:
+        if getattr(self, field_name) != getattr(other, field_name):
+            return True
+    return False
+```
+
+#### Service Continuity During Updates
+
+**Problem**: When components are reinitialized, services like hotkey detection get stopped.
+
+**Solution**: The system remembers service states and automatically restarts them:
+
+```python
+def _initialize_components(self):
+    # Remember if hotkey service was running
+    hotkey_service_was_running = (
+        self.hotkey_service and self.hotkey_service.is_service_running()
+    )
+
+    # Stop and recreate components
+    if self.hotkey_service:
+        self.hotkey_service.stop_service()
+
+    self.hotkey_service = HotkeyService(...)
+
+    # Restart if it was running before and app is still running
+    if hotkey_service_was_running and self.is_running:
+        self.hotkey_service.start_service()
+```
+
+#### Development Guidelines
+
+**When adding new config fields**:
+1. Add the field to `PushToTalkConfig` dataclass
+2. Add corresponding Tkinter variable in `ConfigurationGUI.config_vars`
+3. Update `tests/test_config_gui.CONFIG_VAR_KEYS` for test coverage
+4. Determine if the field requires component reinitialization and update the logic accordingly
+
+**Testing auto-update behavior**:
+- Unit tests validate trace setup and debouncing logic
+- Integration tests verify end-to-end configuration updates
+- Mock stubs simulate component reinitialization for reliable testing
 
 ### Testing Structure
 
