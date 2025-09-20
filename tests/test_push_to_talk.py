@@ -572,7 +572,7 @@ def test_config_requires_component_reinitialization():
         ("sample_rate", 44100),
         ("chunk_size", 2048),
         ("channels", 2),
-        ("hotkey", "ctrl+shift+space"),
+        ("hotkey", "ctrl+alt+space"),
         ("toggle_hotkey", "ctrl+alt+^"),
         ("insertion_delay", 0.01),
         ("enable_text_refinement", False),

@@ -14,6 +14,7 @@ from src.transcriber_factory import TranscriberFactory
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
+from src.local_whisper_manager import LocalWhisperManager
 from src.utils import play_start_feedback, play_stop_feedback
 
 
@@ -140,6 +141,9 @@ class PushToTalkApp:
             config: Configuration object. If None, default config is used.
         """
         self.config = config or PushToTalkConfig()
+
+        # Callback for model download confirmation (set by GUI)
+        self.on_model_download_needed = None
 
         # Validate transcription configuration
         if not self.config.use_local_whisper:
@@ -335,6 +339,16 @@ class PushToTalkApp:
 
     def _on_start_recording(self):
         """Callback for when recording starts."""
+        # Check if local whisper model is selected but not downloaded
+        if self.config.use_local_whisper:
+            model_name = self.config.local_whisper_model
+            if not LocalWhisperManager.is_model_downloaded(model_name):
+                logger.warning(f"Local Whisper model '{model_name}' not downloaded")
+                # Trigger GUI callback for model download confirmation
+                if self.on_model_download_needed:
+                    self.on_model_download_needed(model_name)
+                return  # Don't start recording until model is available
+
         with self.processing_lock:
             # Play audio feedback if enabled
             if self.config.enable_audio_feedback:

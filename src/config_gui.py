@@ -763,48 +763,63 @@ Configure your settings below, then click "Start Application" to begin:"""
             model_name, update_progress, on_download_complete
         )
 
+    def _handle_model_download_needed(self, model_name: str):
+        """Handle model download needed callback from main application."""
+        # Schedule the GUI update in the main thread
+        self.root.after(0, lambda: self._show_model_download_confirmation(model_name))
+
     def _show_model_download_confirmation(self, model_name: str):
-        """Show confirmation dialog for model download before starting application."""
+        """Show confirmation dialog for model download during recording."""
         model_info = LocalWhisperManager.get_model_info(model_name)
         size_mb = model_info.get("size_mb", 0)
 
         # Create confirmation dialog
         dialog = tk.Toplevel(self.root)
         dialog.title("Model Download Required")
-        dialog.geometry("500x200")
-        dialog.resizable(False, False)
+        dialog.minsize(450, 250)  # Set minimum size instead of fixed
+        dialog.resizable(True, False)  # Allow horizontal resizing
         dialog.transient(self.root)
         dialog.grab_set()
 
-        # Center the dialog
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
-        y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
-        dialog.geometry(f"+{x}+{y}")
-
-        # Message frame
+        # Message frame with proper padding
         msg_frame = ttk.Frame(dialog)
-        msg_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        msg_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=20)
 
-        # Icon and message
+        # Icon and message with better text wrapping
+        warning_text = f"⚠️ Recording cannot start: The selected local Whisper model '{model_name}' is not downloaded."
+        size_text = f"Size: ~{size_mb} MB"
+        download_text = (
+            "Download may take several minutes depending on your internet speed."
+        )
+        question_text = "What would you like to do?"
+
+        full_text = f"{warning_text}\n\n{size_text}\n{download_text}\n\n{question_text}"
+
         msg_label = ttk.Label(
             msg_frame,
-            text=f"⚠️ The selected local Whisper model '{model_name}' is not downloaded.\n\n"
-            f"Size: ~{size_mb} MB\n"
-            f"Download may take several minutes depending on your internet speed.\n\n"
-            f"What would you like to do?",
+            text=full_text,
             font=("TkDefaultFont", 10),
-            justify="center",
+            justify="left",  # Left justify for better readability
+            wraplength=400,  # Wrap text at 400 pixels
+            anchor="w",  # Anchor to west (left)
         )
-        msg_label.pack(expand=True)
+        msg_label.pack(expand=True, fill=tk.BOTH, pady=(0, 10))
+
+        # Center the dialog after content is packed
+        dialog.update_idletasks()
+        dialog_width = max(450, dialog.winfo_reqwidth())
+        dialog_height = max(250, dialog.winfo_reqheight())
+        x = (dialog.winfo_screenwidth() // 2) - (dialog_width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (dialog_height // 2)
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
 
         # Button frame
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
 
-        def download_and_start():
+        def download_and_continue():
             dialog.destroy()
-            self._download_model_and_start(model_name)
+            self._download_model_for_recording(model_name)
 
         def select_different_model():
             dialog.destroy()
@@ -813,7 +828,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             self._on_model_type_changed()
             messagebox.showinfo(
                 "Switched to OpenAI API",
-                "Switched to OpenAI API mode. You can now start the application or select a different local model.",
+                "Switched to OpenAI API mode. You can now try recording again.",
             )
 
         def cancel_start():
@@ -823,7 +838,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         download_btn = ttk.Button(
             btn_frame,
             text=f"Download {model_name} (~{size_mb} MB)",
-            command=download_and_start,
+            command=download_and_continue,
             width=25,
         )
         download_btn.pack(side=tk.LEFT, padx=(0, 10))
@@ -841,48 +856,55 @@ Configure your settings below, then click "Start Application" to begin:"""
         )
         cancel_btn.pack(side=tk.RIGHT)
 
-    def _download_model_and_start(self, model_name: str):
-        """Download model and start application when download completes."""
+    def _download_model_for_recording(self, model_name: str):
+        """Download model for use during recording."""
         # Create progress dialog
         progress_dialog = tk.Toplevel(self.root)
         progress_dialog.title(f"Downloading {model_name}")
-        progress_dialog.geometry("450x180")
-        progress_dialog.resizable(False, False)
+        progress_dialog.minsize(400, 180)
+        progress_dialog.resizable(True, False)  # Allow horizontal resizing
         progress_dialog.transient(self.root)
         progress_dialog.grab_set()
 
-        # Center the dialog
-        progress_dialog.update_idletasks()
-        x = (progress_dialog.winfo_screenwidth() // 2) - (
-            progress_dialog.winfo_width() // 2
-        )
-        y = (progress_dialog.winfo_screenheight() // 2) - (
-            progress_dialog.winfo_height() // 2
-        )
-        progress_dialog.geometry(f"+{x}+{y}")
-
         # Progress frame
         progress_frame = ttk.Frame(progress_dialog)
-        progress_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        progress_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=20)
 
-        # Progress label
+        # Progress label with text wrapping
         progress_label = ttk.Label(
             progress_frame,
             text=f"Downloading {model_name} model...",
             font=("TkDefaultFont", 12, "bold"),
+            wraplength=350,  # Prevent text overflow
+            justify="center",
         )
         progress_label.pack(pady=(0, 10))
 
-        # Status label
-        status_label = ttk.Label(progress_frame, text="Initializing download...")
+        # Center the dialog after content is ready
+        progress_dialog.update_idletasks()
+        dialog_width = max(400, progress_dialog.winfo_reqwidth())
+        dialog_height = max(180, progress_dialog.winfo_reqheight())
+        x = (progress_dialog.winfo_screenwidth() // 2) - (dialog_width // 2)
+        y = (progress_dialog.winfo_screenheight() // 2) - (dialog_height // 2)
+        progress_dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+
+        # Status label with text wrapping
+        status_label = ttk.Label(
+            progress_frame,
+            text="Initializing download...",
+            wraplength=350,
+            justify="center",
+        )
         status_label.pack(pady=10)
 
-        # Auto-start message
+        # Auto-start message with text wrapping
         auto_start_label = ttk.Label(
             progress_frame,
-            text="The application will start automatically when download completes.",
+            text="You can try recording again when download completes.",
             font=("TkDefaultFont", 9),
             foreground="darkgreen",
+            wraplength=350,
+            justify="center",
         )
         auto_start_label.pack(pady=(10, 0))
 
@@ -897,11 +919,8 @@ Configure your settings below, then click "Start Application" to begin:"""
                     status_label.config(text="✅ Download completed successfully!")
                     # Update model status in GUI
                     self._update_local_whisper_status()
-                    # Close dialog after 3 seconds and start application
-                    progress_dialog.after(
-                        3000,
-                        lambda: (progress_dialog.destroy(), self._start_application()),
-                    )
+                    # Close dialog after 3 seconds
+                    progress_dialog.after(3000, progress_dialog.destroy)
                 else:
                     status_label.config(text=f"❌ Download failed: {message}")
                     auto_start_label.config(
@@ -1510,13 +1529,6 @@ Configure your settings below, then click "Start Application" to begin:"""
         if not self._validate_configuration():
             return
 
-        # Check if local whisper model is selected but not downloaded
-        if self.config_vars["use_local_whisper"].get():
-            model_name = self.config_vars["local_whisper_model"].get()
-            if not LocalWhisperManager.is_model_downloaded(model_name):
-                self._show_model_download_confirmation(model_name)
-                return
-
         try:
             # Update config object
             self.config = self._get_config_from_gui()
@@ -1530,6 +1542,11 @@ Configure your settings below, then click "Start Application" to begin:"""
 
             # Create app instance
             self.app_instance = PushToTalkApp(self.config)
+
+            # Set callback for model download confirmation
+            self.app_instance.on_model_download_needed = (
+                self._handle_model_download_needed
+            )
 
             # Start application in separate thread
             self.app_thread = threading.Thread(
