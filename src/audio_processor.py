@@ -1,5 +1,6 @@
 import numpy as np
 import tempfile
+import time
 from loguru import logger
 import os
 import shutil
@@ -46,24 +47,37 @@ class AudioProcessor:
         Returns:
             Path to processed WAV file, or None if processing failed
         """
+        start_time = time.time()
+
         try:
             # Load audio using pydub
+            load_start = time.time()
             audio = AudioSegment.from_file(input_path)
-            logger.info(f"Original audio length: {len(audio) / 1000:.2f}s")
+            load_time = time.time() - load_start
+
+            original_duration = len(audio) / 1000
+            original_size = os.path.getsize(input_path)
+            logger.info(
+                f"Audio loaded in {load_time:.2f}s - Duration: {original_duration:.2f}s, Size: {original_size} bytes"
+            )
 
             # Store original audio for debug
             original_audio = audio
 
             # Remove silence with pydub
+            silence_start = time.time()
             chunks = split_on_silence(
                 audio,
                 min_silence_len=int(self.min_silence_duration),
                 silence_thresh=audio.dBFS + self.silence_threshold,
                 keep_silence=int(self.keep_silence),
             )
+            silence_time = time.time() - silence_start
 
             if not chunks:
-                logger.warning("No speech detected, returning original audio")
+                logger.warning(
+                    f"No speech detected after {silence_time:.2f}s silence analysis, returning original audio"
+                )
                 chunks = [audio]
 
             # Concatenate chunks
@@ -71,8 +85,10 @@ class AudioProcessor:
             for chunk in chunks:
                 processed_audio += chunk
 
+            cropped_duration = len(processed_audio) / 1000
+            silence_removed = original_duration - cropped_duration
             logger.info(
-                f"Audio after silence cropping: {len(processed_audio) / 1000:.2f}s"
+                f"Silence removal completed in {silence_time:.2f}s - {len(chunks)} chunks, {silence_removed:.2f}s removed ({silence_removed / original_duration * 100:.1f}%)"
             )
 
             # Convert to numpy array for psola processing
@@ -81,6 +97,7 @@ class AudioProcessor:
             # Handle stereo by converting to mono (take left channel)
             if processed_audio.channels == 2:
                 samples = samples[::2]  # Take every other sample (left channel)
+                logger.debug("Converted stereo to mono")
 
             # Normalize to [-1, 1] range
             if processed_audio.sample_width == 2:  # 16-bit
@@ -93,6 +110,7 @@ class AudioProcessor:
                 samples = samples / np.max(np.abs(samples))  # Fallback normalization
 
             # Speed up with pitch preservation using PSOLA
+            psola_start = time.time()
             sample_rate = processed_audio.frame_rate
             if self.speed_factor != 1.0:
                 stretched_samples = vocode(
@@ -100,18 +118,34 @@ class AudioProcessor:
                 )
             else:
                 stretched_samples = samples
+            psola_time = time.time() - psola_start
 
+            final_duration = len(stretched_samples) / sample_rate
+            speed_factor_actual = (
+                cropped_duration / final_duration if final_duration > 0 else 1.0
+            )
             logger.info(
-                f"Audio after speed-up: {len(stretched_samples) / sample_rate:.2f}s"
+                f"Speed adjustment completed in {psola_time:.2f}s - Final duration: {final_duration:.2f}s, Speed factor: {speed_factor_actual:.2f}x"
             )
 
             # Save result using soundfile
+            save_start = time.time()
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
             temp_filename = temp_file.name
             temp_file.close()
 
             sf.write(temp_filename, stretched_samples, sample_rate)
-            logger.info(f"Processed audio saved to {temp_filename}")
+            save_time = time.time() - save_start
+
+            processed_size = os.path.getsize(temp_filename)
+            total_time = time.time() - start_time
+
+            logger.info(
+                f"Audio processing completed in {total_time:.2f}s (load: {load_time:.2f}s, silence: {silence_time:.2f}s, speed: {psola_time:.2f}s, save: {save_time:.2f}s)"
+            )
+            logger.info(
+                f"Processing efficiency - Size reduction: {((original_size - processed_size) / original_size * 100):.1f}%, Time reduction: {((original_duration - final_duration) / original_duration * 100):.1f}%"
+            )
 
             # Save debug files if debug mode is enabled
             if self.debug_mode:
@@ -127,7 +161,24 @@ class AudioProcessor:
             return temp_filename
 
         except Exception as e:
-            logger.error(f"Failed to process audio: {e}")
+            total_time = time.time() - start_time
+            logger.error(f"Audio processing failed after {total_time:.2f}s: {e}")
+            logger.error(
+                f"Processing context - Input file: {input_path}, "
+                f"Silence threshold: {self.silence_threshold}dBFS, "
+                f"Speed factor: {self.speed_factor}x, "
+                f"Min silence duration: {self.min_silence_duration}ms"
+            )
+
+            # Check if file exists and is readable
+            if not os.path.exists(input_path):
+                logger.error(f"Input audio file does not exist: {input_path}")
+            elif not os.access(input_path, os.R_OK):
+                logger.error(f"Input audio file is not readable: {input_path}")
+            else:
+                file_size = os.path.getsize(input_path)
+                logger.error(f"Input file size: {file_size} bytes")
+
             return None
 
     def _save_debug_files(

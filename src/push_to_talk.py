@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import uuid
 from loguru import logger
 import threading
 import signal
@@ -373,67 +374,124 @@ class PushToTalkApp:
 
     def _process_recorded_audio(self):
         """Process the recorded audio through the full pipeline."""
+        # Generate correlation ID for tracking this operation
+        correlation_id = str(uuid.uuid4())[:8]
+        start_time = time.time()
+
         try:
             # Stop recording and get audio file
-            logger.info("Processing recorded audio...")
+            logger.info(f"[{correlation_id}] Starting audio processing pipeline")
             audio_file = self.audio_recorder.stop_recording()
 
             if not audio_file:
-                logger.warning("No audio file to process")
+                logger.warning(f"[{correlation_id}] No audio file to process")
                 return
 
-            # Get active window info for logging
+            # Get active window info and file stats for context
             window_title = self.text_inserter.get_active_window_title()
-            if window_title:
-                logger.info(f"Target window: {window_title}")
+            file_size = os.path.getsize(audio_file) if os.path.exists(audio_file) else 0
+            logger.info(
+                f"[{correlation_id}] Target window: {window_title or 'Unknown'}, Audio file: {file_size} bytes"
+            )
 
             # Process audio if enabled (silence detection and speed-up)
             processed_audio_file = audio_file
+            audio_processing_time = 0
             if self.audio_processor and self.config.enable_audio_processing:
-                logger.info("Processing audio (silence detection and speed-up)...")
+                logger.info(
+                    f"[{correlation_id}] Processing audio (silence detection and speed-up)"
+                )
+                audio_start = time.time()
                 processed_audio_file = self.audio_processor.process_audio_file(
                     audio_file
                 )
+                audio_processing_time = time.time() - audio_start
+
                 if not processed_audio_file:
-                    logger.warning("Audio processing failed, using original audio")
+                    logger.warning(
+                        f"[{correlation_id}] Audio processing failed after {audio_processing_time:.2f}s, using original audio"
+                    )
+                    processed_audio_file = audio_file
+                else:
+                    processed_size = (
+                        os.path.getsize(processed_audio_file)
+                        if os.path.exists(processed_audio_file)
+                        else 0
+                    )
+                    logger.info(
+                        f"[{correlation_id}] Audio processing completed in {audio_processing_time:.2f}s, processed file: {processed_size} bytes"
+                    )
 
             # Transcribe audio
-            logger.info("Transcribing audio...")
+            logger.info(f"[{correlation_id}] Starting transcription")
+            transcription_start = time.time()
             transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
-            logger.info(f"Transcribed text: {transcribed_text}")
+            transcription_time = time.time() - transcription_start
+
+            if transcribed_text:
+                logger.info(
+                    f"[{correlation_id}] Transcription completed in {transcription_time:.2f}s, text length: {len(transcribed_text)} chars"
+                )
+            else:
+                logger.warning(
+                    f"[{correlation_id}] Transcription failed after {transcription_time:.2f}s"
+                )
 
             # Clean up temporary files (both original and processed if exists)
             for temp_file in set([audio_file, processed_audio_file]):
                 if temp_file and os.path.exists(temp_file):
                     try:
                         os.remove(temp_file)
-                        logger.debug(f"Cleaned up temporary file: {temp_file}")
+                        logger.debug(
+                            f"[{correlation_id}] Cleaned up temporary file: {temp_file}"
+                        )
                     except Exception as e:
-                        logger.warning(f"Failed to clean up {temp_file}: {e}")
+                        logger.warning(
+                            f"[{correlation_id}] Failed to clean up {temp_file}: {e}"
+                        )
 
             if transcribed_text is None:
-                logger.warning("Transcribed text is None, skipping refinement")
+                logger.warning(
+                    f"[{correlation_id}] Transcribed text is None, skipping refinement"
+                )
                 return
 
             # Refine text if enabled (if failed, fallback to the original transcription)
             final_text = transcribed_text
+            refinement_time = 0
             if self.text_refiner and self.config.enable_text_refinement:
-                logger.info("Refining transcribed text...")
+                logger.info(f"[{correlation_id}] Starting text refinement")
+                refinement_start = time.time()
                 refined_text = self.text_refiner.refine_text(transcribed_text)
+                refinement_time = time.time() - refinement_start
+
                 if refined_text:
                     final_text = refined_text
-                    logger.info(f"Refined: {final_text}")
+                    logger.info(
+                        f"[{correlation_id}] Text refinement completed in {refinement_time:.2f}s, refined length: {len(final_text)} chars"
+                    )
+                else:
+                    logger.warning(
+                        f"[{correlation_id}] Text refinement failed after {refinement_time:.2f}s, using original transcription"
+                    )
 
             # Insert text into active window
-            logger.info("Inserting text into active window...")
+            logger.info(f"[{correlation_id}] Inserting text into active window")
+            insertion_start = time.time()
             success = self.text_inserter.insert_text(
                 final_text, method=self.config.insertion_method
             )
+            insertion_time = time.time() - insertion_start
 
+            total_time = time.time() - start_time
             if success:
-                logger.info("Text insertion successful")
+                logger.info(
+                    f"[{correlation_id}] Pipeline completed successfully in {total_time:.2f}s (audio: {audio_processing_time:.2f}s, transcription: {transcription_time:.2f}s, refinement: {refinement_time:.2f}s, insertion: {insertion_time:.2f}s)"
+                )
             else:
-                logger.error("Text insertion failed")
+                logger.error(
+                    f"[{correlation_id}] Text insertion failed after {insertion_time:.2f}s, total pipeline time: {total_time:.2f}s"
+                )
 
             # Clean up temporary files
             try:
@@ -442,16 +500,29 @@ class PushToTalkApp:
                 ):
                     os.unlink(processed_audio_file)
                     logger.debug(
-                        f"Cleaned up processed audio file: {processed_audio_file}"
+                        f"[{correlation_id}] Cleaned up processed audio file: {processed_audio_file}"
                     )
                 if os.path.exists(audio_file):
                     os.unlink(audio_file)
-                    logger.debug(f"Cleaned up original audio file: {audio_file}")
+                    logger.debug(
+                        f"[{correlation_id}] Cleaned up original audio file: {audio_file}"
+                    )
             except Exception as cleanup_error:
-                logger.warning(f"Error cleaning up audio files: {cleanup_error}")
+                logger.warning(
+                    f"[{correlation_id}] Error cleaning up audio files: {cleanup_error}"
+                )
 
         except Exception as e:
-            logger.error(f"Error processing recorded audio: {e}")
+            total_time = time.time() - start_time
+            logger.error(
+                f"[{correlation_id}] Audio processing pipeline failed after {total_time:.2f}s: {e}"
+            )
+            logger.error(
+                f"[{correlation_id}] Configuration context - use_local_whisper: {self.config.use_local_whisper}, "
+                f"enable_audio_processing: {self.config.enable_audio_processing}, "
+                f"enable_text_refinement: {self.config.enable_text_refinement}"
+            )
+
             # Clean up temporary files even on error
             try:
                 if (
@@ -460,10 +531,18 @@ class PushToTalkApp:
                     and os.path.exists(processed_audio_file)
                 ):
                     os.unlink(processed_audio_file)
+                    logger.debug(
+                        f"[{correlation_id}] Cleaned up processed audio file after error"
+                    )
                 if "audio_file" in locals() and os.path.exists(audio_file):
                     os.unlink(audio_file)
-            except Exception:
-                pass  # Ignore cleanup errors during error handling
+                    logger.debug(
+                        f"[{correlation_id}] Cleaned up original audio file after error"
+                    )
+            except Exception as cleanup_e:
+                logger.warning(
+                    f"[{correlation_id}] Failed to clean up files after error: {cleanup_e}"
+                )
 
     def change_hotkey(self, new_hotkey: str) -> bool:
         """

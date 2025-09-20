@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Enhanced Logging and Observability**: Comprehensive improvements to logging system for better debugging and performance monitoring
+  - Added correlation IDs to track operations end-to-end across the audio processing pipeline
+  - Performance timing and metrics for all major operations (audio processing, transcription, text refinement)
+  - Enhanced error messages with contextual information and suggested remediation steps
+  - User-friendly status logs for long-running operations with progress indicators
+  - Startup validation logging with configuration checks and warnings
+  - Optimized log levels to reduce verbosity while maintaining essential information
+  - Detailed performance metrics including processing ratios, throughput rates, and efficiency statistics
 - **Updated local Whisper model list**: Refactored available models to match whisper.cpp make targets with proper English-only variants and updated size estimates
 - **Local Whisper Model Support**: Comprehensive local speech-to-text transcription using whisper.cpp (via pywhispercpp) with GPU acceleration capabilities, on-demand model downloads, and seamless integration with existing workflow.
   - Local Whisper transcriber with automatic GPU/CPU detection and optimization

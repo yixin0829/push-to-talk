@@ -212,7 +212,7 @@ class TestLocalWhisperManager:
 
         mock_subprocess.side_effect = subprocess.CalledProcessError(1, "nvidia-smi")
 
-        gpu_info = LocalWhisperManager.get_gpu_info()
+        gpu_info = LocalWhisperManager.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is False
         assert gpu_info["device_count"] == 0
@@ -237,7 +237,8 @@ class TestLocalWhisperManager:
             return ""
 
         mock_subprocess.side_effect = mock_command
-        gpu_info = LocalWhisperManager.get_gpu_info()
+        # Force refresh to bypass cache and test actual GPU detection
+        gpu_info = LocalWhisperManager.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is True
         assert gpu_info["device_count"] == 2
@@ -251,7 +252,7 @@ class TestLocalWhisperManager:
         # Mock nvidia-smi command to raise FileNotFoundError (nvidia-smi not found)
         mock_subprocess.side_effect = FileNotFoundError("nvidia-smi not found")
 
-        gpu_info = LocalWhisperManager.get_gpu_info()
+        gpu_info = LocalWhisperManager.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is False
         assert gpu_info["device_count"] == 0

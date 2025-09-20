@@ -30,14 +30,56 @@ logger.add("push_to_talk.log", level="INFO")
 def main():
     """Main entry point for the GUI application."""
     try:
+        logger.info("=== PushToTalk Application Starting ===")
+        logger.info(
+            f"Platform: {sys.platform}, Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
+        logger.info(f"Working directory: {os.getcwd()}")
+
         # Load existing config if it exists
         config_file = "push_to_talk_config.json"
         if os.path.exists(config_file):
+            file_size = os.path.getsize(config_file)
             config = PushToTalkConfig.load_from_file(config_file)
-            logger.info(f"Loaded existing configuration from {config_file}")
+            logger.info(f"Configuration loaded from {config_file} ({file_size} bytes)")
+
+            # Log key configuration for debugging
+            logger.debug(
+                f"Config validation - use_local_whisper: {config.use_local_whisper}, "
+                f"local_model: {config.local_whisper_model}, "
+                f"enable_audio_processing: {config.enable_audio_processing}, "
+                f"enable_text_refinement: {config.enable_text_refinement}"
+            )
         else:
             config = PushToTalkConfig()
-            logger.info("Using default configuration")
+            logger.info("No existing configuration found, using defaults")
+            logger.debug(
+                f"Default config created - hotkey: {config.hotkey}, "
+                f"sample_rate: {config.sample_rate}, "
+                f"stt_model: {config.stt_model}"
+            )
+
+        # Validate critical configuration
+        validation_warnings = []
+        if not config.openai_api_key and not config.use_local_whisper:
+            validation_warnings.append(
+                "No OpenAI API key configured and local Whisper not enabled"
+            )
+
+        if config.use_local_whisper:
+            from src.local_whisper_manager import LocalWhisperManager
+
+            if not LocalWhisperManager.is_model_downloaded(config.local_whisper_model):
+                validation_warnings.append(
+                    f"Local Whisper model '{config.local_whisper_model}' not downloaded"
+                )
+
+        if validation_warnings:
+            logger.warning("Configuration validation issues detected:")
+            for warning in validation_warnings:
+                logger.warning(f"  - {warning}")
+
+        logger.info("Starting configuration GUI...")
 
         # Show configuration GUI (now persistent and manages the app)
         result, updated_config = show_configuration_gui(config)

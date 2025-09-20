@@ -2,6 +2,7 @@ import os
 import threading
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Dict, Callable, Optional
 from loguru import logger
@@ -16,6 +17,9 @@ except ImportError:
 
 class LocalWhisperManager:
     """Manager for local Whisper model downloads and status."""
+
+    # Class-level cache for GPU information (static during session)
+    _gpu_info_cache = None
 
     # Model information with sizes (approximate)
     MODEL_INFO = {
@@ -137,9 +141,23 @@ class LocalWhisperManager:
             # Fallback: assume not downloaded to be safe
             return False
 
-    @staticmethod
+    @classmethod
+    def _get_model_size_info(cls, model_name: str) -> str:
+        """Get user-friendly size information for a model."""
+        if model_name in cls.MODEL_INFO:
+            size_mb = cls.MODEL_INFO[model_name]["size_mb"]
+            if size_mb < 100:
+                return f"~{size_mb}MB"
+            elif size_mb < 1000:
+                return f"~{size_mb}MB"
+            else:
+                size_gb = size_mb / 1000
+                return f"~{size_gb:.1f}GB"
+        return "size unknown"
+
+    @classmethod
     def download_model(
-        model_name: str, progress_callback: Optional[Callable[[str], None]] = None
+        cls, model_name: str, progress_callback: Optional[Callable[[str], None]] = None
     ) -> bool:
         """
         Download a Whisper model using pywhispercpp.
@@ -157,10 +175,18 @@ class LocalWhisperManager:
             return False
 
         try:
-            if progress_callback:
-                progress_callback(f"Downloading {model_name} model...")
+            download_start = time.time()
+            model_size_info = cls._get_model_size_info(model_name)
 
-            logger.info(f"Starting download of model: {model_name}")
+            if progress_callback:
+                progress_callback(
+                    f"Downloading {model_name} model ({model_size_info})..."
+                )
+
+            logger.info(f"Starting download of model: {model_name} ({model_size_info})")
+            logger.info(
+                "This may take several minutes depending on your internet connection..."
+            )
 
             # Create model instance - this triggers the download in pywhispercpp
             # Use correct API: Model(model, n_threads, print_realtime, print_progress)
@@ -171,15 +197,37 @@ class LocalWhisperManager:
                 print_progress=True,  # Show progress during download
             )
 
-            if progress_callback:
-                progress_callback(f"Model {model_name} downloaded successfully!")
+            download_time = time.time() - download_start
 
-            logger.info(f"Successfully downloaded model: {model_name}")
+            if progress_callback:
+                progress_callback(
+                    f"Model {model_name} downloaded successfully in {download_time:.1f}s!"
+                )
+
+            logger.info(
+                f"Successfully downloaded model: {model_name} in {download_time:.2f}s"
+            )
             return True
 
         except Exception as e:
-            error_msg = f"Failed to download {model_name}: {e}"
+            download_time = time.time() - download_start
+            error_msg = (
+                f"Failed to download {model_name} after {download_time:.1f}s: {e}"
+            )
             logger.error(error_msg)
+
+            # Provide helpful download troubleshooting
+            if "network" in str(e).lower() or "connection" in str(e).lower():
+                logger.error(
+                    "Network error detected. Check internet connectivity and try again."
+                )
+            elif "space" in str(e).lower() or "disk" in str(e).lower():
+                logger.error("Disk space error. Free up storage space and try again.")
+            elif "permission" in str(e).lower():
+                logger.error(
+                    "Permission error. Try running with administrator privileges."
+                )
+
             if progress_callback:
                 progress_callback(f"ERROR: {error_msg}")
             return False
@@ -265,13 +313,22 @@ class LocalWhisperManager:
         }
 
     @staticmethod
-    def get_gpu_info() -> Dict:
+    def get_gpu_info(force_refresh: bool = False) -> Dict:
         """
         Get GPU information for display using nvidia-smi.
+        Results are cached to avoid repeated subprocess calls.
+
+        Args:
+            force_refresh: If True, bypass cache and re-detect GPU info
 
         Returns:
             Dictionary with GPU information
         """
+        # Return cached result if available and not forcing refresh
+        if LocalWhisperManager._gpu_info_cache is not None and not force_refresh:
+            return LocalWhisperManager._gpu_info_cache
+
+        logger.debug("Detecting GPU information using nvidia-smi")
         gpu_info = {
             "available": False,
             "device_count": 0,
@@ -282,12 +339,20 @@ class LocalWhisperManager:
 
         try:
             import subprocess
+            import sys
+
+            # Prepare subprocess arguments to prevent cmd windows on Windows
+            subprocess_kwargs = {
+                "stderr": subprocess.DEVNULL,
+                "universal_newlines": True,
+            }
+            if sys.platform == "win32":
+                subprocess_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
 
             # Check if nvidia-smi is available and GPUs exist
             subprocess.check_output(
                 ["nvidia-smi", "--query-gpu=count", "--format=csv,noheader,nounits"],
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True,
+                **subprocess_kwargs,
             )
             gpu_info["available"] = True
             gpu_info["recommended_compute_type"] = "float16"
@@ -296,8 +361,7 @@ class LocalWhisperManager:
             try:
                 count_output = subprocess.check_output(
                     ["nvidia-smi", "-L"],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 gpu_info["device_count"] = len(
                     [
@@ -313,8 +377,7 @@ class LocalWhisperManager:
             try:
                 names_output = subprocess.check_output(
                     ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader,nounits"],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 gpu_info["device_names"] = [
                     name.strip()
@@ -332,8 +395,7 @@ class LocalWhisperManager:
                         "--query-gpu=driver_version",
                         "--format=csv,noheader,nounits",
                     ],
-                    stderr=subprocess.DEVNULL,
-                    universal_newlines=True,
+                    **subprocess_kwargs,
                 )
                 # Use first GPU's driver version
                 gpu_info["cuda_version"] = driver_output.strip().split("\n")[0].strip()
@@ -344,6 +406,8 @@ class LocalWhisperManager:
             # nvidia-smi not found, not working, or no GPUs
             logger.debug("NVIDIA GPU not detected or nvidia-smi not available")
 
+        # Cache the result for future calls
+        LocalWhisperManager._gpu_info_cache = gpu_info
         return gpu_info
 
     @staticmethod

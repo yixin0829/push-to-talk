@@ -60,7 +60,9 @@ class TextRefiner:
 
             # Start timing the LLM completion
             start_time = time.time()
-            logger.info("Starting LLM completion for text refinement")
+            logger.debug(
+                f"Starting LLM completion for text refinement - Model: {self.model}, Input length: {len(raw_text)} chars"
+            )
 
             settings = {}
             if self.model.startswith("gpt-5"):
@@ -77,21 +79,45 @@ class TextRefiner:
 
             # Calculate and log completion time
             completion_time = time.time() - start_time
-            logger.info(f"LLM completion finished in {completion_time:.2f} seconds")
-
             refined_text = response.output_text
 
             if not refined_text:
-                logger.warning("GPT returned empty response, using original text")
+                logger.warning(
+                    f"GPT returned empty response after {completion_time:.2f}s, using original text"
+                )
                 return raw_text.strip()
 
+            # Calculate refinement metrics
+            compression_ratio = (
+                len(refined_text) / len(raw_text) if len(raw_text) > 0 else 1.0
+            )
+            chars_per_second = (
+                len(refined_text) / completion_time if completion_time > 0 else 0
+            )
+
             logger.info(
-                f"Text refinement successful: {len(raw_text)} -> {len(refined_text)} characters"
+                f"Text refinement completed in {completion_time:.2f}s: {len(raw_text)} -> {len(refined_text)} chars "
+                f"({compression_ratio:.2f}x, {chars_per_second:.1f} chars/s)"
             )
             return refined_text
 
         except Exception as e:
-            logger.error(f"Text refinement failed: {e}")
+            completion_time = time.time() - start_time
+            logger.error(f"Text refinement failed after {completion_time:.2f}s: {e}")
+            logger.error(
+                f"Refinement context - Model: {self.model}, Text length: {len(raw_text)} chars"
+            )
+
+            # Provide helpful error context
+            if "API" in str(e) or "connection" in str(e).lower():
+                logger.error(
+                    "API connection error. Check internet connectivity and API key."
+                )
+            elif "rate" in str(e).lower() or "quota" in str(e).lower():
+                logger.error(
+                    "API rate limit or quota exceeded. Consider reducing refinement frequency."
+                )
+
             logger.info("Falling back to original text")
             return raw_text.strip()
 

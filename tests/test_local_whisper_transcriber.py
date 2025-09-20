@@ -288,7 +288,7 @@ class TestLocalWhisperTranscriber:
             return ""
 
         mock_subprocess.side_effect = mock_command
-        gpu_info = LocalWhisperTranscriber.get_gpu_info()
+        gpu_info = LocalWhisperTranscriber.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is True
         assert gpu_info["device_count"] == 2
@@ -302,7 +302,7 @@ class TestLocalWhisperTranscriber:
 
         mock_subprocess.side_effect = subprocess.CalledProcessError(1, "nvidia-smi")
 
-        gpu_info = LocalWhisperTranscriber.get_gpu_info()
+        gpu_info = LocalWhisperTranscriber.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is False
         assert gpu_info["device_count"] == 0
@@ -314,7 +314,7 @@ class TestLocalWhisperTranscriber:
         """Test GPU info retrieval when nvidia-smi is not available."""
         mock_subprocess.side_effect = FileNotFoundError("nvidia-smi not found")
 
-        gpu_info = LocalWhisperTranscriber.get_gpu_info()
+        gpu_info = LocalWhisperTranscriber.get_gpu_info(force_refresh=True)
 
         assert gpu_info["available"] is False
         assert gpu_info["device_count"] == 0
