@@ -8,6 +8,7 @@ from dataclasses import asdict
 import json
 
 from src.push_to_talk import PushToTalkConfig
+from src.local_whisper_manager import LocalWhisperManager
 
 
 class ConfigurationGUI:
@@ -26,6 +27,8 @@ class ConfigurationGUI:
             on_config_changed: Callback function called when configuration is updated
         """
         self.config = config
+        # Always start with OpenAI API selected when GUI opens, regardless of saved config
+        self.config.use_local_whisper = False
         self.on_config_changed = on_config_changed
         self.root = None
         self.config_vars = {}
@@ -140,7 +143,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         )
 
         requirements = [
-            "• OpenAI API key (for speech recognition)",
+            "• OpenAI API key (for cloud transcription) OR local Whisper model",
             "• Microphone access",
             "• Administrator privileges (for global hotkeys)",
         ]
@@ -279,7 +282,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         5. When delay period passes with no new changes → Execute the update
 
         Example:
-        User types "ctrl+alt+space" (16 characters):
+        User types "ctrl+shift+space" (16 characters):
         - Without debouncing: 16 component reinitializations
         - With debouncing: 1 component reinitialization after typing stops
 
@@ -402,52 +405,46 @@ Configure your settings below, then click "Start Application" to begin:"""
         return frame
 
     def _create_api_section(self, parent: ttk.Widget):
-        """Create OpenAI API configuration section."""
-        frame = self._create_section_frame(parent, "OpenAI API Settings")
+        """Create enhanced transcription configuration section."""
+        frame = self._create_section_frame(parent, "Transcription Settings")
 
-        # API Key
-        ttk.Label(frame, text="OpenAI API Key:").grid(
-            row=0, column=0, sticky="w", pady=2
-        )
-        self.config_vars["openai_api_key"] = tk.StringVar(
-            value=self.config.openai_api_key
-        )
-        api_key_entry = ttk.Entry(
-            frame, textvariable=self.config_vars["openai_api_key"], show="*", width=50
-        )
-        api_key_entry.grid(
-            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        # Model Type Selection
+        ttk.Label(frame, text="Model Type:", font=("TkDefaultFont", 9, "bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 10), columnspan=4
         )
 
-        # Show/Hide API Key button
-        def toggle_api_key_visibility():
-            if api_key_entry["show"] == "*":
-                api_key_entry["show"] = ""
-                show_hide_btn["text"] = "Hide"
-            else:
-                api_key_entry["show"] = "*"
-                show_hide_btn["text"] = "Show"
-
-        show_hide_btn = ttk.Button(
-            frame, text="Show", command=toggle_api_key_visibility, width=8
+        # Radio buttons for model type
+        self.config_vars["use_local_whisper"] = tk.BooleanVar(
+            value=self.config.use_local_whisper
         )
-        show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
 
-        # STT Model
-        ttk.Label(frame, text="STT Model:").grid(row=1, column=0, sticky="w", pady=2)
-        self.config_vars["stt_model"] = tk.StringVar(value=self.config.stt_model)
-        whisper_combo = ttk.Combobox(
+        openai_radio = ttk.Radiobutton(
             frame,
-            textvariable=self.config_vars["stt_model"],
-            values=["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
-            state="readonly",
-            width=20,
+            text="OpenAI API (Cloud)",
+            variable=self.config_vars["use_local_whisper"],
+            value=False,
+            command=self._on_model_type_changed,
         )
-        whisper_combo.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+        openai_radio.grid(row=1, column=0, sticky="w", padx=(20, 10), pady=2)
 
-        # Refinement Model
-        ttk.Label(frame, text="Refinement Model:").grid(
-            row=2, column=0, sticky="w", pady=2
+        local_radio = ttk.Radiobutton(
+            frame,
+            text="Local Whisper (On-device)",
+            variable=self.config_vars["use_local_whisper"],
+            value=True,
+            command=self._on_model_type_changed,
+        )
+        local_radio.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+
+        # OpenAI API Section
+        self._create_openai_section(frame, start_row=2)
+
+        # Local Whisper Section
+        self._create_local_whisper_section(frame, start_row=7)
+
+        # Refinement Model (always shown)
+        ttk.Label(frame, text="Text Refinement Model:").grid(
+            row=12, column=0, sticky="w", pady=(20, 2)
         )
         self.config_vars["refinement_model"] = tk.StringVar(
             value=self.config.refinement_model
@@ -466,9 +463,472 @@ Configure your settings below, then click "Start Application" to begin:"""
             state="readonly",
             width=20,
         )
-        gpt_combo.grid(row=2, column=1, sticky="w", padx=(10, 0), pady=2)
+        gpt_combo.grid(row=12, column=1, sticky="w", padx=(10, 0), pady=2)
 
         frame.columnconfigure(1, weight=1)
+
+        # Initial state setup
+        self._on_model_type_changed()
+
+    def _create_openai_section(self, parent: ttk.Widget, start_row: int):
+        """Create OpenAI API configuration subsection."""
+        # Section title
+        self.openai_title = ttk.Label(
+            parent, text="OpenAI API Configuration", font=("TkDefaultFont", 9, "bold")
+        )
+        self.openai_title.grid(
+            row=start_row, column=0, sticky="w", pady=(15, 5), columnspan=4
+        )
+
+        # API Key
+        self.openai_key_label = ttk.Label(parent, text="API Key:")
+        self.openai_key_label.grid(row=start_row + 1, column=0, sticky="w", pady=2)
+
+        self.config_vars["openai_api_key"] = tk.StringVar(
+            value=self.config.openai_api_key
+        )
+        self.api_key_entry = ttk.Entry(
+            parent, textvariable=self.config_vars["openai_api_key"], show="*", width=40
+        )
+        self.api_key_entry.grid(
+            row=start_row + 1, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
+
+        # Show/Hide API Key button
+        def toggle_api_key_visibility():
+            if self.api_key_entry["show"] == "*":
+                self.api_key_entry["show"] = ""
+                self.show_hide_btn["text"] = "Hide"
+            else:
+                self.api_key_entry["show"] = "*"
+                self.show_hide_btn["text"] = "Show"
+
+        self.show_hide_btn = ttk.Button(
+            parent, text="Show", command=toggle_api_key_visibility, width=8
+        )
+        self.show_hide_btn.grid(row=start_row + 1, column=3, padx=(5, 0), pady=2)
+
+        # Test API Key button
+        self.test_api_btn = ttk.Button(
+            parent, text="Test API", command=self._test_api_key, width=8
+        )
+        self.test_api_btn.grid(row=start_row + 1, column=4, padx=(5, 0), pady=2)
+
+        # STT Model
+        self.openai_model_label = ttk.Label(parent, text="STT Model:")
+        self.openai_model_label.grid(row=start_row + 2, column=0, sticky="w", pady=2)
+
+        self.config_vars["stt_model"] = tk.StringVar(value=self.config.stt_model)
+        self.openai_model_combo = ttk.Combobox(
+            parent,
+            textvariable=self.config_vars["stt_model"],
+            values=["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
+            state="readonly",
+            width=25,
+        )
+        self.openai_model_combo.grid(
+            row=start_row + 2, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+
+    def _create_local_whisper_section(self, parent: ttk.Widget, start_row: int):
+        """Create local Whisper configuration subsection."""
+        # Section title
+        self.local_title = ttk.Label(
+            parent,
+            text="Local Whisper Configuration",
+            font=("TkDefaultFont", 9, "bold"),
+        )
+        self.local_title.grid(
+            row=start_row, column=0, sticky="w", pady=(15, 5), columnspan=4
+        )
+
+        # Model selection
+        self.local_model_label = ttk.Label(parent, text="Model:")
+        self.local_model_label.grid(row=start_row + 1, column=0, sticky="w", pady=2)
+
+        self.config_vars["local_whisper_model"] = tk.StringVar(
+            value=self.config.local_whisper_model
+        )
+
+        models = list(LocalWhisperManager.MODEL_INFO.keys())
+        self.local_model_combo = ttk.Combobox(
+            parent,
+            textvariable=self.config_vars["local_whisper_model"],
+            values=models,
+            state="readonly",
+            width=15,
+        )
+        self.local_model_combo.grid(
+            row=start_row + 1, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+
+        # Model status and download button
+        self.model_status_label = ttk.Label(parent, text="")
+        self.model_status_label.grid(
+            row=start_row + 1, column=2, sticky="w", padx=(10, 0), pady=2
+        )
+
+        self.download_button = ttk.Button(
+            parent, text="Download", command=self._download_model, width=10
+        )
+        self.download_button.grid(row=start_row + 1, column=3, padx=(5, 0), pady=2)
+
+        # Device selection
+        self.device_label = ttk.Label(parent, text="Device:")
+        self.device_label.grid(row=start_row + 2, column=0, sticky="w", pady=2)
+
+        self.config_vars["local_whisper_device"] = tk.StringVar(
+            value=self.config.local_whisper_device
+        )
+        self.device_combo = ttk.Combobox(
+            parent,
+            textvariable=self.config_vars["local_whisper_device"],
+            values=["auto", "cpu", "cuda"],
+            state="readonly",
+            width=15,
+        )
+        self.device_combo.grid(
+            row=start_row + 2, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+
+        # GPU status
+        self.gpu_status_label = ttk.Label(parent, text="")
+        self.gpu_status_label.grid(
+            row=start_row + 2, column=2, sticky="w", padx=(10, 0), pady=2, columnspan=2
+        )
+
+        # Cache management
+        self.cache_label = ttk.Label(parent, text="Cache:")
+        self.cache_label.grid(row=start_row + 3, column=0, sticky="w", pady=2)
+
+        self.open_cache_button = ttk.Button(
+            parent, text="Open Cache Folder", command=self._open_cache_folder
+        )
+        self.open_cache_button.grid(
+            row=start_row + 3, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+
+        self.cache_info_label = ttk.Label(parent, text="")
+        self.cache_info_label.grid(
+            row=start_row + 3, column=2, sticky="w", padx=(10, 0), pady=2, columnspan=2
+        )
+
+        # Store references to all local whisper widgets for show/hide
+        self.local_whisper_widgets = [
+            self.local_title,
+            self.local_model_label,
+            self.local_model_combo,
+            self.model_status_label,
+            self.download_button,
+            self.device_label,
+            self.device_combo,
+            self.gpu_status_label,
+            self.cache_label,
+            self.open_cache_button,
+            self.cache_info_label,
+        ]
+
+        # Store references to all OpenAI widgets for show/hide
+        self.openai_widgets = [
+            self.openai_title,
+            self.openai_key_label,
+            self.api_key_entry,
+            self.show_hide_btn,
+            self.test_api_btn,
+            self.openai_model_label,
+            self.openai_model_combo,
+        ]
+
+        # Set up model change handler
+        self.local_model_combo.bind(
+            "<<ComboboxSelected>>", self._on_local_model_changed
+        )
+
+        # Update initial state
+        self._update_local_whisper_status()
+
+    def _on_model_type_changed(self):
+        """Handle model type radio button changes."""
+        use_local = self.config_vars["use_local_whisper"].get()
+
+        # Show/hide appropriate sections
+        for widget in self.openai_widgets:
+            if use_local:
+                widget.grid_remove()
+            else:
+                widget.grid()
+
+        for widget in self.local_whisper_widgets:
+            if use_local:
+                widget.grid()
+            else:
+                widget.grid_remove()
+
+        if use_local:
+            self._update_local_whisper_status()
+
+    def _on_local_model_changed(self, event=None):
+        """Handle local model selection changes."""
+        self._update_local_whisper_status()
+
+    def _update_local_whisper_status(self):
+        """Update local whisper model and GPU status display."""
+        model_name = self.config_vars["local_whisper_model"].get()
+
+        # Update model status
+        if LocalWhisperManager.is_model_downloaded(model_name):
+            self.model_status_label.config(text="✅ Downloaded", foreground="green")
+            self.download_button.config(text="Ready", state="disabled")
+        else:
+            self.model_status_label.config(
+                text="⏬ Not Downloaded", foreground="orange"
+            )
+            self.download_button.config(text="Download", state="normal")
+
+        # Update GPU status
+        gpu_info = LocalWhisperManager.get_gpu_info()
+        if gpu_info["available"]:
+            gpu_text = f"🚀 GPU Available: {gpu_info['device_count']} device(s)"
+            if gpu_info["device_names"]:
+                gpu_text += f"\n({gpu_info['device_names'][0]})"
+        else:
+            gpu_text = "💻 CPU Only"
+
+        self.gpu_status_label.config(
+            text=gpu_text, foreground="darkgreen" if gpu_info["available"] else "gray"
+        )
+
+        # Update cache info
+        cache_info = LocalWhisperManager.get_cache_info()
+        if cache_info["total_size_mb"] > 0:
+            cache_text = f"📁 {len(cache_info['whisper_models'])} models ({cache_info['total_size_mb']} MB)"
+        else:
+            cache_text = "📁 No models cached"
+
+        self.cache_info_label.config(text=cache_text, foreground="darkblue")
+
+    def _download_model(self):
+        """Download the selected local whisper model."""
+        model_name = self.config_vars["local_whisper_model"].get()
+
+        # Create progress dialog
+        progress_dialog = tk.Toplevel(self.root)
+        progress_dialog.title(f"Downloading {model_name}")
+        progress_dialog.geometry("400x150")
+        progress_dialog.resizable(False, False)
+        progress_dialog.transient(self.root)
+        progress_dialog.grab_set()
+
+        # Center the dialog
+        progress_dialog.update_idletasks()
+        x = (progress_dialog.winfo_screenwidth() // 2) - (
+            progress_dialog.winfo_width() // 2
+        )
+        y = (progress_dialog.winfo_screenheight() // 2) - (
+            progress_dialog.winfo_height() // 2
+        )
+        progress_dialog.geometry(f"+{x}+{y}")
+
+        # Progress label
+        progress_label = ttk.Label(
+            progress_dialog,
+            text=f"Downloading {model_name} model...",
+            font=("TkDefaultFont", 10),
+        )
+        progress_label.pack(pady=20)
+
+        # Status label
+        status_label = ttk.Label(progress_dialog, text="Initializing download...")
+        status_label.pack(pady=10)
+
+        # Progress callbacks
+        def update_progress(message):
+            if progress_dialog.winfo_exists():
+                status_label.config(text=message)
+
+        def on_download_complete(success, message):
+            if progress_dialog.winfo_exists():
+                if success:
+                    status_label.config(text="Download completed successfully!")
+                    # Update both model status and cache info
+                    self._update_local_whisper_status()
+                else:
+                    status_label.config(text=f"Download failed: {message}")
+
+                # Close dialog after 3 seconds
+                progress_dialog.after(3000, progress_dialog.destroy)
+
+        # Start download
+        LocalWhisperManager.download_model_async(
+            model_name, update_progress, on_download_complete
+        )
+
+    def _show_model_download_confirmation(self, model_name: str):
+        """Show confirmation dialog for model download before starting application."""
+        model_info = LocalWhisperManager.get_model_info(model_name)
+        size_mb = model_info.get("size_mb", 0)
+
+        # Create confirmation dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Model Download Required")
+        dialog.geometry("500x200")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
+        y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
+        dialog.geometry(f"+{x}+{y}")
+
+        # Message frame
+        msg_frame = ttk.Frame(dialog)
+        msg_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        # Icon and message
+        msg_label = ttk.Label(
+            msg_frame,
+            text=f"⚠️ The selected local Whisper model '{model_name}' is not downloaded.\n\n"
+            f"Size: ~{size_mb} MB\n"
+            f"Download may take several minutes depending on your internet speed.\n\n"
+            f"What would you like to do?",
+            font=("TkDefaultFont", 10),
+            justify="center",
+        )
+        msg_label.pack(expand=True)
+
+        # Button frame
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+
+        def download_and_start():
+            dialog.destroy()
+            self._download_model_and_start(model_name)
+
+        def select_different_model():
+            dialog.destroy()
+            # Switch to OpenAI API as fallback
+            self.config_vars["use_local_whisper"].set(False)
+            self._on_model_type_changed()
+            messagebox.showinfo(
+                "Switched to OpenAI API",
+                "Switched to OpenAI API mode. You can now start the application or select a different local model.",
+            )
+
+        def cancel_start():
+            dialog.destroy()
+
+        # Buttons
+        download_btn = ttk.Button(
+            btn_frame,
+            text=f"Download {model_name} (~{size_mb} MB)",
+            command=download_and_start,
+            width=25,
+        )
+        download_btn.pack(side=tk.LEFT, padx=(0, 10))
+
+        switch_btn = ttk.Button(
+            btn_frame,
+            text="Switch to OpenAI API",
+            command=select_different_model,
+            width=20,
+        )
+        switch_btn.pack(side=tk.LEFT, padx=(5, 5))
+
+        cancel_btn = ttk.Button(
+            btn_frame, text="Cancel", command=cancel_start, width=10
+        )
+        cancel_btn.pack(side=tk.RIGHT)
+
+    def _download_model_and_start(self, model_name: str):
+        """Download model and start application when download completes."""
+        # Create progress dialog
+        progress_dialog = tk.Toplevel(self.root)
+        progress_dialog.title(f"Downloading {model_name}")
+        progress_dialog.geometry("450x180")
+        progress_dialog.resizable(False, False)
+        progress_dialog.transient(self.root)
+        progress_dialog.grab_set()
+
+        # Center the dialog
+        progress_dialog.update_idletasks()
+        x = (progress_dialog.winfo_screenwidth() // 2) - (
+            progress_dialog.winfo_width() // 2
+        )
+        y = (progress_dialog.winfo_screenheight() // 2) - (
+            progress_dialog.winfo_height() // 2
+        )
+        progress_dialog.geometry(f"+{x}+{y}")
+
+        # Progress frame
+        progress_frame = ttk.Frame(progress_dialog)
+        progress_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        # Progress label
+        progress_label = ttk.Label(
+            progress_frame,
+            text=f"Downloading {model_name} model...",
+            font=("TkDefaultFont", 12, "bold"),
+        )
+        progress_label.pack(pady=(0, 10))
+
+        # Status label
+        status_label = ttk.Label(progress_frame, text="Initializing download...")
+        status_label.pack(pady=10)
+
+        # Auto-start message
+        auto_start_label = ttk.Label(
+            progress_frame,
+            text="The application will start automatically when download completes.",
+            font=("TkDefaultFont", 9),
+            foreground="darkgreen",
+        )
+        auto_start_label.pack(pady=(10, 0))
+
+        # Progress callbacks
+        def update_progress(message):
+            if progress_dialog.winfo_exists():
+                status_label.config(text=message)
+
+        def on_download_complete(success, message):
+            if progress_dialog.winfo_exists():
+                if success:
+                    status_label.config(text="✅ Download completed successfully!")
+                    # Update model status in GUI
+                    self._update_local_whisper_status()
+                    # Close dialog after 3 seconds and start application
+                    progress_dialog.after(
+                        3000,
+                        lambda: (progress_dialog.destroy(), self._start_application()),
+                    )
+                else:
+                    status_label.config(text=f"❌ Download failed: {message}")
+                    auto_start_label.config(
+                        text="Please try again or select a different model.",
+                        foreground="red",
+                    )
+                    # Close dialog after 5 seconds on failure
+                    progress_dialog.after(5000, progress_dialog.destroy)
+
+        # Start download
+        LocalWhisperManager.download_model_async(
+            model_name, update_progress, on_download_complete
+        )
+
+    def _open_cache_folder(self):
+        """Open the model cache folder in file explorer."""
+        success = LocalWhisperManager.open_cache_folder()
+
+        if not success:
+            # Show error dialog if opening failed
+            cache_info = LocalWhisperManager.get_cache_info()
+            messagebox.showerror(
+                "Error Opening Cache Folder",
+                f"Could not open cache folder.\n\n"
+                f"Cache location: {cache_info['path']}\n\n"
+                f"You can manually navigate to this location in your file explorer.",
+            )
 
     def _create_audio_section(self, parent: ttk.Widget):
         """Create audio configuration section."""
@@ -891,12 +1351,6 @@ Configure your settings below, then click "Start Application" to begin:"""
         )
         self.main_action_btn.pack(side="left", padx=(0, 10))
 
-        # Test Configuration button
-        test_btn = ttk.Button(
-            button_frame, text="Test Configuration", command=self._test_configuration
-        )
-        test_btn.pack(side="left", padx=(0, 10))
-
         # Reset to Defaults button
         reset_btn = ttk.Button(
             button_frame, text="Reset to Defaults", command=self._reset_to_defaults
@@ -925,30 +1379,46 @@ Configure your settings below, then click "Start Application" to begin:"""
 
         return True
 
-    def _test_configuration(self):
-        """Test the current configuration."""
-        if not self._validate_configuration():
-            return
+    def _test_api_key(self):
+        """Test the OpenAI API key."""
+        api_key = self.config_vars["openai_api_key"].get().strip()
 
-        # Create test config
-        test_config = self._get_config_from_gui()
+        if not api_key:
+            messagebox.showwarning(
+                "No API Key", "Please enter an OpenAI API key before testing."
+            )
+            return
 
         try:
             # Test OpenAI API key by trying to create a client
             from openai import OpenAI
 
-            _ = OpenAI(api_key=test_config.openai_api_key)
+            client = OpenAI(api_key=api_key)
 
             # Try a simple API call to validate the key
+            # Use a minimal completion request to test the key
+            client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=1,
+            )
+
             messagebox.showinfo(
-                "Test Result",
-                "Configuration test successful!\n\nAPI key is valid and configuration looks good.",
+                "API Key Test",
+                "API key is valid!\n\nYour API key is working correctly.",
             )
 
         except Exception as e:
-            messagebox.showerror(
-                "Test Failed", f"Configuration test failed:\n\n{str(e)}"
-            )
+            error_msg = str(e)
+            if "authentication" in error_msg.lower() or "api key" in error_msg.lower():
+                messagebox.showerror(
+                    "Invalid API Key",
+                    "API key is invalid.\n\nPlease check your API key and try again.",
+                )
+            else:
+                messagebox.showerror(
+                    "API Test Failed", f"API key test failed:\n\n{error_msg}"
+                )
 
     def _reset_to_defaults(self):
         """Reset configuration to defaults."""
@@ -966,6 +1436,9 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.config_vars["openai_api_key"].set(config.openai_api_key)
             self.config_vars["stt_model"].set(config.stt_model)
             self.config_vars["refinement_model"].set(config.refinement_model)
+            self.config_vars["use_local_whisper"].set(config.use_local_whisper)
+            self.config_vars["local_whisper_model"].set(config.local_whisper_model)
+            self.config_vars["local_whisper_device"].set(config.local_whisper_device)
             self.config_vars["sample_rate"].set(config.sample_rate)
             self.config_vars["chunk_size"].set(config.chunk_size)
             self.config_vars["channels"].set(config.channels)
@@ -985,6 +1458,10 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.config_vars["silence_threshold"].set(config.silence_threshold)
             self.config_vars["min_silence_duration"].set(config.min_silence_duration)
             self.config_vars["speed_factor"].set(config.speed_factor)
+
+            # Update local whisper display if GUI is fully initialized
+            if hasattr(self, "_on_model_type_changed"):
+                self._on_model_type_changed()
         finally:
             self._suspend_change_events = False
 
@@ -999,6 +1476,10 @@ Configure your settings below, then click "Start Application" to begin:"""
             openai_api_key=self.config_vars["openai_api_key"].get().strip(),
             stt_model=self.config_vars["stt_model"].get(),
             refinement_model=self.config_vars["refinement_model"].get(),
+            use_local_whisper=self.config_vars["use_local_whisper"].get(),
+            local_whisper_model=self.config_vars["local_whisper_model"].get(),
+            local_whisper_device=self.config_vars["local_whisper_device"].get(),
+            local_whisper_compute_type="auto",
             sample_rate=self.config_vars["sample_rate"].get(),
             chunk_size=self.config_vars["chunk_size"].get(),
             channels=self.config_vars["channels"].get(),
@@ -1028,6 +1509,13 @@ Configure your settings below, then click "Start Application" to begin:"""
         """Start the push-to-talk application."""
         if not self._validate_configuration():
             return
+
+        # Check if local whisper model is selected but not downloaded
+        if self.config_vars["use_local_whisper"].get():
+            model_name = self.config_vars["local_whisper_model"].get()
+            if not LocalWhisperManager.is_model_downloaded(model_name):
+                self._show_model_download_confirmation(model_name)
+                return
 
         try:
             # Update config object
