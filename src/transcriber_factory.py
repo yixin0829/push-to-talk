@@ -13,14 +13,18 @@ class TranscriberFactory:
 
     # Local Whisper model names
     LOCAL_WHISPER_MODELS = {
+        "tiny.en",
+        "tiny",
+        "base.en",
         "base",
+        "small.en",
         "small",
+        "medium.en",
         "medium",
-        "large-v3",
+        "large-v1",
         "large-v2",
-        "large",
-        "distil-large-v3",
-        "distil-large-v2",
+        "large-v3",
+        "large-v3-turbo",
     }
 
     @staticmethod

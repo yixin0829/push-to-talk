@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### TODOs
 - [ ] Fix exe build cannot download whisper.cpp model issue. Even if I downloaded the model in advance, the system failed to load it during transcription.
+- [ ] Processes are not closed gracefully when the application is stopped or closed directly.
 
 ### Added
 - **Enhanced Logging and Observability**: Comprehensive improvements to logging system for better debugging and performance monitoring
