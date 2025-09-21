@@ -6,6 +6,7 @@ Thank you for considering contributing to PushToTalk! This document provides gui
 
 - [Table of Contents](#table-of-contents)
 - [Code of Conduct](#code-of-conduct)
+- [Important Project Conventions](#important-project-conventions)
 - [How Can I Contribute?](#how-can-i-contribute)
     - [Reporting Bugs](#reporting-bugs)
     - [Suggesting Features](#suggesting-features)
@@ -43,6 +44,15 @@ This project adheres to a code of conduct to ensure a welcoming environment for 
 - Gracefully accept constructive criticism
 - Focus on what is best for the community
 - Show empathy towards other community members
+
+## Important Project Conventions
+
+Before contributing, please familiarize yourself with:
+
+- **Package Manager**: We use `uv` for dependency management
+- **Code Style**: We use `ruff` for formatting and linting
+- **Testing**: We aim for high test coverage with comprehensive mocking
+- **Documentation**: See [AGENTS.md](AGENTS.md) for technical details and codebase guidance
 
 ## How Can I Contribute?
 
@@ -86,8 +96,8 @@ What actually happens
 ## Environment
 - OS: [Windows 11/macOS 14/Ubuntu 22.04]
 - Python: [3.9.x]
-- PushToTalk: [0.4.0]
-- Model used: [OpenAI Wisper]
+- PushToTalk: [version]
+- Configuration: [brief description of your setup]
 
 ## Additional Context
 Any other relevant information, logs, or screenshots
@@ -137,24 +147,30 @@ When suggesting features, include:
    - Add tests for new functionality
    - Update documentation as needed
 
-4. **Test your changes**
+4. **Format and lint your code**
+   ```bash
+   uv run ruff format .
+   uv run ruff check . --fix
+   ```
+
+5. **Test your changes**
    ```bash
    uv run pytest tests/ -v
    uv run pytest tests/ --cov=src --cov-report=term-missing
    ```
 
-5. **Commit your changes**
+6. **Commit your changes**
    ```bash
    git add .
    git commit -m "feat: add new feature description"
    ```
 
-6. **Push to your fork**
+7. **Push to your fork**
    ```bash
    git push origin feature/your-feature-name
    ```
 
-7. **Create a Pull Request**
+8. **Create a Pull Request**
    - Use a clear title and description
    - Reference related issues
    - Include testing instructions
@@ -163,8 +179,9 @@ When suggesting features, include:
 #### Pull Request Guidelines
 
 - **One feature per PR** - keep changes focused
+- **Format your code** - Run `uv run ruff format .` and `uv run ruff check . --fix` before submitting
 - **Include tests** for new functionality
-- **Update documentation** when needed
+- **Update documentation** when adding features or changing behavior
 - **Maintain backwards compatibility** unless discussed
 - **Follow semantic versioning** for breaking changes
 
@@ -175,13 +192,13 @@ When suggesting features, include:
 - **Python 3.9+**: Required for the application
 - **uv**: Python package manager ([installation guide](https://docs.astral.sh/uv/))
 - **Git**: For version control
-- **OpenAI API Key**: For testing transcription features
+- **API Keys**: May be required depending on features you're testing
 
 #### Platform-Specific Requirements
 
 **Windows:**
 - Visual C++ build tools (for PyAudio)
-- Administrator privileges (for hotkey detection)
+- Administrator privileges (for global hotkey detection)
 
 **macOS:**
 ```bash
@@ -204,7 +221,7 @@ sudo apt-get install -y portaudio19-dev libasound2-dev build-essential
 
 2. **Install dependencies**
    ```bash
-   uv sync --dev
+   uv sync
    ```
 
 3. **Set up environment variables**
@@ -225,9 +242,9 @@ sudo apt-get install -y portaudio19-dev libasound2-dev build-essential
 uv run python main.py
 ```
 
-**Development Mode with Logging:**
+**Development Mode:**
 ```bash
-uv run python main.py --debug
+uv run python main.py
 ```
 
 ## Testing
@@ -269,12 +286,8 @@ uv run pytest tests/test_transcription.py -v
 tests/
 ├── conftest.py              # Test configuration and fixtures
 ├── test_audio_recorder.py   # Audio recording functionality
-├── test_audio_processor.py  # Audio processing pipeline
-├── test_transcription.py    # OpenAI Whisper integration
-├── test_text_refiner.py     # AI text refinement
-├── test_hotkey_service.py   # Hotkey detection
+├── test_*.py                # Unit tests for individual components
 ├── test_integration.py      # End-to-end integration tests
-├── test_format_instruction.py # Format instruction processing
 └── fixtures/                # Real audio files for testing
     ├── audio1.wav           # Business meeting audio
     ├── audio1_script.txt
@@ -287,45 +300,32 @@ tests/
 ### Writing Tests
 
 **Test Guidelines:**
-- Use descriptive test names: `test_audio_recorder_start_success`
-- Include comprehensive logging using loguru for debugging
-- Mock external dependencies (OpenAI API, PyAudio)
+- Use descriptive test names
+- Mock external dependencies appropriately
 - Test both success and failure scenarios
-- Use real audio fixtures for integration tests
+- Use fixtures for integration tests where needed
 
 **Test Template:**
 ```python
 import pytest
-from loguru import logger
 from unittest.mock import patch, MagicMock
-
-from src.your_module import YourClass
 
 class TestYourClass:
     def setup_method(self):
         """Setup for each test method"""
-        logger.info("Setting up YourClass test")
         self.instance = YourClass()
 
     def test_functionality_success(self):
         """Test successful functionality"""
-        logger.info("Testing successful functionality")
-
-        # Test implementation
         result = self.instance.method()
-
         assert result is not None
-        logger.info("Functionality test passed")
 
     @patch('external.dependency')
     def test_functionality_with_mock(self, mock_dependency):
         """Test with mocked dependencies"""
         mock_dependency.return_value = "expected_value"
-
         result = self.instance.method_with_dependency()
-
         assert result == "expected_value"
-        mock_dependency.assert_called_once()
 ```
 
 ## Building and Packaging
@@ -374,6 +374,7 @@ We follow PEP 8 with some project-specific conventions:
 - **Indentation**: 4 spaces
 - **Imports**: Use absolute imports, group by standard/third-party/local
 - **String quotes**: Double quotes for strings, single for character literals
+- **Tools**: Use `ruff` for formatting and linting (see pyproject.toml for configuration)
 
 **Naming Conventions:**
 - **Classes**: `PascalCase` (e.g., `AudioRecorder`, `TextRefiner`)
@@ -384,49 +385,28 @@ We follow PEP 8 with some project-specific conventions:
 **Code Organization:**
 - **Docstrings**: Use Google-style docstrings for all public methods
 - **Type hints**: Include type annotations for function parameters and returns
-- **Error handling**: Use specific exception types, log errors appropriately
+- **Error handling**: Use specific exception types and appropriate logging
 - **Comments**: Explain complex logic, not obvious code
 
 **Example:**
 ```python
-from typing import Optional, List
-from loguru import logger
-
 class AudioProcessor:
-    """Processes audio files with silence removal and speed adjustment.
+    """Processes audio files for transcription.
 
-    This class handles audio preprocessing to optimize transcription
-    quality and reduce API costs through smart audio manipulation.
+    Use Google-style docstrings and include type hints.
     """
 
-    def __init__(self, silence_threshold: float = -16.0) -> None:
-        """Initialize the audio processor.
-
-        Args:
-            silence_threshold: dBFS threshold for silence detection.
-        """
-        self.silence_threshold = silence_threshold
-        logger.info(f"AudioProcessor initialized with threshold {silence_threshold}")
-
     def process_audio(self, audio_file_path: str) -> Optional[str]:
-        """Process audio file with silence removal and speed adjustment.
+        """Process an audio file.
 
         Args:
             audio_file_path: Path to the input audio file.
 
         Returns:
             Path to processed audio file, or None if processing failed.
-
-        Raises:
-            AudioProcessingError: If audio processing fails.
         """
-        try:
-            # Implementation here
-            logger.info(f"Successfully processed audio: {audio_file_path}")
-            return processed_path
-        except Exception as e:
-            logger.error(f"Audio processing failed: {e}")
-            raise AudioProcessingError(f"Failed to process {audio_file_path}") from e
+        # Implementation details
+        pass
 ```
 
 ### Commit Message Format
@@ -474,7 +454,7 @@ refactor(transcription): extract API client configuration to separate method
 - Update version information and compatibility notes
 
 **Changelog Maintenance:**
-- Add entries to `CHANGELOG.md` for all user-facing changes
+- Add entries to `CHANGELOG.md` under the [Unreleased] section
 - Follow the [Keep a Changelog](https://keepachangelog.com/) format
 - Include migration notes for breaking changes
 - Reference issue numbers and pull requests
@@ -487,31 +467,16 @@ Understanding the codebase organization:
 push-to-talk/
 ├── main.py                  # Application entry point
 ├── src/                     # Source code
-│   ├── push_to_talk.py     # Main application orchestrator
-│   ├── config_gui.py       # Configuration GUI interface
-│   ├── audio_recorder.py   # Audio recording functionality
-│   ├── audio_processor.py  # Smart audio processing pipeline
-│   ├── transcription.py    # OpenAI Whisper integration
-│   ├── text_refiner.py     # AI text refinement
-│   ├── text_inserter.py    # Cross-platform text insertion
-│   ├── hotkey_service.py   # Global hotkey management
-│   ├── utils.py            # Utility functions
+│   ├── *.py                # Application components
 │   ├── config/             # Configuration management
-│   │   └── prompts.py      # AI prompt templates
-│   └── assets/             # Application assets
-│       └── audio/          # Audio feedback files
+│   └── assets/             # Application resources
 ├── tests/                   # Test suite
 ├── build_script/           # Build and packaging scripts
 ├── dist/                   # Built executables
 └── docs/                   # Additional documentation
 ```
 
-**Core Components:**
-- **GUI Layer**: `main.py`, `config_gui.py` - User interface
-- **Audio Pipeline**: `audio_recorder.py`, `audio_processor.py` - Audio handling
-- **AI Integration**: `transcription.py`, `text_refiner.py` - OpenAI services
-- **System Integration**: `hotkey_service.py`, `text_inserter.py` - OS interaction
-- **Configuration**: `config/` - Settings and prompts management
+For detailed technical documentation about the codebase architecture and components, please refer to [AGENTS.md](AGENTS.md).
 
 ## Release Process
 
@@ -535,8 +500,9 @@ We follow [Semantic Versioning](https://semver.org/):
 - Run comprehensive test suite with coverage
 - Test GUI functionality on target platforms
 - Validate audio processing with various input formats
-- Verify OpenAI API integration with different models
-- Test hotkey functionality across operating systems
+- Test all transcription methods
+- Verify hotkey functionality across operating systems
+- Test configuration changes and persistence
 
 ## Getting Help
 

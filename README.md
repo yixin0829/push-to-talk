@@ -14,7 +14,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **🔄 Live Config Sync**: GUI edits instantly push updates to the running background service—no restart required
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
-- **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
+- **🤖 Dual Transcription Options**: OpenAI Whisper API or Local Whisper (whisper.cpp) with GPU acceleration
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
 - **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
@@ -112,6 +112,12 @@ The application features a sophisticated real-time configuration system that app
 - **Model Selection**: Choose Whisper and Refinement Models
 - **API Key Testing**: Validate your credentials
 
+### Transcription Settings
+- **Transcription Method**: Choose between OpenAI API or Local Whisper models
+- **Local Whisper Models**: Support for 12 model variants (tiny.en through large-v3-turbo)
+- **GPU Acceleration**: Automatic CUDA detection and optimization for local models
+- **Model Management**: On-demand downloads with progress tracking
+
 ### Audio Settings
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
 - **Chunk Size**: Buffer size configuration
@@ -172,14 +178,18 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 ```json
 {
   "openai_api_key": "your_api_key_here",
-  "stt_model": "gpt-4o-transcribe",
+  "use_local_whisper": false,
+  "stt_model": "gpt-4o-mini-transcribe",
+  "local_whisper_model": "small",
+  "local_whisper_device": "auto",
+  "local_whisper_compute_type": "auto",
   "refinement_model": "gpt-4.1-nano",
   "sample_rate": 16000,
   "chunk_size": 1024,
   "channels": 1,
   "hotkey": "ctrl+shift+space",
   "toggle_hotkey": "ctrl+shift+^",
-  "insertion_method": "sendkeys",
+  "insertion_method": "clipboard",
   "insertion_delay": 0.005,
   "enable_text_refinement": true,
   "enable_logging": true,
@@ -198,14 +208,18 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
-| `stt_model` | string | `"gpt-4o-transcribe"` | STT Model for speech-to-text. Options: `gpt-4o-transcribe`, `whisper-1`. |
+| `use_local_whisper` | boolean | `false` | Whether to use local Whisper instead of OpenAI API for transcription. |
+| `stt_model` | string | `"gpt-4o-mini-transcribe"` | STT Model for OpenAI API transcription. Options: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`. |
+| `local_whisper_model` | string | `"small"` | Local Whisper model name. Options: `tiny.en`, `tiny`, `base.en`, `base`, `small.en`, `small`, `medium.en`, `medium`, `large-v1`, `large-v2`, `large-v3`, `large-v3-turbo`. |
+| `local_whisper_device` | string | `"auto"` | Device for local Whisper. Options: `auto`, `cpu`, `cuda`. |
+| `local_whisper_compute_type` | string | `"auto"` | Compute type for local Whisper. Options: `auto`, `float16`, `int8`, `float32`. |
 | `refinement_model` | string | `"gpt-4.1-nano"` | Refinement Model for text refinement. Options: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. |
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition with Whisper. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
 | `hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for push-to-talk. See [Hotkey Options](#hotkey-options) for examples. |
 | `toggle_hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
-| `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
+| `insertion_method` | string | `"clipboard"` | Method for inserting text. Options: `clipboard` (faster), `sendkeys` (better for special chars). |
 | `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
@@ -263,7 +277,7 @@ You can configure different hotkey combinations for both modes:
 - `ctrl+shift+^` (default)
 - `ctrl+shift+t`
 
-Both hotkeys support any combination from the `keyboard` library.
+Both hotkeys support any combination from the `pynput` library (updated from keyboard library for improved reliability).
 
 ### Text Insertion Methods
 
@@ -306,10 +320,13 @@ The application consists of several modular components:
 - **MainGUI** (`main.py`): Entry point with welcome flow and startup management
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
 - **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
-- **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
+- **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper API
+- **LocalWhisperTranscriber** (`src/local_whisper_transcriber.py`): Local whisper.cpp transcription with GPU acceleration
+- **LocalWhisperManager** (`src/local_whisper_manager.py`): Model downloads and system capability detection
+- **TranscriberFactory** (`src/transcriber_factory.py`): Factory pattern for transcriber selection
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models with custom glossary support
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
-- **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
+- **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection using pynput
 - **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator with dynamic configuration updates
 
 ### User Experience Flow
@@ -406,13 +423,14 @@ flowchart TB
 ## Dependencies
 
 - **tkinter**: GUI interface (built into Python)
-- **keyboard**: Global hotkey detection
+- **pynput**: Global hotkey detection (replaced keyboard library)
 - **loguru**: Enhanced logging with better formatting and features
 - **pyaudio**: Audio recording
 - **pydub**: Smart silence detection and audio manipulation
 - **soundfile**: High-quality audio I/O
 - **psola**: Pitch-preserving time-scale modification
 - **openai**: Speech-to-text and text refinement
+- **pywhispercpp**: Local whisper.cpp integration with GPU acceleration
 - **pyautogui**: Cross-platform text insertion and window management
 - **pyperclip**: Cross-platform clipboard operations
 - **playsound3**: Cross-platform audio feedback (lightweight alternative to pygame)
@@ -443,9 +461,9 @@ flowchart TB
 
 ### Common Issues
 
-1. **"No module named 'pyautogui' or 'pyperclip'"** (Development):
+1. **"No module named 'pyautogui', 'pyperclip', or 'pywhispercpp'"** (Development):
    ```bash
-   uv add pyautogui pyperclip
+   uv add pyautogui pyperclip pywhispercpp
    ```
 
 2. **"Could not find PyAudio"** (Development):
@@ -457,6 +475,7 @@ flowchart TB
    - Check if another application is using the same hotkey
    - Try a different hotkey combination in the GUI
    - Ensure the application shows "Running" status in the GUI
+   - Note: Application now uses pynput library for improved hotkey detection
 
 4. **OpenAI API errors**:
    - Use the "Test Configuration" button in the GUI to validate settings
@@ -464,13 +483,19 @@ flowchart TB
    - Check your OpenAI account has access to the models you're using
    - Ensure internet connectivity
 
-5. **Text not inserting**:
+5. **Local Whisper model issues**:
+   - Ensure model is downloaded via GUI or LocalWhisperManager
+   - Check CUDA availability for GPU acceleration: `nvidia-smi`
+   - Try different device settings: "cpu", "cuda", or "auto"
+   - Verify model file integrity and storage location
+
+6. **Text not inserting**:
    - Make sure the target window is active and has a text input field
    - Try switching insertion method in the GUI (sendkeys vs clipboard)
    - Check Windows permissions for clipboard access
    - Increase insertion delay if text appears truncated
 
-6. **GUI appearance issues**:
+7. **GUI appearance issues**:
    - Try restarting the application
    - Check display scaling settings (recommended: 100-150%)
    - Ensure Windows is up to date
@@ -485,10 +510,12 @@ Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The G
 1. **Optimize audio settings**: Lower sample rates (8000-16000 Hz) for faster processing
 2. **Enable audio processing**: Smart silence removal and speed adjustment can significantly reduce transcription time
 3. **Adjust silence threshold**: Fine-tune -16 dBFS for your environment (higher for noisy environments)
-4. **Disable text refinement**: For faster transcription without GPT processing
-5. **Use clipboard method**: Generally faster than sendkeys for text insertion
-6. **Short recordings**: Keep recordings under 30 seconds for optimal performance
-7. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
+4. **Choose transcription method**: Local Whisper for offline use and privacy, OpenAI API for cloud processing
+5. **GPU acceleration**: Use CUDA-compatible GPU for faster local Whisper processing
+6. **Disable text refinement**: For faster transcription without GPT processing
+7. **Use clipboard method**: Generally faster than sendkeys for text insertion
+8. **Short recordings**: Keep recordings under 30 seconds for optimal performance
+9. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
 
 ## Security Considerations
 

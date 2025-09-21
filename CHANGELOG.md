@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### TODOs
+- [ ] Fix exe build cannot download whisper.cpp model issue. Even if I downloaded the model in advance, the system failed to load it during transcription.
+
 ### Added
 - **Enhanced Logging and Observability**: Comprehensive improvements to logging system for better debugging and performance monitoring
   - Added correlation IDs to track operations end-to-end across the audio processing pipeline
@@ -15,12 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Startup validation logging with configuration checks and warnings
   - Optimized log levels to reduce verbosity while maintaining essential information
   - Detailed performance metrics including processing ratios, throughput rates, and efficiency statistics
-- **Updated local Whisper model list**: Refactored available models to match whisper.cpp make targets with proper English-only variants and updated size estimates
+  - Migrated to loguru for enhanced logging capabilities with better formatting and features
 - **Local Whisper Model Support**: Comprehensive local speech-to-text transcription using whisper.cpp (via pywhispercpp) with GPU acceleration capabilities, on-demand model downloads, and seamless integration with existing workflow.
   - Local Whisper transcriber with automatic GPU/CPU detection and optimization
   - Model management system with download progress dialogs and status indicators
   - Enhanced GUI with model type selection (OpenAI API vs Local Whisper)
-  - Support for all 12 Whisper model variants matching whisper.cpp make targets: tiny.en, tiny, base.en, base, small.en, small, medium.en, medium, large-v1, large-v2, large-v3, large-v3-turbo
+  - Support for 12 Whisper model variants matching whisper.cpp make targets: tiny.en, tiny, base.en, base, small.en, small, medium.en, medium, large-v1, large-v2, large-v3, large-v3-turbo
   - GPU acceleration support with automatic device and compute type selection
   - Transcriber factory pattern for flexible model switching
 - **Enhanced Model Download UX**: Improved user experience for local Whisper model downloads
@@ -36,8 +39,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Refactored local Whisper implementation**: Migrated from faster-whisper to whisper.cpp (via pywhispercpp) for improved performance and simplicity
 - **Updated model cache directory**: Windows users now have models stored in `%LOCALAPPDATA%\pywhispercpp\pywhispercpp\models` for better platform compliance
 - **Updated documentation**: All references to "faster-whisper" in documentation, comments, and variable names have been updated to reflect the migration to "pywhispercpp"
+- **Updated hotkey system**: Migrated from `keyboard` library to `pynput` library for more reliable global hotkey detection across platforms
 - **Lightweight GPU detection**: Replaced heavy PyTorch-based GPU detection with zero-dependency subprocess nvidia-smi calls, reducing memory footprint by ~2GB while maintaining full CUDA acceleration support
-- Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
+- **Refactored logging system**: Migrated to loguru for enhanced logging capabilities. Global logger configuration centralized in `main.py` and `tests/conftest.py`
 - Configuration GUI now traces Tk variables, debounces updates, and refreshes the status banner whenever settings change mid-session.
 
 ### Deprecated
@@ -45,9 +49,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 ### Fixed
-- Fixed the hotkey service inactivity issue by switching to use `pynput` library instead of `keyboard` library.
+- **Fixed hotkey service reliability**: Migrated from `keyboard` library to `pynput` library for improved global hotkey detection and cross-platform stability
 - **Fixed pywhispercpp API compatibility**: Resolved model downloading error ("_pywhispercpp.whisper_full_params' object has no attribute 'model_path'") by updating to correct pywhispercpp API usage with `WhisperModel(model=..., n_threads=..., print_realtime=..., print_progress=...)`
-- **Fixed GPU detection system**: Replaced heavy PyTorch dependency with lightweight subprocess-based nvidia-smi calls for CUDA GPU detection, reducing memory footprint and eliminating ~2GB dependency while maintaining full GPU acceleration support
+- **Fixed GPU detection system**: Replaced heavy PyTorch dependency with lightweight subprocess-based nvidia-smi calls for CUDA GPU detection, reducing memory footprint by ~2GB while maintaining full GPU acceleration support
+- **Fixed CMD window suppression**: Improved GPU detection to suppress console windows during nvidia-smi calls for cleaner user experience
 
 ### Security
 
