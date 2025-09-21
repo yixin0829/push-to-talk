@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added unit tests for utils and push_to_talk to reach 80% coverage.
 - Live configuration callbacks in the GUI so running sessions immediately pick up updated settings and glossary edits.
 - **Non-blocking configuration persistence**: Runtime GUI changes are now automatically saved to JSON file asynchronously, ensuring changes persist across application restarts without blocking the user interface.
+- **Enhanced Debug Mode**: Debug mode now provides dual functionality - saves processed audio files for debugging AND enables DEBUG level logging for detailed execution traces. Logging level changes are applied dynamically during runtime via the `set_debug_logging()` function in `src/utils.py`.
 
 ### Changed
 - **Refactored local Whisper implementation**: Migrated from faster-whisper to whisper.cpp (via pywhispercpp) for improved performance and simplicity

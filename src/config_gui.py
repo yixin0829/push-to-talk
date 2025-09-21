@@ -9,6 +9,7 @@ import json
 
 from src.push_to_talk import PushToTalkConfig
 from src.local_whisper_manager import LocalWhisperManager
+from src.utils import set_debug_logging
 
 
 class ConfigurationGUI:
@@ -30,6 +31,9 @@ class ConfigurationGUI:
         # Always start with OpenAI API selected when GUI opens, regardless of saved config
         self.config.use_local_whisper = False
         self.on_config_changed = on_config_changed
+
+        # Initialize debug logging based on current config
+        set_debug_logging(self.config.debug_mode)
         self.root = None
         self.config_vars = {}
         self.result = None  # To store user's choice (save/cancel)
@@ -325,6 +329,10 @@ Configure your settings below, then click "Start Application" to begin:"""
 
         if not force and new_config == self.config:
             return
+
+        # Check if debug mode changed and update logging level accordingly
+        if self.config.debug_mode != new_config.debug_mode:
+            set_debug_logging(new_config.debug_mode)
 
         self.config = new_config
 
@@ -1202,7 +1210,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         self.config_vars["debug_mode"] = tk.BooleanVar(value=self.config.debug_mode)
         ttk.Checkbutton(
             frame,
-            text="Debug Mode (saves processed audio files for debugging)",
+            text="Debug Mode (saves processed audio files and enables DEBUG logging)",
             variable=self.config_vars["debug_mode"],
         ).grid(row=4, column=0, sticky="w", pady=2)
 

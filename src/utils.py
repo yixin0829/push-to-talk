@@ -9,6 +9,30 @@ _START_SOUND_PATH = _ASSETS_DIR / "start_feedback.wav"
 _STOP_SOUND_PATH = _ASSETS_DIR / "stop_feedback.wav"
 
 
+def set_debug_logging(enabled: bool):
+    """
+    Enable or disable DEBUG level logging.
+
+    Args:
+        enabled: True to enable DEBUG logging, False to set back to INFO
+    """
+    try:
+        # Remove existing handlers
+        logger.remove()
+
+        # Add new handler with appropriate level
+        log_level = "DEBUG" if enabled else "INFO"
+        logger.add("push_to_talk.log", level=log_level)
+
+        if enabled:
+            logger.debug("Debug logging enabled")
+        else:
+            logger.info("Debug logging disabled")
+
+    except Exception as e:
+        logger.error(f"Failed to update logging level: {e}")
+
+
 def play_start_feedback():
     """Play a high-pitched beep for recording start."""
 

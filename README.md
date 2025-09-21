@@ -225,7 +225,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 | `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
-| `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
+| `debug_mode` | boolean | `false` | Whether to enable debug mode. When enabled, processed audio files are saved to the current directory and DEBUG level logging is activated for detailed execution traces. |
 | `silence_threshold` | float | `-16.0` | dBFS threshold for silence detection. Higher values (closer to 0) are more sensitive to quiet sounds. |
 | `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
 | `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
@@ -459,6 +459,12 @@ flowchart TB
    - Check that the configuration file isn't marked as read-only
    - Try running as Administrator
 
+5. **Debug mode troubleshooting**:
+   - Debug mode saves processed audio files and enables detailed logging
+   - Check `push_to_talk.log` for DEBUG level entries when debug mode is enabled
+   - Processed audio files are saved in the current working directory
+   - Toggle debug mode on/off during runtime to control logging verbosity
+
 ### Common Issues
 
 1. **"No module named 'pyautogui', 'pyperclip', or 'pywhispercpp'"** (Development):
@@ -504,6 +510,8 @@ flowchart TB
 
 Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The GUI application logs only to file for cleaner user experience.
 
+**Debug Mode Logging**: When debug mode is enabled via the GUI checkbox, the logging level is dynamically increased to DEBUG, providing detailed execution traces, performance metrics, and comprehensive debugging information. This enhanced logging can be toggled on/off during runtime without requiring application restart.
+
 
 ## Performance Tips
 
@@ -516,6 +524,7 @@ Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The G
 7. **Use clipboard method**: Generally faster than sendkeys for text insertion
 8. **Short recordings**: Keep recordings under 30 seconds for optimal performance
 9. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
+10. **Debug mode**: Enable debug mode only when troubleshooting - it increases logging overhead and saves audio files to disk
 
 ## Security Considerations
 
