@@ -21,9 +21,20 @@ from src.utils import play_start_feedback, play_stop_feedback
 class PushToTalkConfig:
     """Configuration class for PushToTalk application."""
 
-    # OpenAI settings
+    # STT Provider settings
+    stt_provider: str = "openai"  # openai, deepgram, elevenlabs, custom
+
+    # Provider-specific API keys
     openai_api_key: str = ""
+    deepgram_api_key: str = ""
+    elevenlabs_api_key: str = ""
+    custom_stt_api_key: str = ""
+
+    # Provider-specific settings
     stt_model: str = "gpt-4o-mini-transcribe"
+    custom_stt_url: str = ""
+
+    # Text refinement settings (OpenAI only)
     refinement_model: str = "gpt-4.1-nano"
 
     # Audio settings
@@ -89,13 +100,8 @@ class PushToTalkApp:
         """
         self.config = config or PushToTalkConfig()
 
-        # Validate OpenAI API key
-        if not self.config.openai_api_key:
-            self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
-            if not self.config.openai_api_key:
-                raise ValueError(
-                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
-                )
+        # Validate API keys based on provider
+        self._validate_provider_credentials()
 
         # Initialize components - this will be called by _initialize_components
         self.audio_recorder = None
@@ -113,6 +119,37 @@ class PushToTalkApp:
         self._initialize_components()
 
         logger.info("PushToTalk application initialized")
+
+    def _validate_provider_credentials(self):
+        """Validate that the selected provider has the necessary credentials."""
+        provider = self.config.stt_provider
+
+        if provider == "openai":
+            if not self.config.openai_api_key:
+                self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+                if not self.config.openai_api_key:
+                    raise ValueError(
+                        "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
+                    )
+        elif provider == "deepgram":
+            if not self.config.deepgram_api_key:
+                self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
+                if not self.config.deepgram_api_key:
+                    raise ValueError(
+                        "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
+                    )
+        elif provider == "elevenlabs":
+            if not self.config.elevenlabs_api_key:
+                self.config.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
+                if not self.config.elevenlabs_api_key:
+                    raise ValueError(
+                        "ElevenLabs API key is required. Set ELEVENLABS_API_KEY environment variable or provide in config."
+                    )
+        elif provider == "custom":
+            if not self.config.custom_stt_url:
+                raise ValueError("Custom STT URL is required for custom provider.")
+            if not self.config.custom_stt_api_key:
+                self.config.custom_stt_api_key = os.getenv("CUSTOM_STT_API_KEY", "")
 
     def _initialize_components(self):
         """Initialize or reinitialize all components with current configuration."""
@@ -140,7 +177,13 @@ class PushToTalkApp:
         )
 
         self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.stt_model
+            provider=self.config.stt_provider,
+            model=self.config.stt_model,
+            openai_api_key=self.config.openai_api_key,
+            deepgram_api_key=self.config.deepgram_api_key,
+            elevenlabs_api_key=self.config.elevenlabs_api_key,
+            custom_stt_url=self.config.custom_stt_url,
+            custom_stt_api_key=self.config.custom_stt_api_key,
         )
 
         self.text_refiner = (
@@ -183,7 +226,12 @@ class PushToTalkApp:
 
         # Check if we need to reinitialize components
         needs_reinit = (
-            old_config.openai_api_key != new_config.openai_api_key
+            old_config.stt_provider != new_config.stt_provider
+            or old_config.openai_api_key != new_config.openai_api_key
+            or old_config.deepgram_api_key != new_config.deepgram_api_key
+            or old_config.elevenlabs_api_key != new_config.elevenlabs_api_key
+            or old_config.custom_stt_api_key != new_config.custom_stt_api_key
+            or old_config.custom_stt_url != new_config.custom_stt_url
             or old_config.stt_model != new_config.stt_model
             or old_config.refinement_model != new_config.refinement_model
             or old_config.sample_rate != new_config.sample_rate

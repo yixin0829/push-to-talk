@@ -3,26 +3,73 @@ from loguru import logger
 import time
 import wave
 from typing import Optional
-from openai import OpenAI
+import litellm
 
 
 class Transcriber:
-    def __init__(self, api_key: Optional[str] = None, model: str = "whisper-1"):
+    def __init__(
+        self,
+        provider: str = "openai",
+        model: str = "whisper-1",
+        openai_api_key: Optional[str] = None,
+        deepgram_api_key: Optional[str] = None,
+        elevenlabs_api_key: Optional[str] = None,
+        custom_stt_url: Optional[str] = None,
+        custom_stt_api_key: Optional[str] = None,
+    ):
         """
-        Initialize the transcriber with OpenAI API.
+        Initialize the transcriber with support for multiple STT providers.
 
         Args:
-            api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
+            provider: STT provider to use (openai, deepgram, elevenlabs, custom)
             model: STT Model to use (default: whisper-1)
+            openai_api_key: OpenAI API key
+            deepgram_api_key: Deepgram API key
+            elevenlabs_api_key: ElevenLabs API key
+            custom_stt_url: Custom STT endpoint URL
+            custom_stt_api_key: Custom STT API key
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter."
-            )
-
+        self.provider = provider
         self.model = model
-        self.client = OpenAI(api_key=self.api_key)
+
+        # Set environment variables for LiteLLM based on provider
+        if provider == "openai":
+            api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass openai_api_key parameter."
+                )
+            os.environ["OPENAI_API_KEY"] = api_key
+            # For OpenAI, use model name directly
+            self.model_name = model
+        elif provider == "deepgram":
+            api_key = deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or pass deepgram_api_key parameter."
+                )
+            os.environ["DEEPGRAM_API_KEY"] = api_key
+            # For Deepgram, prefix model with provider name
+            self.model_name = f"deepgram/{model}" if not model.startswith("deepgram/") else model
+        elif provider == "elevenlabs":
+            api_key = elevenlabs_api_key or os.getenv("ELEVENLABS_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "ElevenLabs API key is required. Set ELEVENLABS_API_KEY environment variable or pass elevenlabs_api_key parameter."
+                )
+            os.environ["ELEVENLABS_API_KEY"] = api_key
+            # For ElevenLabs, prefix model with provider name
+            self.model_name = f"elevenlabs/{model}" if not model.startswith("elevenlabs/") else model
+        elif provider == "custom":
+            if not custom_stt_url:
+                raise ValueError("Custom STT URL is required for custom provider.")
+            self.custom_url = custom_stt_url
+            self.custom_api_key = custom_stt_api_key or ""
+            self.model_name = model
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+        logger.info(f"Initialized transcriber with provider: {provider}, model: {self.model_name}")
 
     def transcribe_audio(
         self, audio_file_path: str, language: Optional[str] = None
@@ -63,12 +110,22 @@ class Transcriber:
             logger.debug(f"Starting transcription for: {audio_file_path}")
 
             with open(audio_file_path, "rb") as audio_file:
-                response = self.client.audio.transcriptions.create(
-                    model=self.model,
-                    file=audio_file,
-                    language=language,
-                    response_format="text",
-                )
+                # Use LiteLLM for transcription across all providers
+                if self.provider == "custom":
+                    # For custom provider, use litellm with custom URL
+                    response = litellm.transcription(
+                        model=self.model_name,
+                        file=audio_file,
+                        api_base=self.custom_url,
+                        api_key=self.custom_api_key,
+                    )
+                else:
+                    # For standard providers (OpenAI, Deepgram, ElevenLabs)
+                    response = litellm.transcription(
+                        model=self.model_name,
+                        file=audio_file,
+                        language=language,
+                    )
 
             # Handle both string and object responses
             if hasattr(response, "text"):
@@ -86,10 +143,10 @@ class Transcriber:
             transcription_time = time.time() - start_time
 
             logger.info(
-                f"Transcription successful: {len(transcribed_text)} characters in {transcription_time:.2f}s"
+                f"Transcription successful ({self.provider}): {len(transcribed_text)} characters in {transcription_time:.2f}s"
             )
             return transcribed_text if transcribed_text else None
 
         except Exception as e:
-            logger.error(f"Transcription failed: {e}")
+            logger.error(f"Transcription failed ({self.provider}): {e}")
             return None
