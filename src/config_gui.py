@@ -298,12 +298,18 @@ Configure your settings below, then click "Start Application" to begin:"""
     def _create_openai_settings(self, parent: ttk.Frame):
         """Create OpenAI-specific settings."""
         # API Key
-        ttk.Label(parent, text="OpenAI API Key:").grid(row=0, column=0, sticky="w", pady=2)
-        self.config_vars["openai_api_key"] = tk.StringVar(value=self.config.openai_api_key)
+        ttk.Label(parent, text="OpenAI API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        self.config_vars["openai_api_key"] = tk.StringVar(
+            value=self.config.openai_api_key
+        )
         api_key_entry = ttk.Entry(
             parent, textvariable=self.config_vars["openai_api_key"], show="*", width=50
         )
-        api_key_entry.grid(row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2)
+        api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
 
         # Show/Hide button
         def toggle_visibility():
@@ -331,12 +337,21 @@ Configure your settings below, then click "Start Application" to begin:"""
     def _create_deepgram_settings(self, parent: ttk.Frame):
         """Create Deepgram-specific settings."""
         # API Key
-        ttk.Label(parent, text="Deepgram API Key:").grid(row=0, column=0, sticky="w", pady=2)
-        self.config_vars["deepgram_api_key"] = tk.StringVar(value=self.config.deepgram_api_key)
-        api_key_entry = ttk.Entry(
-            parent, textvariable=self.config_vars["deepgram_api_key"], show="*", width=50
+        ttk.Label(parent, text="Deepgram API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
         )
-        api_key_entry.grid(row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2)
+        self.config_vars["deepgram_api_key"] = tk.StringVar(
+            value=self.config.deepgram_api_key
+        )
+        api_key_entry = ttk.Entry(
+            parent,
+            textvariable=self.config_vars["deepgram_api_key"],
+            show="*",
+            width=50,
+        )
+        api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
 
         # Show/Hide button
         def toggle_visibility():
@@ -356,7 +371,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         ttk.Combobox(
             parent,
             textvariable=self.config_vars["stt_model"],
-            values=["nova-2", "nova", "enhanced", "base"],
+            values=["nova-3", "nova-2", "nova", "enhanced", "base"],
             state="readonly",
             width=30,
         ).grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
@@ -364,12 +379,21 @@ Configure your settings below, then click "Start Application" to begin:"""
     def _create_elevenlabs_settings(self, parent: ttk.Frame):
         """Create ElevenLabs-specific settings."""
         # API Key
-        ttk.Label(parent, text="ElevenLabs API Key:").grid(row=0, column=0, sticky="w", pady=2)
-        self.config_vars["elevenlabs_api_key"] = tk.StringVar(value=self.config.elevenlabs_api_key)
-        api_key_entry = ttk.Entry(
-            parent, textvariable=self.config_vars["elevenlabs_api_key"], show="*", width=50
+        ttk.Label(parent, text="ElevenLabs API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
         )
-        api_key_entry.grid(row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2)
+        self.config_vars["elevenlabs_api_key"] = tk.StringVar(
+            value=self.config.elevenlabs_api_key
+        )
+        api_key_entry = ttk.Entry(
+            parent,
+            textvariable=self.config_vars["elevenlabs_api_key"],
+            show="*",
+            width=50,
+        )
+        api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
 
         # Show/Hide button
         def toggle_visibility():
@@ -391,26 +415,40 @@ Configure your settings below, then click "Start Application" to begin:"""
             textvariable=self.config_vars["stt_model"],
             width=30,
         ).grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
-        ttk.Label(parent, text="(e.g., scribe_v1)", font=("TkDefaultFont", 8), foreground="gray").grid(
-            row=1, column=2, sticky="w", padx=(5, 0), pady=2
-        )
+        ttk.Label(
+            parent,
+            text="(e.g., scribe_v1)",
+            font=("TkDefaultFont", 8),
+            foreground="gray",
+        ).grid(row=1, column=2, sticky="w", padx=(5, 0), pady=2)
 
     def _create_custom_settings(self, parent: ttk.Frame):
         """Create custom provider settings."""
         # API URL
         ttk.Label(parent, text="STT API URL:").grid(row=0, column=0, sticky="w", pady=2)
-        self.config_vars["custom_stt_url"] = tk.StringVar(value=self.config.custom_stt_url)
+        self.config_vars["custom_stt_url"] = tk.StringVar(
+            value=self.config.custom_stt_url
+        )
         ttk.Entry(
             parent, textvariable=self.config_vars["custom_stt_url"], width=50
         ).grid(row=0, column=1, columnspan=3, sticky="ew", padx=(10, 0), pady=2)
 
         # API Key
-        ttk.Label(parent, text="API Key (optional):").grid(row=1, column=0, sticky="w", pady=2)
-        self.config_vars["custom_stt_api_key"] = tk.StringVar(value=self.config.custom_stt_api_key)
-        api_key_entry = ttk.Entry(
-            parent, textvariable=self.config_vars["custom_stt_api_key"], show="*", width=50
+        ttk.Label(parent, text="API Key (optional):").grid(
+            row=1, column=0, sticky="w", pady=2
         )
-        api_key_entry.grid(row=1, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2)
+        self.config_vars["custom_stt_api_key"] = tk.StringVar(
+            value=self.config.custom_stt_api_key
+        )
+        api_key_entry = ttk.Entry(
+            parent,
+            textvariable=self.config_vars["custom_stt_api_key"],
+            show="*",
+            width=50,
+        )
+        api_key_entry.grid(
+            row=1, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
 
         # Show/Hide button
         def toggle_visibility():
@@ -427,9 +465,9 @@ Configure your settings below, then click "Start Application" to begin:"""
         # Model Name
         ttk.Label(parent, text="Model Name:").grid(row=2, column=0, sticky="w", pady=2)
         self.config_vars["stt_model"] = tk.StringVar(value=self.config.stt_model)
-        ttk.Entry(
-            parent, textvariable=self.config_vars["stt_model"], width=30
-        ).grid(row=2, column=1, sticky="w", padx=(10, 0), pady=2)
+        ttk.Entry(parent, textvariable=self.config_vars["stt_model"], width=30).grid(
+            row=2, column=1, sticky="w", padx=(10, 0), pady=2
+        )
 
     def _on_provider_changed(self, event=None):
         """Handle provider selection change."""
@@ -440,7 +478,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         if provider == "openai":
             self.config_vars["stt_model"].set("gpt-4o-mini-transcribe")
         elif provider == "deepgram":
-            self.config_vars["stt_model"].set("nova-2")
+            self.config_vars["stt_model"].set("nova-3")
         elif provider == "elevenlabs":
             self.config_vars["stt_model"].set("scribe_v1")
         elif provider == "custom":
@@ -900,11 +938,15 @@ Configure your settings below, then click "Start Application" to begin:"""
                 return False
         elif provider == "deepgram":
             if not self.config_vars["deepgram_api_key"].get().strip():
-                messagebox.showerror("Validation Error", "Deepgram API key is required!")
+                messagebox.showerror(
+                    "Validation Error", "Deepgram API key is required!"
+                )
                 return False
         elif provider == "elevenlabs":
             if not self.config_vars["elevenlabs_api_key"].get().strip():
-                messagebox.showerror("Validation Error", "ElevenLabs API key is required!")
+                messagebox.showerror(
+                    "Validation Error", "ElevenLabs API key is required!"
+                )
                 return False
         elif provider == "custom":
             if not self.config_vars["custom_stt_url"].get().strip():
@@ -932,6 +974,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             # Test API connectivity based on provider
             if test_config.stt_provider == "openai":
                 from openai import OpenAI
+
                 _ = OpenAI(api_key=test_config.openai_api_key)
                 message = "OpenAI API key is valid!"
             elif test_config.stt_provider == "deepgram":
@@ -939,7 +982,9 @@ Configure your settings below, then click "Start Application" to begin:"""
             elif test_config.stt_provider == "elevenlabs":
                 message = "ElevenLabs configuration looks good!"
             elif test_config.stt_provider == "custom":
-                message = f"Custom STT configuration set to:\n{test_config.custom_stt_url}"
+                message = (
+                    f"Custom STT configuration set to:\n{test_config.custom_stt_url}"
+                )
             else:
                 message = "Configuration looks good!"
 

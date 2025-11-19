@@ -7,7 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Deepgram Nova-3 Support**: Added support for Deepgram's latest and fastest STT model
+  - Nova-3 model now available in Deepgram provider dropdown
+  - Set as default model when selecting Deepgram provider
+  - Ultra-fast transcription with <300ms latency (10-30x faster than OpenAI)
+  - 36% lower word error rate compared to OpenAI Whisper
+- **Enhanced STT Provider Documentation**: Comprehensive guide for all supported providers
+  - Performance comparison between providers
+  - Model options and recommendations for each provider
+  - Cost and speed benchmarks
+
 ### Changed
+- Updated Deepgram model selection to prioritize nova-3 as the recommended option
+- Enhanced README with detailed STT provider options section
+
 ### Deprecated
 ### Removed
 ### Fixed

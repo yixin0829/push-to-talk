@@ -143,7 +143,12 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 
 ```json
 {
+  "stt_provider": "openai",
   "openai_api_key": "your_api_key_here",
+  "deepgram_api_key": "",
+  "elevenlabs_api_key": "",
+  "custom_stt_url": "",
+  "custom_stt_api_key": "",
   "stt_model": "gpt-4o-transcribe",
   "refinement_model": "gpt-4.1-nano",
   "sample_rate": 16000,
@@ -169,8 +174,13 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
-| `stt_model` | string | `"gpt-4o-transcribe"` | STT Model for speech-to-text. Options: `gpt-4o-transcribe`, `whisper-1`. |
+| `stt_provider` | string | `"openai"` | STT provider to use. Options: `openai`, `deepgram`, `elevenlabs`, `custom`. See [STT Provider Options](#stt-provider-options) for details. |
+| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required when using OpenAI provider. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
+| `deepgram_api_key` | string | `""` | Your Deepgram API key. Required when using Deepgram provider (fastest option with <300ms latency). Get one at https://deepgram.com |
+| `elevenlabs_api_key` | string | `""` | Your ElevenLabs API key. Required when using ElevenLabs provider. |
+| `custom_stt_url` | string | `""` | Custom STT endpoint URL. Required when using custom provider. |
+| `custom_stt_api_key` | string | `""` | API key for custom STT endpoint. Optional depending on your custom provider. |
+| `stt_model` | string | `"gpt-4o-transcribe"` | STT Model for speech-to-text. Options depend on provider - see [STT Provider Options](#stt-provider-options). |
 | `refinement_model` | string | `"gpt-4.1-nano"` | Refinement Model for text refinement. Options: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. |
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition with Whisper. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
@@ -188,6 +198,53 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
 | `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
 | `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
+
+#### STT Provider Options
+
+The application supports multiple Speech-to-Text providers, each with different performance characteristics and model options:
+
+##### OpenAI (Default)
+- **Models**: `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, `whisper-1`
+- **Speed**: Moderate (5-10 seconds for 30s audio)
+- **Accuracy**: High
+- **Languages**: 50+ languages
+- **Cost**: $0.006 per minute (Whisper), varies for GPT models
+- **Best for**: General use, high accuracy, multilingual support
+
+##### Deepgram (Fastest - Recommended for Speed)
+- **Models**: `nova-3` (latest), `nova-2`, `nova`, `enhanced`, `base`
+- **Speed**: Ultra-fast (<300ms latency, 10-30x faster than OpenAI)
+- **Accuracy**: Excellent (36% lower WER than Whisper on benchmarks)
+- **Languages**: 30+ languages
+- **Cost**: $4.30 per 1,000 minutes
+- **Best for**: Real-time applications, speed-critical use cases
+- **Note**: `nova-3` is the latest and most accurate Deepgram model
+
+##### ElevenLabs
+- **Models**: `scribe_v1` (and custom models)
+- **Speed**: Fast
+- **Accuracy**: High
+- **Languages**: Multiple languages supported
+- **Best for**: Integration with ElevenLabs ecosystem
+
+##### Custom
+- **Models**: Any model supported by your custom endpoint
+- **Speed**: Depends on your implementation
+- **Accuracy**: Depends on your model
+- **Best for**: Self-hosted models, specialized use cases
+
+**Performance Comparison:**
+- **Fastest**: Deepgram nova-3 (<300ms latency)
+- **Most Accurate**: OpenAI gpt-4o-transcribe
+- **Best Value**: Deepgram (bulk processing)
+- **Most Flexible**: Custom (your own models)
+
+**To switch providers:**
+1. Open the GUI configuration
+2. Select your desired provider from the "STT Provider" dropdown
+3. Enter the appropriate API key
+4. The model will automatically update to the recommended option for that provider
+5. Click "Start Application"
 
 #### Audio Quality Settings
 
