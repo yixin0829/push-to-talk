@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 import shutil
 
-from src.transcription import Transcriber
+from src.transcription_openai import OpenAITranscriber
 from src.text_refiner import TextRefiner
 
 
@@ -54,7 +54,7 @@ class TestAudioIntegrationWithRealFiles:
         logger.info("Testing transcription fallback behavior")
 
         # Create transcriber with invalid API key to trigger fallback
-        transcriber = Transcriber(api_key="invalid-key-for-testing")
+        transcriber = OpenAITranscriber(api_key="invalid-key-for-testing")
 
         # Create temporary audio file
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:

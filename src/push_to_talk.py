@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict, field, fields
 import json
 
 from src.audio_recorder import AudioRecorder
-from src.transcription import Transcriber
+from src.transcriber_factory import TranscriberFactory
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
@@ -20,9 +20,13 @@ from src.utils import play_start_feedback, play_stop_feedback
 class PushToTalkConfig:
     """Configuration class for PushToTalk application."""
 
-    # OpenAI settings
+    # Transcription provider settings
+    stt_provider: str = "openai"  # "openai" or "deepgram"
     openai_api_key: str = ""
+    deepgram_api_key: str = ""
     stt_model: str = "gpt-4o-mini-transcribe"
+
+    # Text refinement settings (OpenAI)
     refinement_model: str = "gpt-4.1-nano"
 
     # Audio settings
@@ -128,13 +132,23 @@ class PushToTalkApp:
         """
         self.config = config or PushToTalkConfig()
 
-        # Validate OpenAI API key
-        if not self.config.openai_api_key:
-            self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+        # Validate API key based on selected provider
+        if self.config.stt_provider == "openai":
             if not self.config.openai_api_key:
-                raise ValueError(
-                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
-                )
+                self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+                if not self.config.openai_api_key:
+                    raise ValueError(
+                        "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
+                    )
+        elif self.config.stt_provider == "deepgram":
+            if not self.config.deepgram_api_key:
+                self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
+                if not self.config.deepgram_api_key:
+                    raise ValueError(
+                        "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
+                    )
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
         # Initialize components - this will be called by _initialize_components
         self.audio_recorder = None
@@ -170,8 +184,19 @@ class PushToTalkApp:
             channels=self.config.channels,
         )
 
-        self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.stt_model
+        # Get the appropriate API key based on provider
+        if self.config.stt_provider == "openai":
+            api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+        elif self.config.stt_provider == "deepgram":
+            api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+
+        # Create transcriber using factory
+        self.transcriber = TranscriberFactory.create_transcriber(
+            provider=self.config.stt_provider,
+            api_key=api_key,
+            model=self.config.stt_model,
         )
 
         self.text_refiner = (

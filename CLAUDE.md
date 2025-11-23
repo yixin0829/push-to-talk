@@ -77,7 +77,10 @@ PushToTalk is a Python-based speech-to-text application with a GUI configuration
 
 **Audio Pipeline:**
 - `AudioRecorder` (`src/audio_recorder.py`): PyAudio-based recording with threading
-- `Transcriber` (`src/transcription.py`): OpenAI Whisper integration
+- `TranscriberBase` (`src/transcription_base.py`): Abstract base class for all transcription providers
+- `OpenAITranscriber` (`src/transcription.py`): OpenAI Whisper integration
+- `DeepgramTranscriber` (`src/deepgram_transcription.py`): Deepgram API integration
+- `TranscriberFactory` (`src/transcriber_factory.py`): Factory pattern for creating transcriber instances
 - `TextRefiner` (`src/text_refiner.py`): GPT-based text improvement with format instructions
 - `TextInserter` (`src/text_inserter.py`): Cross-platform text insertion (clipboard/sendkeys)
 
@@ -85,6 +88,25 @@ PushToTalk is a Python-based speech-to-text application with a GUI configuration
 - `HotkeyService` (`src/hotkey_service.py`): Global hotkey detection with push-to-talk and toggle modes
 - Audio feedback utilities (`src/utils.py`): Non-blocking start/stop sounds using playsound3
 - `config/prompts.py`: Contains text refinement prompts with/without custom glossary support
+
+### Transcription Provider Architecture
+
+The application supports multiple STT providers through a clean factory pattern:
+
+**Design Patterns:**
+- **Abstract Base Class**: `TranscriberBase` defines the common interface (`transcribe_audio` method)
+- **Factory Pattern**: `TranscriberFactory.create_transcriber()` instantiates the correct provider
+- **Polymorphism**: `PushToTalkApp` works with any transcriber through the base interface
+
+**Supported Providers:**
+- **OpenAI**: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe models
+- **Deepgram**: nova-3 (recommended), nova-2, base, enhanced, whisper-medium models
+
+**Provider Selection:**
+- Configuration field `stt_provider` determines active provider ("openai" or "deepgram")
+- GUI dropdown allows runtime provider switching with conditional API key fields
+- Factory creates appropriate transcriber instance in `_initialize_components()`
+- Text refinement always uses OpenAI GPT models (independent of STT provider)
 
 ### Threading Architecture
 
@@ -99,7 +121,8 @@ The application uses multiple threads to prevent blocking:
 ### Configuration System
 
 - **Primary**: `push_to_talk_config.json` file with all settings including custom glossary
-- **Fallback**: Environment variable `OPENAI_API_KEY` for API key
+- **Fallback**: Environment variables `OPENAI_API_KEY` and `DEEPGRAM_API_KEY` for API keys
+- **Provider Selection**: `stt_provider` field determines transcription service ("openai" or "deepgram")
 - **Platform-specific defaults**: Different hotkeys for macOS (cmd) vs Windows/Linux (ctrl)
 - **Real-time updates**: Tk variable traces call `_notify_config_changed()` which debounces GUI edits and pushes new `PushToTalkConfig` objects into the running app via `PushToTalkApp.update_configuration()`
 - **Custom Glossary**: Stored as `custom_glossary: ["term1", "term2"]` in config JSON

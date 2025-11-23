@@ -132,8 +132,13 @@ def dependency_stubs(monkeypatch):
         def is_service_running(self):
             return self.is_running
 
+    class StubTranscriberFactory:
+        @staticmethod
+        def create_transcriber(provider, api_key, model):
+            return StubTranscriber(api_key, model)
+
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
-    monkeypatch.setattr(push_to_talk, "Transcriber", StubTranscriber)
+    monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
     monkeypatch.setattr(push_to_talk, "TextRefiner", StubTextRefiner)
     monkeypatch.setattr(push_to_talk, "TextInserter", StubTextInserter)
     monkeypatch.setattr(push_to_talk, "HotkeyService", StubHotkeyService)

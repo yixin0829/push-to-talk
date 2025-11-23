@@ -14,7 +14,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **🔄 Live Config Sync**: GUI edits instantly push updates to the running background service—no restart required
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
-- **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
+- **🤖 Speech-to-Text**: Choose between OpenAI or Deepgram transcription services for accurate transcription
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
@@ -28,7 +28,7 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
-- OpenAI API key (https://platform.openai.com/docs/api-reference/introduction)
+- OpenAI API key (https://platform.openai.com/docs/api-reference/introduction) **OR** Deepgram API key (https://deepgram.com/)
 - Microphone access (for recording)
 
 ## Quick Start (GUI Application)
@@ -106,10 +106,13 @@ The application features a sophisticated real-time configuration system that app
 - **Non-Critical Change**: Toggle "Audio Feedback" → Updates instantly without restarting core components
 - **API Key Change**: Update OpenAI key → Only transcription/refinement components reinitialize
 
-### API Settings
-- **OpenAI API Key**: Secure entry with show/hide functionality
-- **Model Selection**: Choose Whisper and Refinement Models
-- **API Key Testing**: Validate your credentials
+### Speech-to-Text Settings
+- **STT Provider Selection**: Choose between OpenAI or Deepgram
+- **API Key**: Secure entry with show/hide functionality (dynamically shows OpenAI or Deepgram field based on provider)
+- **Model Selection**: Choose provider-specific models:
+  - **OpenAI**: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe
+  - **Deepgram**: nova-3 (recommended), nova-2, base, enhanced, whisper-medium
+- **Refinement Model**: GPT models for text refinement (OpenAI)
 
 ### Audio Settings
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
@@ -191,9 +194,11 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
-| `stt_model` | string | `"gpt-4o-transcribe"` | STT Model for speech-to-text. Options: `gpt-4o-transcribe`, `whisper-1`. |
-| `refinement_model` | string | `"gpt-4.1-nano"` | Refinement Model for text refinement. Options: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. |
+| `stt_provider` | string | `"openai"` | Speech-to-text provider. Options: `openai`, `deepgram`. Determines which transcription service to use. |
+| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required when using OpenAI provider. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
+| `deepgram_api_key` | string | `""` | Your Deepgram API key for transcription services. Required when using Deepgram provider. Can be set via GUI, config file, or `DEEPGRAM_API_KEY` environment variable. |
+| `stt_model` | string | `"gpt-4o-mini-transcribe"` | STT Model for speech-to-text. For OpenAI: `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`. For Deepgram: `nova-3`, `nova-2`, `base`, `enhanced`, `whisper-medium`. |
+| `refinement_model` | string | `"gpt-4.1-nano"` | Refinement Model for text refinement (OpenAI). Options: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. |
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition with Whisper. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |

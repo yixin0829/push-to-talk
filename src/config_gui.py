@@ -54,6 +54,11 @@ class ConfigurationGUI:
         # Glossary state (available even before the GUI is created)
         self.glossary_terms = list(self.config.custom_glossary)
 
+        # Provider-specific widget storage
+        self.openai_widgets = {}
+        self.deepgram_widgets = {}
+        self.stt_model_combo = None
+
     def create_gui(self) -> tk.Tk:
         """Create and return the main GUI window."""
         self.root = tk.Tk()
@@ -139,7 +144,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         )
 
         requirements = [
-            "• OpenAI API key (for speech recognition)",
+            "• OpenAI or Deepgram API key (for speech recognition)",
             "• Microphone access",
             "• Administrator privileges (for global hotkeys)",
         ]
@@ -400,52 +405,117 @@ Configure your settings below, then click "Start Application" to begin:"""
         return frame
 
     def _create_api_section(self, parent: ttk.Widget):
-        """Create OpenAI API configuration section."""
-        frame = self._create_section_frame(parent, "OpenAI API Settings")
+        """Create speech-to-text API configuration section."""
+        frame = self._create_section_frame(parent, "Speech-to-Text Settings")
 
-        # API Key
-        ttk.Label(frame, text="OpenAI API Key:").grid(
+        # STT Provider Selection
+        ttk.Label(frame, text="STT Provider:").grid(row=0, column=0, sticky="w", pady=2)
+        self.config_vars["stt_provider"] = tk.StringVar(value=self.config.stt_provider)
+        provider_combo = ttk.Combobox(
+            frame,
+            textvariable=self.config_vars["stt_provider"],
+            values=["openai", "deepgram"],
+            state="readonly",
+            width=20,
+        )
+        provider_combo.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
+        provider_combo.bind("<<ComboboxSelected>>", self._on_provider_changed)
+
+        # OpenAI API Key Frame
+        self.openai_widgets["frame"] = ttk.Frame(frame)
+        self.openai_widgets["frame"].grid(
+            row=1, column=0, columnspan=4, sticky="ew", pady=5
+        )
+
+        ttk.Label(self.openai_widgets["frame"], text="OpenAI API Key:").grid(
             row=0, column=0, sticky="w", pady=2
         )
         self.config_vars["openai_api_key"] = tk.StringVar(
             value=self.config.openai_api_key
         )
-        api_key_entry = ttk.Entry(
-            frame, textvariable=self.config_vars["openai_api_key"], show="*", width=50
+        openai_api_key_entry = ttk.Entry(
+            self.openai_widgets["frame"],
+            textvariable=self.config_vars["openai_api_key"],
+            show="*",
+            width=50,
         )
-        api_key_entry.grid(
+        openai_api_key_entry.grid(
             row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
         )
 
-        # Show/Hide API Key button
-        def toggle_api_key_visibility():
-            if api_key_entry["show"] == "*":
-                api_key_entry["show"] = ""
-                show_hide_btn["text"] = "Hide"
+        # OpenAI Show/Hide API Key button
+        def toggle_openai_key_visibility():
+            if openai_api_key_entry["show"] == "*":
+                openai_api_key_entry["show"] = ""
+                openai_show_hide_btn["text"] = "Hide"
             else:
-                api_key_entry["show"] = "*"
-                show_hide_btn["text"] = "Show"
+                openai_api_key_entry["show"] = "*"
+                openai_show_hide_btn["text"] = "Show"
 
-        show_hide_btn = ttk.Button(
-            frame, text="Show", command=toggle_api_key_visibility, width=8
+        openai_show_hide_btn = ttk.Button(
+            self.openai_widgets["frame"],
+            text="Show",
+            command=toggle_openai_key_visibility,
+            width=8,
         )
-        show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        openai_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        self.openai_widgets["frame"].columnconfigure(1, weight=1)
 
-        # STT Model
-        ttk.Label(frame, text="STT Model:").grid(row=1, column=0, sticky="w", pady=2)
+        # Deepgram API Key Frame
+        self.deepgram_widgets["frame"] = ttk.Frame(frame)
+        self.deepgram_widgets["frame"].grid(
+            row=2, column=0, columnspan=4, sticky="ew", pady=5
+        )
+
+        ttk.Label(self.deepgram_widgets["frame"], text="Deepgram API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        self.config_vars["deepgram_api_key"] = tk.StringVar(
+            value=self.config.deepgram_api_key
+        )
+        deepgram_api_key_entry = ttk.Entry(
+            self.deepgram_widgets["frame"],
+            textvariable=self.config_vars["deepgram_api_key"],
+            show="*",
+            width=50,
+        )
+        deepgram_api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
+
+        # Deepgram Show/Hide API Key button
+        def toggle_deepgram_key_visibility():
+            if deepgram_api_key_entry["show"] == "*":
+                deepgram_api_key_entry["show"] = ""
+                deepgram_show_hide_btn["text"] = "Hide"
+            else:
+                deepgram_api_key_entry["show"] = "*"
+                deepgram_show_hide_btn["text"] = "Show"
+
+        deepgram_show_hide_btn = ttk.Button(
+            self.deepgram_widgets["frame"],
+            text="Show",
+            command=toggle_deepgram_key_visibility,
+            width=8,
+        )
+        deepgram_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        self.deepgram_widgets["frame"].columnconfigure(1, weight=1)
+
+        # STT Model (shared between providers, but values change)
+        ttk.Label(frame, text="STT Model:").grid(row=3, column=0, sticky="w", pady=2)
         self.config_vars["stt_model"] = tk.StringVar(value=self.config.stt_model)
-        whisper_combo = ttk.Combobox(
+        self.stt_model_combo = ttk.Combobox(
             frame,
             textvariable=self.config_vars["stt_model"],
             values=["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"],
             state="readonly",
             width=20,
         )
-        whisper_combo.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+        self.stt_model_combo.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=2)
 
-        # Refinement Model
+        # Refinement Model (OpenAI only)
         ttk.Label(frame, text="Refinement Model:").grid(
-            row=2, column=0, sticky="w", pady=2
+            row=4, column=0, sticky="w", pady=2
         )
         self.config_vars["refinement_model"] = tk.StringVar(
             value=self.config.refinement_model
@@ -464,9 +534,63 @@ Configure your settings below, then click "Start Application" to begin:"""
             state="readonly",
             width=20,
         )
-        gpt_combo.grid(row=2, column=1, sticky="w", padx=(10, 0), pady=2)
+        gpt_combo.grid(row=4, column=1, sticky="w", padx=(10, 0), pady=2)
 
         frame.columnconfigure(1, weight=1)
+
+        # Initialize visibility based on current provider
+        self._update_api_key_visibility()
+
+    def _on_provider_changed(self, event=None):
+        """Handle STT provider changes - show/hide appropriate API key fields."""
+        self._update_api_key_visibility()
+        self._update_stt_model_options()
+
+    def _update_api_key_visibility(self):
+        """Show/hide API key fields based on selected provider."""
+        provider = self.config_vars.get("stt_provider")
+        if not provider:
+            return
+
+        provider_value = provider.get()
+
+        # Hide all provider-specific widgets first
+        if self.openai_widgets.get("frame"):
+            self.openai_widgets["frame"].grid_remove()
+        if self.deepgram_widgets.get("frame"):
+            self.deepgram_widgets["frame"].grid_remove()
+
+        # Show the appropriate provider's widgets
+        if provider_value == "openai" and self.openai_widgets.get("frame"):
+            self.openai_widgets["frame"].grid()
+        elif provider_value == "deepgram" and self.deepgram_widgets.get("frame"):
+            self.deepgram_widgets["frame"].grid()
+
+    def _update_stt_model_options(self):
+        """Update STT model options based on selected provider."""
+        if not self.stt_model_combo:
+            return
+
+        provider = self.config_vars.get("stt_provider")
+        if not provider:
+            return
+
+        provider_value = provider.get()
+
+        # Update model options based on provider
+        if provider_value == "openai":
+            models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+        elif provider_value == "deepgram":
+            models = ["nova-3", "nova-2", "base", "enhanced", "whisper-medium"]
+        else:
+            models = []
+
+        self.stt_model_combo["values"] = models
+
+        # Set default model if current model is not in the new list
+        current_model = self.config_vars["stt_model"].get()
+        if current_model not in models and models:
+            self.config_vars["stt_model"].set(models[0])
 
     def _create_audio_section(self, parent: ttk.Widget):
         """Create audio configuration section."""
@@ -818,9 +942,27 @@ Configure your settings below, then click "Start Application" to begin:"""
 
     def _validate_configuration(self) -> bool:
         """Validate the current configuration."""
-        # Check API key
-        if not self.config_vars["openai_api_key"].get().strip():
-            messagebox.showerror("Validation Error", "OpenAI API key is required!")
+        # Check API key based on selected provider
+        provider = self.config_vars["stt_provider"].get()
+
+        if provider == "openai":
+            if not self.config_vars["openai_api_key"].get().strip():
+                messagebox.showerror(
+                    "Validation Error",
+                    "OpenAI API key is required when using OpenAI provider!\n\n"
+                    "Please enter your OpenAI API key or switch to Deepgram provider.",
+                )
+                return False
+        elif provider == "deepgram":
+            if not self.config_vars["deepgram_api_key"].get().strip():
+                messagebox.showerror(
+                    "Validation Error",
+                    "Deepgram API key is required when using Deepgram provider!\n\n"
+                    "Please enter your Deepgram API key or switch to OpenAI provider.",
+                )
+                return False
+        else:
+            messagebox.showerror("Validation Error", f"Unknown provider: {provider}")
             return False
 
         # Check hotkeys are different
@@ -832,30 +974,132 @@ Configure your settings below, then click "Start Application" to begin:"""
 
         return True
 
-    def _test_configuration(self):
-        """Test the current configuration."""
-        if not self._validate_configuration():
-            return
+    def _validate_deepgram_api_key(self, api_key: str) -> bool:
+        """
+        Validate Deepgram API key by making a direct request to the auth endpoint.
 
-        # Create test config
-        test_config = self._get_config_from_gui()
+        Args:
+            api_key: Deepgram API key to validate
+
+        Returns:
+            True if valid, False otherwise
+
+        Raises:
+            Exception: With error message containing HTTP error codes (401, 404) or timeout
+        """
+        import urllib.request
+        import urllib.error
+
+        url = "https://api.deepgram.com/v1/auth/token"
+        headers = {"Authorization": f"Token {api_key}"}
+
+        req = urllib.request.Request(url, headers=headers)
 
         try:
-            # Test OpenAI API key by trying to create a client
-            from openai import OpenAI
+            with urllib.request.urlopen(req, timeout=10):
+                # If we get here, the API key is valid
+                return True
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise Exception("401 - Incorrect API key")
+            elif e.code == 404:
+                raise Exception("404 - API endpoint not found")
+            else:
+                raise Exception(f"HTTP {e.code}: {e.reason}")
+        except urllib.error.URLError as e:
+            raise Exception(f"timeout - Network error: {e.reason}")
 
-            _ = OpenAI(api_key=test_config.openai_api_key)
+    def _test_configuration(self):
+        """Test all provider API keys and show comprehensive status."""
+        # Create test config (don't validate yet - we want to test all providers)
+        test_config = self._get_config_from_gui()
 
-            # Try a simple API call to validate the key
-            messagebox.showinfo(
-                "Test Result",
-                "Configuration test successful!\n\nAPI key is valid and configuration looks good.",
+        # Build status report
+        status_lines = ["API Key Validation Status:\n"]
+
+        # Test OpenAI
+        openai_status = "Not configured"
+        openai_prefix = "[ ]"
+        if test_config.openai_api_key.strip():
+            try:
+                from openai import OpenAI
+
+                client = OpenAI(api_key=test_config.openai_api_key)
+                # Actually test the API key by listing models (lightweight operation)
+                _ = client.models.list()
+                openai_status = "VALID"
+                openai_prefix = "[OK]"
+            except Exception as e:
+                error_msg = str(e)
+                # Extract the most relevant error message
+                if "401" in error_msg or "Incorrect API key" in error_msg:
+                    openai_status = "INVALID - Incorrect API key"
+                elif "404" in error_msg:
+                    openai_status = "INVALID - API endpoint not found"
+                elif "timeout" in error_msg.lower():
+                    openai_status = "TIMEOUT - Network issue"
+                else:
+                    openai_status = f"ERROR\n  {error_msg[:60]}..."
+                openai_prefix = "[X]"
+
+        selected_marker = " (Selected)" if test_config.stt_provider == "openai" else ""
+        status_lines.append(f"\n{openai_prefix} OpenAI{selected_marker}:")
+        status_lines.append(f"  Status: {openai_status}")
+        if test_config.openai_api_key.strip():
+            status_lines.append(
+                f"  Key: {'*' * min(len(test_config.openai_api_key), 20)}"
             )
 
-        except Exception as e:
-            messagebox.showerror(
-                "Test Failed", f"Configuration test failed:\n\n{str(e)}"
+        # Test Deepgram
+        deepgram_status = "Not configured"
+        deepgram_prefix = "[ ]"
+        if test_config.deepgram_api_key.strip():
+            try:
+                # Validate API key using direct HTTP request to auth endpoint
+                self._validate_deepgram_api_key(test_config.deepgram_api_key)
+                deepgram_status = "VALID"
+                deepgram_prefix = "[OK]"
+            except Exception as e:
+                error_msg = str(e)
+                # Extract the most relevant error message
+                if "401" in error_msg or "Incorrect API key" in error_msg:
+                    deepgram_status = "INVALID - Incorrect API key"
+                elif "404" in error_msg:
+                    deepgram_status = "INVALID - API endpoint not found"
+                elif "timeout" in error_msg.lower():
+                    deepgram_status = "TIMEOUT - Network issue"
+                else:
+                    deepgram_status = f"ERROR\n  {error_msg[:60]}..."
+                deepgram_prefix = "[X]"
+
+        selected_marker = (
+            " (Selected)" if test_config.stt_provider == "deepgram" else ""
+        )
+        status_lines.append(f"\n{deepgram_prefix} Deepgram{selected_marker}:")
+        status_lines.append(f"  Status: {deepgram_status}")
+        if test_config.deepgram_api_key.strip():
+            status_lines.append(
+                f"  Key: {'*' * min(len(test_config.deepgram_api_key), 20)}"
             )
+
+        # Add configuration summary
+        status_lines.append("\n" + "-" * 40)
+        status_lines.append("\nCurrent Settings:")
+        status_lines.append(f"  Provider: {test_config.stt_provider}")
+        status_lines.append(f"  Model: {test_config.stt_model}")
+
+        # Add warning if selected provider is not valid
+        if test_config.stt_provider == "openai" and openai_prefix == "[X]":
+            status_lines.append(
+                "\n*** WARNING: Selected provider (OpenAI) has an invalid API key!"
+            )
+        elif test_config.stt_provider == "deepgram" and deepgram_prefix == "[X]":
+            status_lines.append(
+                "\n*** WARNING: Selected provider (Deepgram) has an invalid API key!"
+            )
+
+        # Show results as info dialog
+        messagebox.showinfo("Configuration Test Results", "\n".join(status_lines))
 
     def _reset_to_defaults(self):
         """Reset configuration to defaults."""
@@ -870,7 +1114,9 @@ Configure your settings below, then click "Start Application" to begin:"""
         """Update GUI fields from a configuration object."""
         self._suspend_change_events = True
         try:
+            self.config_vars["stt_provider"].set(config.stt_provider)
             self.config_vars["openai_api_key"].set(config.openai_api_key)
+            self.config_vars["deepgram_api_key"].set(config.deepgram_api_key)
             self.config_vars["stt_model"].set(config.stt_model)
             self.config_vars["refinement_model"].set(config.refinement_model)
             self.config_vars["sample_rate"].set(config.sample_rate)
@@ -897,7 +1143,9 @@ Configure your settings below, then click "Start Application" to begin:"""
     def _get_config_from_gui(self) -> PushToTalkConfig:
         """Create a configuration object from current GUI values."""
         return PushToTalkConfig(
+            stt_provider=self.config_vars["stt_provider"].get(),
             openai_api_key=self.config_vars["openai_api_key"].get().strip(),
+            deepgram_api_key=self.config_vars["deepgram_api_key"].get().strip(),
             stt_model=self.config_vars["stt_model"].get(),
             refinement_model=self.config_vars["refinement_model"].get(),
             sample_rate=self.config_vars["sample_rate"].get(),
