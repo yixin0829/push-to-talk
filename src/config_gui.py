@@ -723,25 +723,9 @@ Configure your settings below, then click "Start Application" to begin:"""
         """Create text insertion configuration section."""
         frame = self._create_section_frame(parent, "Text Insertion Settings")
 
-        # Insertion Method
-        ttk.Label(frame, text="Insertion Method:").grid(
-            row=0, column=0, sticky="w", pady=2
-        )
-        self.config_vars["insertion_method"] = tk.StringVar(
-            value=self.config.insertion_method
-        )
-        insertion_combo = ttk.Combobox(
-            frame,
-            textvariable=self.config_vars["insertion_method"],
-            values=["sendkeys", "clipboard"],
-            state="readonly",
-            width=15,
-        )
-        insertion_combo.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
-
         # Insertion Delay
         ttk.Label(frame, text="Insertion Delay (seconds):").grid(
-            row=1, column=0, sticky="w", pady=2
+            row=0, column=0, sticky="w", pady=2
         )
         self.config_vars["insertion_delay"] = tk.DoubleVar(
             value=self.config.insertion_delay
@@ -755,13 +739,13 @@ Configure your settings below, then click "Start Application" to begin:"""
             width=15,
             format="%.3f",
         )
-        delay_spinbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+        delay_spinbox.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
 
         # Add helpful text
-        help_text = "sendkeys: better for special chars, clipboard: faster"
+        help_text = "Delay before pasting text via clipboard (helps ensure target window is ready)"
         ttk.Label(
             frame, text=help_text, font=("TkDefaultFont", 8), foreground="gray"
-        ).grid(row=2, column=0, columnspan=3, sticky="w", pady=(5, 0))
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(5, 0))
 
     def _create_feature_flags_section(self, parent: ttk.Widget):
         """Create feature flags configuration section."""
@@ -1169,7 +1153,6 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.config_vars["channels"].set(config.channels)
             self.config_vars["hotkey"].set(config.hotkey)
             self.config_vars["toggle_hotkey"].set(config.toggle_hotkey)
-            self.config_vars["insertion_method"].set(config.insertion_method)
             self.config_vars["insertion_delay"].set(config.insertion_delay)
             self.config_vars["enable_text_refinement"].set(
                 config.enable_text_refinement
@@ -1198,7 +1181,6 @@ Configure your settings below, then click "Start Application" to begin:"""
             channels=self.config_vars["channels"].get(),
             hotkey=self.config_vars["hotkey"].get().strip(),
             toggle_hotkey=self.config_vars["toggle_hotkey"].get().strip(),
-            insertion_method=self.config_vars["insertion_method"].get(),
             insertion_delay=self.config_vars["insertion_delay"].get(),
             enable_text_refinement=self.config_vars["enable_text_refinement"].get(),
             enable_logging=self.config_vars["enable_logging"].get(),

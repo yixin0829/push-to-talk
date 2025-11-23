@@ -61,7 +61,6 @@ CONFIG_VAR_KEYS = [
     "channels",
     "hotkey",
     "toggle_hotkey",
-    "insertion_method",
     "insertion_delay",
     "enable_text_refinement",
     "enable_logging",

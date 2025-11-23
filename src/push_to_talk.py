@@ -47,7 +47,6 @@ class PushToTalkConfig:
     )
 
     # Text insertion settings
-    insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
     insertion_delay: float = 0.005
 
     # Feature flags
@@ -91,7 +90,6 @@ class PushToTalkConfig:
         - Custom glossary (text refiner must be updated)
 
         Non-Critical Fields (runtime-only changes):
-        - insertion_method: Can be changed on TextInserter without recreation
         - enable_logging: Runtime logging toggle
         - enable_audio_feedback: Runtime audio feedback toggle
 
@@ -104,7 +102,6 @@ class PushToTalkConfig:
         # Fields that do NOT require component reinitialization when changed
         # These are UI-only or runtime-only settings that don't affect core components
         non_critical_fields = {
-            "insertion_method",  # Text insertion method (clipboard vs sendkeys)
             "enable_logging",  # Logging toggle (runtime setting)
             "enable_audio_feedback",  # Audio feedback toggle (runtime setting)
         }
@@ -393,9 +390,7 @@ class PushToTalkApp:
 
             # Insert text into active window
             logger.info("Inserting text into active window...")
-            success = self.text_inserter.insert_text(
-                final_text, method=self.config.insertion_method
-            )
+            success = self.text_inserter.insert_text(final_text)
 
             if success:
                 logger.info("Text insertion successful")
