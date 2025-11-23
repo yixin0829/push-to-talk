@@ -52,28 +52,6 @@ def dependency_stubs(monkeypatch):
             self.stop_calls += 1
             return self.audio_file
 
-    class StubAudioProcessor:
-        def __init__(
-            self,
-            silence_threshold,
-            min_silence_duration,
-            speed_factor,
-            keep_silence,
-            debug_mode,
-        ):
-            self.silence_threshold = silence_threshold
-            self.min_silence_duration = min_silence_duration
-            self.speed_factor = speed_factor
-            self.keep_silence = keep_silence
-            self.debug_mode = debug_mode
-            self.last_input = None
-            self.next_result = None
-            tracker["audio_processor"].append(self)
-
-        def process_audio_file(self, audio_file):
-            self.last_input = audio_file
-            return self.next_result
-
     class StubTranscriber:
         def __init__(self, api_key, model):
             self.api_key = api_key
@@ -154,9 +132,13 @@ def dependency_stubs(monkeypatch):
         def is_service_running(self):
             return self.is_running
 
+    class StubTranscriberFactory:
+        @staticmethod
+        def create_transcriber(provider, api_key, model):
+            return StubTranscriber(api_key, model)
+
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
-    monkeypatch.setattr(push_to_talk, "AudioProcessor", StubAudioProcessor)
-    monkeypatch.setattr(push_to_talk, "Transcriber", StubTranscriber)
+    monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
     monkeypatch.setattr(push_to_talk, "TextRefiner", StubTextRefiner)
     monkeypatch.setattr(push_to_talk, "TextInserter", StubTextInserter)
     monkeypatch.setattr(push_to_talk, "HotkeyService", StubHotkeyService)
@@ -225,11 +207,7 @@ def test_config_save_and_load_roundtrip(tmp_path):
         enable_text_refinement=False,
         enable_logging=False,
         enable_audio_feedback=False,
-        enable_audio_processing=False,
         debug_mode=True,
-        silence_threshold=-20.0,
-        min_silence_duration=300.0,
-        speed_factor=1.2,
         custom_glossary=["term1", "term2"],
     )
 
@@ -260,14 +238,12 @@ def test_initialization_wires_dependencies(make_app, dependency_stubs):
     app = make_app(config)
 
     recorder = dependency_stubs.last("audio_recorder")
-    processor = dependency_stubs.last("audio_processor")
     transcriber = dependency_stubs.last("transcriber")
     refiner = dependency_stubs.last("text_refiner")
     inserter = dependency_stubs.last("text_inserter")
     hotkey_service = dependency_stubs.last("hotkey_service")
 
     assert recorder.sample_rate == config.sample_rate
-    assert processor.silence_threshold == config.silence_threshold
     assert transcriber.api_key == config.openai_api_key
     assert refiner.glossary == config.custom_glossary
     assert inserter.insertion_delay == config.insertion_delay
@@ -303,18 +279,14 @@ def test_process_recorded_audio_pipeline(
     app = make_app()
 
     recorder = dependency_stubs.last("audio_recorder")
-    processor = dependency_stubs.last("audio_processor")
     transcriber = dependency_stubs.last("transcriber")
     refiner = dependency_stubs.last("text_refiner")
     inserter = dependency_stubs.last("text_inserter")
 
     audio_path = tmp_path / "audio.wav"
-    processed_path = tmp_path / "processed.wav"
     audio_path.write_bytes(b"audio")
-    processed_path.write_bytes(b"processed")
 
     recorder.audio_file = str(audio_path)
-    processor.next_result = str(processed_path)
     transcriber.result = "hello"
     refiner.result = "hello refined"
     inserter.window_title = "Editor"
@@ -324,15 +296,13 @@ def test_process_recorded_audio_pipeline(
 
     assert recorder.start_calls == 1
     assert recorder.stop_calls == 1
-    assert processor.last_input == str(audio_path)
-    assert transcriber.last_path == str(processed_path)
+    assert transcriber.last_path == str(audio_path)
     assert refiner.last_input == "hello"
     assert inserter.last_text == "hello refined"
     assert inserter.last_method == app.config.insertion_method
     assert feedback_spy["start"] == 1
     assert feedback_spy["stop"] == 1
     assert not audio_path.exists()
-    assert not processed_path.exists()
 
 
 def test_process_recorded_audio_without_text(
@@ -342,7 +312,6 @@ def test_process_recorded_audio_without_text(
     app.config.enable_audio_feedback = False
 
     recorder = dependency_stubs.last("audio_recorder")
-    processor = dependency_stubs.last("audio_processor")
     transcriber = dependency_stubs.last("transcriber")
     refiner = dependency_stubs.last("text_refiner")
     inserter = dependency_stubs.last("text_inserter")
@@ -351,7 +320,6 @@ def test_process_recorded_audio_without_text(
     audio_path.write_bytes(b"audio")
 
     recorder.audio_file = str(audio_path)
-    processor.next_result = str(audio_path)
     transcriber.result = None
 
     app._on_start_recording()
@@ -364,7 +332,7 @@ def test_process_recorded_audio_without_text(
     assert not audio_path.exists()
 
 
-def test_process_recorded_audio_handles_processor_failure(
+def test_process_recorded_audio_handles_refiner_failure(
     make_app,
     dependency_stubs,
     feedback_spy,
@@ -374,7 +342,6 @@ def test_process_recorded_audio_handles_processor_failure(
     app = make_app()
 
     recorder = dependency_stubs.last("audio_recorder")
-    processor = dependency_stubs.last("audio_processor")
     transcriber = dependency_stubs.last("transcriber")
     refiner = dependency_stubs.last("text_refiner")
     inserter = dependency_stubs.last("text_inserter")
@@ -383,7 +350,6 @@ def test_process_recorded_audio_handles_processor_failure(
     audio_path.write_bytes(b"audio")
 
     recorder.audio_file = str(audio_path)
-    processor.next_result = None
     transcriber.result = "draft"
     refiner.result = ""  # force fallback to raw transcription
     inserter.should_succeed = False
@@ -391,14 +357,59 @@ def test_process_recorded_audio_handles_processor_failure(
     app._on_start_recording()
     app._on_stop_recording()
 
-    assert processor.last_input == str(audio_path)
-    assert transcriber.last_path is None
+    assert transcriber.last_path == str(audio_path)
     assert refiner.last_input == "draft"
     assert inserter.insert_calls == 1
     assert inserter.last_text == "draft"
     assert feedback_spy["start"] == 1
     assert feedback_spy["stop"] == 1
     assert not audio_path.exists()
+
+
+def test_debug_mode_saves_audio(
+    make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path, monkeypatch
+):
+    """Test that debug mode saves audio files to debug directory."""
+    # Change to temp directory for test
+    monkeypatch.chdir(tmp_path)
+
+    config = push_to_talk.PushToTalkConfig(openai_api_key="test-key", debug_mode=True)
+    app = make_app(config)
+
+    recorder = dependency_stubs.last("audio_recorder")
+    transcriber = dependency_stubs.last("transcriber")
+    refiner = dependency_stubs.last("text_refiner")
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"test audio data")
+
+    recorder.audio_file = str(audio_path)
+    transcriber.result = "test text"
+    refiner.result = "refined text"
+
+    app._on_start_recording()
+    app._on_stop_recording()
+
+    # Check debug directory was created
+    debug_dirs = [d for d in tmp_path.iterdir() if d.name.startswith("debug_audio_")]
+    assert len(debug_dirs) == 1, "Debug directory should be created"
+
+    debug_dir = debug_dirs[0]
+    debug_audio = debug_dir / "recorded_audio.wav"
+    debug_info = debug_dir / "recording_info.txt"
+
+    # Verify debug files exist
+    assert debug_audio.exists(), "Debug audio file should exist"
+    assert debug_info.exists(), "Debug info file should exist"
+
+    # Verify audio file was copied
+    assert debug_audio.read_bytes() == b"test audio data"
+
+    # Verify info file contains expected data
+    info_content = debug_info.read_text()
+    assert "Audio Recording Debug Information" in info_content
+    assert f"Sample Rate: {config.sample_rate}" in info_content
+    assert f"Channels: {config.channels}" in info_content
 
 
 def test_update_configuration_reinitializes(make_app, dependency_stubs):
@@ -551,11 +562,7 @@ def test_config_requires_component_reinitialization():
         toggle_hotkey="ctrl+shift+^",
         insertion_delay=0.005,
         enable_text_refinement=True,
-        enable_audio_processing=True,
         debug_mode=False,
-        silence_threshold=-16.0,
-        min_silence_duration=400.0,
-        speed_factor=1.5,
         custom_glossary=["term1", "term2"],
     )
 
@@ -576,11 +583,7 @@ def test_config_requires_component_reinitialization():
         ("toggle_hotkey", "ctrl+alt+^"),
         ("insertion_delay", 0.01),
         ("enable_text_refinement", False),
-        ("enable_audio_processing", False),
         ("debug_mode", True),
-        ("silence_threshold", -20.0),
-        ("min_silence_duration", 500.0),
-        ("speed_factor", 2.0),
         ("custom_glossary", ["different", "terms"]),
     ]
 

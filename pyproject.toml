@@ -5,15 +5,12 @@ description = "A push-to-talk speech-to-text application using STT AI models for
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "deepgram-sdk>=3.9.0",
     "loguru>=0.7.2",
-    "numpy>=1.24.0",
     "openai>=1.97.1",
     "pyaudio>=0.2.14",
     "pyautogui>=0.9.54",
     "pyperclip>=1.9.0",
-    "soundfile>=0.13.1",
-    "psola>=0.0.1",
-    "pydub>=0.25.1",
     "playsound3>=3.2.4",
     "pynput>=1.7.7",
 ]

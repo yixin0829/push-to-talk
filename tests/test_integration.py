@@ -5,8 +5,7 @@ import tempfile
 from pathlib import Path
 import shutil
 
-from src.audio_processor import AudioProcessor
-from src.transcription import Transcriber
+from src.transcription_openai import OpenAITranscriber
 from src.text_refiner import TextRefiner
 
 
@@ -50,216 +49,12 @@ class TestAudioIntegrationWithRealFiles:
             f"Found {len(cls.audio_files)} audio fixtures for integration testing"
         )
 
-    def test_audio_processor_real_files_basic(self):
-        """Test audio processor with real audio files - basic processing"""
-        logger.info("Testing audio processor with real audio files")
-
-        processor = AudioProcessor(
-            silence_threshold=-16,
-            min_silence_duration=400,
-            speed_factor=1.5,
-            keep_silence=80,
-            debug_mode=False,
-        )
-
-        for audio_name, audio_path in self.audio_files.items():
-            logger.info(f"Processing {audio_name}: {audio_path}")
-
-            result_path = processor.process_audio_file(str(audio_path))
-
-            # Verify result
-            assert result_path is not None, (
-                f"Audio processing should succeed for {audio_name}"
-            )
-            assert os.path.exists(result_path), (
-                f"Processed audio file should exist for {audio_name}"
-            )
-
-            # Check file size is reasonable
-            original_size = audio_path.stat().st_size
-            processed_size = Path(result_path).stat().st_size
-
-            logger.info(
-                f"{audio_name} - Original: {original_size} bytes, Processed: {processed_size} bytes"
-            )
-
-            # Processed file should be smaller due to speed-up and silence removal
-            # But not too much smaller (sanity check)
-            assert processed_size > original_size * 0.1, (
-                f"Processed file seems too small for {audio_name}"
-            )
-            assert processed_size < original_size * 2.0, (
-                f"Processed file seems too large for {audio_name}"
-            )
-
-            # Cleanup
-            if result_path and os.path.exists(result_path):
-                try:
-                    os.remove(result_path)
-                    logger.debug(f"Cleaned up processed file: {result_path}")
-                except Exception as e:
-                    logger.warning(f"Could not clean up {result_path}: {e}")
-
-        logger.info("Audio processor real files test passed")
-
-    def test_audio_processor_debug_mode_real_files(self):
-        """Test audio processor debug mode with real files"""
-        logger.info("Testing audio processor debug mode with real files")
-
-        processor = AudioProcessor(
-            silence_threshold=-20,
-            min_silence_duration=300,
-            speed_factor=2.0,
-            debug_mode=True,
-        )
-
-        # Use audio2 for debug test
-        audio_path = str(self.audio_files["audio2"])
-
-        # Save current directory
-        original_cwd = os.getcwd()
-
-        # Create temporary directory for debug output
-        with tempfile.TemporaryDirectory() as temp_dir:
-            os.chdir(temp_dir)
-            logger.info(f"Changed to temp directory: {temp_dir}")
-
-            try:
-                result_path = processor.process_audio_file(audio_path)
-
-                assert result_path is not None, "Debug mode processing should succeed"
-                assert os.path.exists(result_path), "Processed file should exist"
-
-                # Check debug directory was created
-                debug_dirs = [
-                    d for d in os.listdir(".") if d.startswith("debug_audio_")
-                ]
-                assert len(debug_dirs) > 0, "Debug directory should be created"
-
-                debug_dir = debug_dirs[0]
-                logger.info(f"Debug directory created: {debug_dir}")
-
-                # Verify debug files
-                expected_files = [
-                    "01_original.wav",
-                    "02_silence_cropped.wav",
-                    "03_speed_adjusted.wav",
-                    "04_final_processed.wav",
-                    "processing_info.txt",
-                ]
-
-                for debug_file in expected_files:
-                    debug_file_path = os.path.join(debug_dir, debug_file)
-                    assert os.path.exists(debug_file_path), (
-                        f"Debug file {debug_file} should exist"
-                    )
-
-                    file_size = Path(debug_file_path).stat().st_size
-                    logger.debug(f"Debug file {debug_file}: {file_size} bytes")
-
-                # Check info file content
-                info_path = os.path.join(debug_dir, "processing_info.txt")
-                with open(info_path, "r") as f:
-                    info_content = f.read()
-
-                assert "Speed Factor: 2.0" in info_content, (
-                    "Info should contain speed factor"
-                )
-                assert "Silence Threshold: -20" in info_content, (
-                    "Info should contain threshold"
-                )
-                assert "Time Saved:" in info_content, "Info should contain time savings"
-
-                logger.info(
-                    f"Debug info content verified, length: {len(info_content)} chars"
-                )
-
-                # Cleanup processed file
-                if os.path.exists(result_path):
-                    os.remove(result_path)
-
-            finally:
-                os.chdir(original_cwd)
-
-        logger.info("Audio processor debug mode test passed")
-
-    def test_audio_processor_different_settings_per_file(self):
-        """Test different processing settings optimized for each audio type"""
-        logger.info("Testing audio processor with optimized settings per file")
-
-        # Different settings for different content types
-        settings = {
-            "audio1": {  # Business meeting - more aggressive silence removal
-                "silence_threshold": -16,
-                "min_silence_duration": 300,
-                "speed_factor": 1.8,
-                "keep_silence": 50,
-            },
-            "audio2": {  # Product demo - preserve natural pauses
-                "silence_threshold": -20,
-                "min_silence_duration": 500,
-                "speed_factor": 1.3,
-                "keep_silence": 100,
-            },
-            "audio3": {  # Personal to-do - fast processing
-                "silence_threshold": -12,
-                "min_silence_duration": 200,
-                "speed_factor": 2.5,
-                "keep_silence": 30,
-            },
-        }
-
-        results = {}
-
-        for audio_name, audio_path in self.audio_files.items():
-            logger.info(f"Processing {audio_name} with optimized settings")
-
-            processor = AudioProcessor(**settings[audio_name])
-            result_path = processor.process_audio_file(str(audio_path))
-
-            assert result_path is not None, (
-                f"Processing should succeed for {audio_name}"
-            )
-            assert os.path.exists(result_path), (
-                f"Result file should exist for {audio_name}"
-            )
-
-            # Record results for comparison
-            original_size = audio_path.stat().st_size
-            processed_size = Path(result_path).stat().st_size
-            compression_ratio = processed_size / original_size
-
-            results[audio_name] = {
-                "original_size": original_size,
-                "processed_size": processed_size,
-                "compression_ratio": compression_ratio,
-                "speed_factor": settings[audio_name]["speed_factor"],
-            }
-
-            logger.info(
-                f"{audio_name} - Compression: {compression_ratio:.3f}, Speed: {settings[audio_name]['speed_factor']}x"
-            )
-
-            # Cleanup
-            if os.path.exists(result_path):
-                os.remove(result_path)
-
-        # Verify results make sense
-        # audio3 (personal, fastest settings) should have highest compression
-        # audio2 (demo, conservative settings) should have lowest compression
-        assert (
-            results["audio3"]["compression_ratio"]
-            <= results["audio2"]["compression_ratio"]
-        ), "Fast settings should compress more than conservative settings"
-
-        logger.info("Audio processor optimized settings test passed")
-
     def test_transcription_fallback_behavior(self):
         """Test transcription fallback behavior without real API calls"""
         logger.info("Testing transcription fallback behavior")
 
         # Create transcriber with invalid API key to trigger fallback
-        transcriber = Transcriber(api_key="invalid-key-for-testing")
+        transcriber = OpenAITranscriber(api_key="invalid-key-for-testing")
 
         # Create temporary audio file
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
@@ -326,18 +121,6 @@ class TestAudioIntegrationWithRealFiles:
 
             assert header[:4] == b"RIFF", f"{audio_name} should have RIFF header"
             assert header[8:12] == b"WAVE", f"{audio_name} should have WAVE format"
-
-            # Try to process with minimal settings to verify it's readable
-            processor = AudioProcessor(debug_mode=False)
-            try:
-                result_path = processor.process_audio_file(str(audio_path))
-                assert result_path is not None, f"{audio_name} should be processable"
-
-                if result_path and os.path.exists(result_path):
-                    os.remove(result_path)
-
-            except Exception as e:
-                pytest.fail(f"Audio file {audio_name} could not be processed: {e}")
 
             logger.info(f"{audio_name} format validation passed: {file_size} bytes")
 

@@ -7,20 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
-- Added unit tests for utils and push_to_talk to reach 80% coverage.
-- Live configuration callbacks in the GUI so running sessions immediately pick up updated settings and glossary edits.
-- **Non-blocking configuration persistence**: Runtime GUI changes are now automatically saved to JSON file asynchronously, ensuring changes persist across application restarts without blocking the user interface.
+- **Multi-provider STT support**: Choose between OpenAI (whisper-1, gpt-4o-transcribe) and Deepgram (nova-3, nova-2, enhanced) transcription services
+- Factory pattern for transcriber abstraction with dynamic provider selection in GUI
+- Enhanced debug mode saves recorded audio files with timestamps for troubleshooting
+- Live configuration updates with automatic JSON persistence
+- Unit tests for utils, push_to_talk, and transcription providers (80% coverage)
 
 ### Changed
-- Refactored logging system to use loguru. Set the global logger in `main.py` and `tests/conftest.py` once is enough.
-- Configuration GUI now traces Tk variables, debounces updates, and refreshes the status banner whenever settings change mid-session.
-
-### Deprecated
+- Refactored to use loguru for logging
+- GUI now uses variable tracing with debounced updates
+- Renamed `transcription.py` → `transcription_openai.py`
+- Simplified integration tests (removed 221 lines)
 
 ### Removed
+- Audio processing layer (`audio_processor.py`) for architectural simplification
+- Dependencies: numpy, soundfile, psola, pydub
+- AGENTS.md (consolidated into CLAUDE.md)
 
 ### Fixed
-- Fixed the hotkey service inactivity issue by switching to use `pynput` library instead of `keyboard` library.
+- Hotkey service inactivity by switching from `keyboard` to `pynput` library
 
 ### Security
 

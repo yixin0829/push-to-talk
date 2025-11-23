@@ -51,7 +51,9 @@ class DummyVar:
 
 
 CONFIG_VAR_KEYS = [
+    "stt_provider",
     "openai_api_key",
+    "deepgram_api_key",
     "stt_model",
     "refinement_model",
     "sample_rate",
@@ -64,11 +66,7 @@ CONFIG_VAR_KEYS = [
     "enable_text_refinement",
     "enable_logging",
     "enable_audio_feedback",
-    "enable_audio_processing",
     "debug_mode",
-    "silence_threshold",
-    "min_silence_duration",
-    "speed_factor",
 ]
 
 
@@ -228,3 +226,55 @@ def test_concurrent_async_saves_are_deduplicated(tmp_path):
         saved_data = json.load(f)
 
     assert saved_data["openai_api_key"] == "test-key"
+
+
+def test_update_gui_from_config_updates_provider_fields():
+    """Test that _update_gui_from_config updates stt_provider and deepgram_api_key."""
+    # Initial config with OpenAI provider
+    config = PushToTalkConfig(
+        stt_provider="openai",
+        openai_api_key="openai-key",
+        deepgram_api_key="",
+    )
+    gui = _prepare_gui(config)
+    gui.app_instance = Mock()
+    gui.on_config_changed = Mock()
+    gui.is_running = False
+
+    # Verify initial state
+    assert gui.config_vars["stt_provider"].get() == "openai"
+    assert gui.config_vars["openai_api_key"].get() == "openai-key"
+    assert gui.config_vars["deepgram_api_key"].get() == ""
+
+    # Create a new config with Deepgram provider
+    new_config = PushToTalkConfig(
+        stt_provider="deepgram",
+        openai_api_key="openai-key",
+        deepgram_api_key="deepgram-key",
+    )
+
+    # Update GUI from new config
+    gui._update_gui_from_config(new_config)
+
+    # Verify provider and deepgram key were updated
+    assert gui.config_vars["stt_provider"].get() == "deepgram"
+    assert gui.config_vars["deepgram_api_key"].get() == "deepgram-key"
+    assert gui.config.stt_provider == "deepgram"
+    assert gui.config.deepgram_api_key == "deepgram-key"
+
+    # Change back to OpenAI
+    openai_config = PushToTalkConfig(
+        stt_provider="openai",
+        openai_api_key="new-openai-key",
+        deepgram_api_key="deepgram-key",  # Should remain
+    )
+
+    gui._update_gui_from_config(openai_config)
+
+    # Verify all fields updated correctly
+    assert gui.config_vars["stt_provider"].get() == "openai"
+    assert gui.config_vars["openai_api_key"].get() == "new-openai-key"
+    assert gui.config_vars["deepgram_api_key"].get() == "deepgram-key"
+    assert gui.config.stt_provider == "openai"
+    assert gui.config.openai_api_key == "new-openai-key"
+    assert gui.config.deepgram_api_key == "deepgram-key"

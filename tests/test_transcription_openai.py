@@ -3,54 +3,56 @@ import os
 from loguru import logger
 from unittest.mock import patch, MagicMock, mock_open
 
-from src.transcription import Transcriber
+from src.transcription_openai import OpenAITranscriber
 
 
-class TestTranscriber:
+class TestOpenAITranscriber:
     def setup_method(self):
         """Setup for each test method"""
-        logger.info("Setting up Transcriber test")
+        logger.info("Setting up OpenAITranscriber test")
 
         # Use a mock API key for testing
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"}):
-            self.transcriber = Transcriber()
+            self.transcriber = OpenAITranscriber()
 
     def test_initialization_with_env_var(self):
-        """Test Transcriber initialization with environment variable"""
-        logger.info("Testing Transcriber initialization with env var")
+        """Test OpenAITranscriber initialization with environment variable"""
+        logger.info("Testing OpenAITranscriber initialization with env var")
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"}):
-            transcriber = Transcriber()
+            transcriber = OpenAITranscriber()
 
             assert transcriber.api_key == "env-api-key"
             assert transcriber.model == "whisper-1"
             assert transcriber.client is not None
 
-        logger.info("Transcriber initialization with env var test passed")
+        logger.info("OpenAITranscriber initialization with env var test passed")
 
     def test_initialization_with_explicit_key(self):
-        """Test Transcriber initialization with explicit API key"""
-        logger.info("Testing Transcriber initialization with explicit key")
+        """Test OpenAITranscriber initialization with explicit API key"""
+        logger.info("Testing OpenAITranscriber initialization with explicit key")
 
-        transcriber = Transcriber(api_key="explicit-api-key", model="custom-model")
+        transcriber = OpenAITranscriber(
+            api_key="explicit-api-key", model="custom-model"
+        )
 
         assert transcriber.api_key == "explicit-api-key"
         assert transcriber.model == "custom-model"
         assert transcriber.client is not None
 
-        logger.info("Transcriber initialization with explicit key test passed")
+        logger.info("OpenAITranscriber initialization with explicit key test passed")
 
     def test_initialization_no_api_key(self):
-        """Test Transcriber initialization without API key"""
-        logger.info("Testing Transcriber initialization without API key")
+        """Test OpenAITranscriber initialization without API key"""
+        logger.info("Testing OpenAITranscriber initialization without API key")
 
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError) as exc_info:
-                Transcriber()
+                OpenAITranscriber()
 
             assert "OpenAI API key is required" in str(exc_info.value)
 
-        logger.info("Transcriber initialization no API key test passed")
+        logger.info("OpenAITranscriber initialization no API key test passed")
 
     @patch("builtins.open", mock_open(read_data=b"fake audio data"))
     @patch("os.path.exists")
@@ -317,7 +319,7 @@ class TestTranscriber:
         logger.info("Testing initialization with different model")
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-            transcriber = Transcriber(model="whisper-large")
+            transcriber = OpenAITranscriber(model="whisper-large")
 
             assert transcriber.model == "whisper-large"
 
@@ -334,7 +336,7 @@ class TestTranscriber:
 
         # Create transcriber with custom model
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-            transcriber = Transcriber(model="whisper-large")
+            transcriber = OpenAITranscriber(model="whisper-large")
 
         mock_response = "Custom model transcription"
         transcriber.client.audio.transcriptions.create = MagicMock(

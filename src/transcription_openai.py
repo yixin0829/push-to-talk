@@ -5,8 +5,10 @@ import wave
 from typing import Optional
 from openai import OpenAI
 
+from src.transcription_base import TranscriberBase
 
-class Transcriber:
+
+class OpenAITranscriber(TranscriberBase):
     def __init__(self, api_key: Optional[str] = None, model: str = "whisper-1"):
         """
         Initialize the transcriber with OpenAI API.

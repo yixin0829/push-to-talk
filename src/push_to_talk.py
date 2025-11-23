@@ -9,8 +9,7 @@ from dataclasses import dataclass, asdict, field, fields
 import json
 
 from src.audio_recorder import AudioRecorder
-from src.audio_processor import AudioProcessor
-from src.transcription import Transcriber
+from src.transcriber_factory import TranscriberFactory
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
@@ -21,9 +20,13 @@ from src.utils import play_start_feedback, play_stop_feedback
 class PushToTalkConfig:
     """Configuration class for PushToTalk application."""
 
-    # OpenAI settings
+    # Transcription provider settings
+    stt_provider: str = "openai"  # "openai" or "deepgram"
     openai_api_key: str = ""
+    deepgram_api_key: str = ""
     stt_model: str = "gpt-4o-mini-transcribe"
+
+    # Text refinement settings (OpenAI)
     refinement_model: str = "gpt-4.1-nano"
 
     # Audio settings
@@ -51,13 +54,7 @@ class PushToTalkConfig:
     enable_text_refinement: bool = True
     enable_logging: bool = True
     enable_audio_feedback: bool = True
-    enable_audio_processing: bool = True
     debug_mode: bool = False
-
-    # Audio processing settings (pydub-compatible)
-    silence_threshold: float = -16.0  # dBFS threshold for pydub (negative value)
-    min_silence_duration: float = 400.0  # milliseconds for pydub
-    speed_factor: float = 1.5
 
     # Custom glossary for transcription refinement
     custom_glossary: list[str] = field(default_factory=list)
@@ -135,17 +132,26 @@ class PushToTalkApp:
         """
         self.config = config or PushToTalkConfig()
 
-        # Validate OpenAI API key
-        if not self.config.openai_api_key:
-            self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+        # Validate API key based on selected provider
+        if self.config.stt_provider == "openai":
             if not self.config.openai_api_key:
-                raise ValueError(
-                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
-                )
+                self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+                if not self.config.openai_api_key:
+                    raise ValueError(
+                        "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
+                    )
+        elif self.config.stt_provider == "deepgram":
+            if not self.config.deepgram_api_key:
+                self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
+                if not self.config.deepgram_api_key:
+                    raise ValueError(
+                        "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
+                    )
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
         # Initialize components - this will be called by _initialize_components
         self.audio_recorder = None
-        self.audio_processor = None
         self.transcriber = None
         self.text_refiner = None
         self.text_inserter = None
@@ -178,20 +184,19 @@ class PushToTalkApp:
             channels=self.config.channels,
         )
 
-        self.audio_processor = (
-            AudioProcessor(
-                silence_threshold=self.config.silence_threshold,  # dBFS threshold for pydub
-                min_silence_duration=self.config.min_silence_duration,  # milliseconds for pydub
-                speed_factor=self.config.speed_factor,
-                keep_silence=80,  # Keep 80ms of silence at chunk boundaries
-                debug_mode=self.config.debug_mode,
-            )
-            if self.config.enable_audio_processing
-            else None
-        )
+        # Get the appropriate API key based on provider
+        if self.config.stt_provider == "openai":
+            api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+        elif self.config.stt_provider == "deepgram":
+            api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
-        self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.stt_model
+        # Create transcriber using factory
+        self.transcriber = TranscriberFactory.create_transcriber(
+            provider=self.config.stt_provider,
+            api_key=api_key,
+            model=self.config.stt_model,
         )
 
         self.text_refiner = (
@@ -351,34 +356,27 @@ class PushToTalkApp:
                 logger.warning("No audio file to process")
                 return
 
+            # Save audio file in debug mode before processing
+            if self.config.debug_mode:
+                self._save_debug_audio(audio_file)
+
             # Get active window info for logging
             window_title = self.text_inserter.get_active_window_title()
             if window_title:
                 logger.info(f"Target window: {window_title}")
 
-            # Process audio if enabled (silence detection and speed-up)
-            processed_audio_file = audio_file
-            if self.audio_processor and self.config.enable_audio_processing:
-                logger.info("Processing audio (silence detection and speed-up)...")
-                processed_audio_file = self.audio_processor.process_audio_file(
-                    audio_file
-                )
-                if not processed_audio_file:
-                    logger.warning("Audio processing failed, using original audio")
-
             # Transcribe audio
             logger.info("Transcribing audio...")
-            transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
+            transcribed_text = self.transcriber.transcribe_audio(audio_file)
             logger.info(f"Transcribed text: {transcribed_text}")
 
-            # Clean up temporary files (both original and processed if exists)
-            for temp_file in set([audio_file, processed_audio_file]):
-                if temp_file and os.path.exists(temp_file):
-                    try:
-                        os.remove(temp_file)
-                        logger.debug(f"Cleaned up temporary file: {temp_file}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clean up {temp_file}: {e}")
+            # Clean up temporary audio file
+            try:
+                if os.path.exists(audio_file):
+                    os.unlink(audio_file)
+                    logger.debug(f"Cleaned up audio file: {audio_file}")
+            except Exception as cleanup_error:
+                logger.warning(f"Error cleaning up audio file: {cleanup_error}")
 
             if transcribed_text is None:
                 logger.warning("Transcribed text is None, skipping refinement")
@@ -404,35 +402,61 @@ class PushToTalkApp:
             else:
                 logger.error("Text insertion failed")
 
-            # Clean up temporary files
-            try:
-                if processed_audio_file != audio_file and os.path.exists(
-                    processed_audio_file
-                ):
-                    os.unlink(processed_audio_file)
-                    logger.debug(
-                        f"Cleaned up processed audio file: {processed_audio_file}"
-                    )
-                if os.path.exists(audio_file):
-                    os.unlink(audio_file)
-                    logger.debug(f"Cleaned up original audio file: {audio_file}")
-            except Exception as cleanup_error:
-                logger.warning(f"Error cleaning up audio files: {cleanup_error}")
-
         except Exception as e:
             logger.error(f"Error processing recorded audio: {e}")
-            # Clean up temporary files even on error
+            # Clean up temporary audio file even on error
             try:
-                if (
-                    "processed_audio_file" in locals()
-                    and processed_audio_file != audio_file
-                    and os.path.exists(processed_audio_file)
-                ):
-                    os.unlink(processed_audio_file)
                 if "audio_file" in locals() and os.path.exists(audio_file):
                     os.unlink(audio_file)
             except Exception:
                 pass  # Ignore cleanup errors during error handling
+
+    def _save_debug_audio(self, audio_file: str):
+        """
+        Save recorded audio file to debug directory when debug mode is enabled.
+
+        Args:
+            audio_file: Path to the recorded audio file
+        """
+        try:
+            import shutil
+            from datetime import datetime
+
+            # Create debug directory with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[
+                :-3
+            ]  # Remove last 3 digits of microseconds
+            debug_dir = f"debug_audio_{timestamp}"
+            os.makedirs(debug_dir, exist_ok=True)
+
+            # Copy audio file to debug directory
+            debug_audio_path = os.path.join(debug_dir, "recorded_audio.wav")
+            shutil.copy2(audio_file, debug_audio_path)
+
+            logger.info(f"Debug: Saved recorded audio to {debug_audio_path}")
+
+            # Create info file with recording details
+            info_path = os.path.join(debug_dir, "recording_info.txt")
+            with open(info_path, "w") as f:
+                f.write("Audio Recording Debug Information\n")
+                f.write(f"Timestamp: {timestamp}\n")
+                f.write("Settings:\n")
+                f.write(f"  Sample Rate: {self.config.sample_rate} Hz\n")
+                f.write(f"  Channels: {self.config.channels}\n")
+                f.write(f"  Chunk Size: {self.config.chunk_size}\n")
+                f.write("Configuration:\n")
+                f.write(f"  STT Model: {self.config.stt_model}\n")
+                f.write(
+                    f"  Text Refinement: {'Enabled' if self.config.enable_text_refinement else 'Disabled'}\n"
+                )
+                if self.config.enable_text_refinement:
+                    f.write(f"  Refinement Model: {self.config.refinement_model}\n")
+
+            logger.info(f"Debug: Saved recording info to {info_path}")
+            logger.info(f"Debug files saved to directory: {debug_dir}")
+
+        except Exception as e:
+            logger.error(f"Failed to save debug audio: {e}")
 
     def change_hotkey(self, new_hotkey: str) -> bool:
         """
