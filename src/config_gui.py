@@ -632,7 +632,7 @@ Configure your settings below, then click "Start Application" to begin:"""
         self.config_vars["debug_mode"] = tk.BooleanVar(value=self.config.debug_mode)
         ttk.Checkbutton(
             frame,
-            text="Debug Mode (saves debug information)",
+            text="Debug Mode (saves recorded audio files to debug directories)",
             variable=self.config_vars["debug_mode"],
         ).grid(row=3, column=0, sticky="w", pady=2)
 

@@ -204,7 +204,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
-| `debug_mode` | boolean | `false` | Whether to enable debug mode for additional diagnostic information. |
+| `debug_mode` | boolean | `false` | Whether to enable debug mode. When enabled, recorded audio files are saved to timestamped debug directories (e.g., `debug_audio_20231215_143022_456/`) with recording metadata for troubleshooting. |
 | `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
 
 #### Audio Quality Settings

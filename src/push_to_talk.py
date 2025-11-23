@@ -331,6 +331,10 @@ class PushToTalkApp:
                 logger.warning("No audio file to process")
                 return
 
+            # Save audio file in debug mode before processing
+            if self.config.debug_mode:
+                self._save_debug_audio(audio_file)
+
             # Get active window info for logging
             window_title = self.text_inserter.get_active_window_title()
             if window_title:
@@ -381,6 +385,53 @@ class PushToTalkApp:
                     os.unlink(audio_file)
             except Exception:
                 pass  # Ignore cleanup errors during error handling
+
+    def _save_debug_audio(self, audio_file: str):
+        """
+        Save recorded audio file to debug directory when debug mode is enabled.
+
+        Args:
+            audio_file: Path to the recorded audio file
+        """
+        try:
+            import shutil
+            from datetime import datetime
+
+            # Create debug directory with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[
+                :-3
+            ]  # Remove last 3 digits of microseconds
+            debug_dir = f"debug_audio_{timestamp}"
+            os.makedirs(debug_dir, exist_ok=True)
+
+            # Copy audio file to debug directory
+            debug_audio_path = os.path.join(debug_dir, "recorded_audio.wav")
+            shutil.copy2(audio_file, debug_audio_path)
+
+            logger.info(f"Debug: Saved recorded audio to {debug_audio_path}")
+
+            # Create info file with recording details
+            info_path = os.path.join(debug_dir, "recording_info.txt")
+            with open(info_path, "w") as f:
+                f.write("Audio Recording Debug Information\n")
+                f.write(f"Timestamp: {timestamp}\n")
+                f.write("Settings:\n")
+                f.write(f"  Sample Rate: {self.config.sample_rate} Hz\n")
+                f.write(f"  Channels: {self.config.channels}\n")
+                f.write(f"  Chunk Size: {self.config.chunk_size}\n")
+                f.write("Configuration:\n")
+                f.write(f"  STT Model: {self.config.stt_model}\n")
+                f.write(
+                    f"  Text Refinement: {'Enabled' if self.config.enable_text_refinement else 'Disabled'}\n"
+                )
+                if self.config.enable_text_refinement:
+                    f.write(f"  Refinement Model: {self.config.refinement_model}\n")
+
+            logger.info(f"Debug: Saved recording info to {info_path}")
+            logger.info(f"Debug files saved to directory: {debug_dir}")
+
+        except Exception as e:
+            logger.error(f"Failed to save debug audio: {e}")
 
     def change_hotkey(self, new_hotkey: str) -> bool:
         """

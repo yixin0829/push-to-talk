@@ -361,6 +361,52 @@ def test_process_recorded_audio_handles_refiner_failure(
     assert not audio_path.exists()
 
 
+def test_debug_mode_saves_audio(
+    make_app, dependency_stubs, feedback_spy, immediate_thread, tmp_path, monkeypatch
+):
+    """Test that debug mode saves audio files to debug directory."""
+    # Change to temp directory for test
+    monkeypatch.chdir(tmp_path)
+
+    config = push_to_talk.PushToTalkConfig(openai_api_key="test-key", debug_mode=True)
+    app = make_app(config)
+
+    recorder = dependency_stubs.last("audio_recorder")
+    transcriber = dependency_stubs.last("transcriber")
+    refiner = dependency_stubs.last("text_refiner")
+
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"test audio data")
+
+    recorder.audio_file = str(audio_path)
+    transcriber.result = "test text"
+    refiner.result = "refined text"
+
+    app._on_start_recording()
+    app._on_stop_recording()
+
+    # Check debug directory was created
+    debug_dirs = [d for d in tmp_path.iterdir() if d.name.startswith("debug_audio_")]
+    assert len(debug_dirs) == 1, "Debug directory should be created"
+
+    debug_dir = debug_dirs[0]
+    debug_audio = debug_dir / "recorded_audio.wav"
+    debug_info = debug_dir / "recording_info.txt"
+
+    # Verify debug files exist
+    assert debug_audio.exists(), "Debug audio file should exist"
+    assert debug_info.exists(), "Debug info file should exist"
+
+    # Verify audio file was copied
+    assert debug_audio.read_bytes() == b"test audio data"
+
+    # Verify info file contains expected data
+    info_content = debug_info.read_text()
+    assert "Audio Recording Debug Information" in info_content
+    assert f"Sample Rate: {config.sample_rate}" in info_content
+    assert f"Channels: {config.channels}" in info_content
+
+
 def test_update_configuration_reinitializes(make_app, dependency_stubs):
     app = make_app()
 
