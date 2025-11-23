@@ -98,7 +98,6 @@ class ConfigurationGUI:
         self._create_welcome_section(scrollable_frame)
         self._create_api_section(scrollable_frame)
         self._create_audio_section(scrollable_frame)
-        self._create_audio_processing_section(scrollable_frame)
         self._create_hotkey_section(scrollable_frame)
         self._create_text_insertion_section(scrollable_frame)
         self._create_glossary_section(scrollable_frame)
@@ -225,8 +224,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             settings_text = f"""• Push-to-Talk: {self.config.hotkey}
 • Toggle Recording: {self.config.toggle_hotkey}
 • Text Refinement: {"Enabled" if self.config.enable_text_refinement else "Disabled"}
-• Audio Feedback: {"Enabled" if self.config.enable_audio_feedback else "Disabled"}
-• Audio Processing: {"Enabled" if self.config.enable_audio_processing else "Disabled"}"""
+• Audio Feedback: {"Enabled" if self.config.enable_audio_feedback else "Disabled"}"""
 
             ttk.Label(
                 self.settings_frame,
@@ -520,87 +518,6 @@ Configure your settings below, then click "Start Application" to begin:"""
             foreground="gray",
         ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(5, 0))
 
-    def _create_audio_processing_section(self, parent: ttk.Widget):
-        """Create audio processing configuration section."""
-        frame = self._create_section_frame(parent, "Audio Processing Settings")
-
-        # Silence Threshold (dBFS)
-        ttk.Label(frame, text="Silence Threshold (dBFS):").grid(
-            row=0, column=0, sticky="w", pady=2
-        )
-        self.config_vars["silence_threshold"] = tk.DoubleVar(
-            value=self.config.silence_threshold
-        )
-        silence_spinbox = tk.Spinbox(
-            frame,
-            textvariable=self.config_vars["silence_threshold"],
-            from_=-60.0,
-            to=0.0,
-            increment=1.0,
-            width=15,
-            format="%.1f",
-        )
-        silence_spinbox.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
-
-        ttk.Label(
-            frame,
-            text="(higher = more sensitive)",
-            font=("TkDefaultFont", 8),
-            foreground="gray",
-        ).grid(row=0, column=2, sticky="w", padx=(5, 0), pady=2)
-
-        # Minimum Silence Duration
-        ttk.Label(frame, text="Min Silence Duration (ms):").grid(
-            row=1, column=0, sticky="w", pady=2
-        )
-        self.config_vars["min_silence_duration"] = tk.DoubleVar(
-            value=self.config.min_silence_duration
-        )
-        duration_spinbox = tk.Spinbox(
-            frame,
-            textvariable=self.config_vars["min_silence_duration"],
-            from_=100.0,
-            to=2000.0,
-            increment=50.0,
-            width=15,
-            format="%.0f",
-        )
-        duration_spinbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
-
-        ttk.Label(
-            frame,
-            text="(minimum silence to split on)",
-            font=("TkDefaultFont", 8),
-            foreground="gray",
-        ).grid(row=1, column=2, sticky="w", padx=(5, 0), pady=2)
-
-        # Speed Factor
-        ttk.Label(frame, text="Speed Factor:").grid(row=2, column=0, sticky="w", pady=2)
-        self.config_vars["speed_factor"] = tk.DoubleVar(value=self.config.speed_factor)
-        speed_spinbox = tk.Spinbox(
-            frame,
-            textvariable=self.config_vars["speed_factor"],
-            from_=1.0,
-            to=3.0,
-            increment=0.1,
-            width=15,
-            format="%.1f",
-        )
-        speed_spinbox.grid(row=2, column=1, sticky="w", padx=(10, 0), pady=2)
-
-        ttk.Label(
-            frame,
-            text="(1.5 = 1.5x faster)",
-            font=("TkDefaultFont", 8),
-            foreground="gray",
-        ).grid(row=2, column=2, sticky="w", padx=(5, 0), pady=2)
-
-        # Add helpful text
-        help_text = "Audio processing uses pydub for silence detection and psola for pitch-preserving speed adjustment"
-        ttk.Label(
-            frame, text=help_text, font=("TkDefaultFont", 8), foreground="gray"
-        ).grid(row=3, column=0, columnspan=3, sticky="w", pady=(5, 0))
-
     def _create_hotkey_section(self, parent: ttk.Widget):
         """Create hotkey configuration section."""
         frame = self._create_section_frame(parent, "Hotkey Settings")
@@ -711,23 +628,13 @@ Configure your settings below, then click "Start Application" to begin:"""
             variable=self.config_vars["enable_audio_feedback"],
         ).grid(row=2, column=0, sticky="w", pady=2)
 
-        # Audio Processing
-        self.config_vars["enable_audio_processing"] = tk.BooleanVar(
-            value=self.config.enable_audio_processing
-        )
-        ttk.Checkbutton(
-            frame,
-            text="Enable Audio Processing (silence removal and speed-up for faster transcription)",
-            variable=self.config_vars["enable_audio_processing"],
-        ).grid(row=3, column=0, sticky="w", pady=2)
-
         # Debug Mode
         self.config_vars["debug_mode"] = tk.BooleanVar(value=self.config.debug_mode)
         ttk.Checkbutton(
             frame,
-            text="Debug Mode (saves processed audio files for debugging)",
+            text="Debug Mode (saves debug information)",
             variable=self.config_vars["debug_mode"],
-        ).grid(row=4, column=0, sticky="w", pady=2)
+        ).grid(row=3, column=0, sticky="w", pady=2)
 
     def _create_glossary_section(self, parent: ttk.Widget):
         """Create custom glossary configuration section."""
@@ -978,13 +885,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             )
             self.config_vars["enable_logging"].set(config.enable_logging)
             self.config_vars["enable_audio_feedback"].set(config.enable_audio_feedback)
-            self.config_vars["enable_audio_processing"].set(
-                config.enable_audio_processing
-            )
             self.config_vars["debug_mode"].set(config.debug_mode)
-            self.config_vars["silence_threshold"].set(config.silence_threshold)
-            self.config_vars["min_silence_duration"].set(config.min_silence_duration)
-            self.config_vars["speed_factor"].set(config.speed_factor)
         finally:
             self._suspend_change_events = False
 
@@ -1009,11 +910,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             enable_text_refinement=self.config_vars["enable_text_refinement"].get(),
             enable_logging=self.config_vars["enable_logging"].get(),
             enable_audio_feedback=self.config_vars["enable_audio_feedback"].get(),
-            enable_audio_processing=self.config_vars["enable_audio_processing"].get(),
             debug_mode=self.config_vars["debug_mode"].get(),
-            silence_threshold=self.config_vars["silence_threshold"].get(),
-            min_silence_duration=self.config_vars["min_silence_duration"].get(),
-            speed_factor=self.config_vars["speed_factor"].get(),
             custom_glossary=list(self.glossary_terms),
         )
 

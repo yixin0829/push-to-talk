@@ -66,7 +66,7 @@ PushToTalk is a Python-based speech-to-text application with a GUI configuration
 1. **GUI Entry Point** (`main.py`) → Loads/creates config → Shows persistent configuration GUI
 2. **Configuration GUI** (`src/config_gui.py`) → Manages all settings and controls application lifecycle
 3. **Main Application** (`src/push_to_talk.py`) → Orchestrates all components when "Start Application" clicked
-4. **Background Service** → Runs hotkey detection and audio processing pipeline
+4. **Background Service** → Runs hotkey detection and audio transcription pipeline
 
 ### Key Components
 
@@ -77,7 +77,6 @@ PushToTalk is a Python-based speech-to-text application with a GUI configuration
 
 **Audio Pipeline:**
 - `AudioRecorder` (`src/audio_recorder.py`): PyAudio-based recording with threading
-- `AudioProcessor` (`src/audio_processor.py`): Silence removal and pitch-preserving speed adjustment using pydub/psola
 - `Transcriber` (`src/transcription.py`): OpenAI Whisper integration
 - `TextRefiner` (`src/text_refiner.py`): GPT-based text improvement with format instructions
 - `TextInserter` (`src/text_inserter.py`): Cross-platform text insertion (clipboard/sendkeys)
@@ -94,7 +93,7 @@ The application uses multiple threads to prevent blocking:
 1. **Main Thread**: GUI and application control
 2. **Hotkey Service Thread**: Global hotkey detection (keyboard library)
 3. **Audio Recording Thread**: PyAudio recording operations
-4. **Audio Processing Thread**: Daemon thread for transcription pipeline (doesn't block hotkey detection)
+4. **Transcription Processing Thread**: Daemon thread for transcription and refinement pipeline (doesn't block hotkey detection)
 5. **Audio Feedback Threads**: Non-blocking start/stop sound playback
 
 ### Configuration System
@@ -309,16 +308,14 @@ def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json")
 
 ## Key Implementation Details
 
-### Audio Processing Pipeline
+### Audio Transcription Pipeline
 1. Record audio via PyAudio with configurable sample rate/channels
-2. Detect and remove silence using pydub (dBFS threshold-based)
-3. Apply pitch-preserving speed-up using psola library (default 1.5x)
-4. Send processed audio to OpenAI Whisper API
-5. Refine transcription using GPT models with custom glossary support and format instructions
-6. Insert text via clipboard or sendkeys methods
+2. Send recorded audio to OpenAI Whisper API for transcription
+3. Refine transcription using GPT models with custom glossary support and format instructions
+4. Insert text via clipboard or sendkeys methods
 
 ### Error Handling Patterns
-- Graceful fallbacks (e.g., original audio if processing fails)
+- Graceful fallbacks with error logging
 - Centralized temporary file cleanup in `_process_recorded_audio()` for simplified logic
 - Thread-safe operations with threading.Lock()
 - Component reinitialization on configuration changes
@@ -360,7 +357,7 @@ The application supports custom glossary terms to improve transcription accuracy
 
 ### When Modifying Audio Pipeline
 1. Components are initialized in `_initialize_components()`
-2. Audio processing runs in daemon threads to avoid blocking
+2. Audio transcription runs in daemon threads to avoid blocking
 3. Temporary file cleanup is handled centrally in `_process_recorded_audio()` for both success and error cases
 4. Test with integration tests using real audio fixtures
 

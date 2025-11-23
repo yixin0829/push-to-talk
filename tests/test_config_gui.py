@@ -64,11 +64,7 @@ CONFIG_VAR_KEYS = [
     "enable_text_refinement",
     "enable_logging",
     "enable_audio_feedback",
-    "enable_audio_processing",
     "debug_mode",
-    "silence_threshold",
-    "min_silence_duration",
-    "speed_factor",
 ]
 
 

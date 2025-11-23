@@ -9,7 +9,6 @@ from dataclasses import dataclass, asdict, field, fields
 import json
 
 from src.audio_recorder import AudioRecorder
-from src.audio_processor import AudioProcessor
 from src.transcription import Transcriber
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
@@ -51,13 +50,7 @@ class PushToTalkConfig:
     enable_text_refinement: bool = True
     enable_logging: bool = True
     enable_audio_feedback: bool = True
-    enable_audio_processing: bool = True
     debug_mode: bool = False
-
-    # Audio processing settings (pydub-compatible)
-    silence_threshold: float = -16.0  # dBFS threshold for pydub (negative value)
-    min_silence_duration: float = 400.0  # milliseconds for pydub
-    speed_factor: float = 1.5
 
     # Custom glossary for transcription refinement
     custom_glossary: list[str] = field(default_factory=list)
@@ -145,7 +138,6 @@ class PushToTalkApp:
 
         # Initialize components - this will be called by _initialize_components
         self.audio_recorder = None
-        self.audio_processor = None
         self.transcriber = None
         self.text_refiner = None
         self.text_inserter = None
@@ -176,18 +168,6 @@ class PushToTalkApp:
             sample_rate=self.config.sample_rate,
             chunk_size=self.config.chunk_size,
             channels=self.config.channels,
-        )
-
-        self.audio_processor = (
-            AudioProcessor(
-                silence_threshold=self.config.silence_threshold,  # dBFS threshold for pydub
-                min_silence_duration=self.config.min_silence_duration,  # milliseconds for pydub
-                speed_factor=self.config.speed_factor,
-                keep_silence=80,  # Keep 80ms of silence at chunk boundaries
-                debug_mode=self.config.debug_mode,
-            )
-            if self.config.enable_audio_processing
-            else None
         )
 
         self.transcriber = Transcriber(
@@ -356,29 +336,18 @@ class PushToTalkApp:
             if window_title:
                 logger.info(f"Target window: {window_title}")
 
-            # Process audio if enabled (silence detection and speed-up)
-            processed_audio_file = audio_file
-            if self.audio_processor and self.config.enable_audio_processing:
-                logger.info("Processing audio (silence detection and speed-up)...")
-                processed_audio_file = self.audio_processor.process_audio_file(
-                    audio_file
-                )
-                if not processed_audio_file:
-                    logger.warning("Audio processing failed, using original audio")
-
             # Transcribe audio
             logger.info("Transcribing audio...")
-            transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
+            transcribed_text = self.transcriber.transcribe_audio(audio_file)
             logger.info(f"Transcribed text: {transcribed_text}")
 
-            # Clean up temporary files (both original and processed if exists)
-            for temp_file in set([audio_file, processed_audio_file]):
-                if temp_file and os.path.exists(temp_file):
-                    try:
-                        os.remove(temp_file)
-                        logger.debug(f"Cleaned up temporary file: {temp_file}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clean up {temp_file}: {e}")
+            # Clean up temporary audio file
+            try:
+                if os.path.exists(audio_file):
+                    os.unlink(audio_file)
+                    logger.debug(f"Cleaned up audio file: {audio_file}")
+            except Exception as cleanup_error:
+                logger.warning(f"Error cleaning up audio file: {cleanup_error}")
 
             if transcribed_text is None:
                 logger.warning("Transcribed text is None, skipping refinement")
@@ -404,31 +373,10 @@ class PushToTalkApp:
             else:
                 logger.error("Text insertion failed")
 
-            # Clean up temporary files
-            try:
-                if processed_audio_file != audio_file and os.path.exists(
-                    processed_audio_file
-                ):
-                    os.unlink(processed_audio_file)
-                    logger.debug(
-                        f"Cleaned up processed audio file: {processed_audio_file}"
-                    )
-                if os.path.exists(audio_file):
-                    os.unlink(audio_file)
-                    logger.debug(f"Cleaned up original audio file: {audio_file}")
-            except Exception as cleanup_error:
-                logger.warning(f"Error cleaning up audio files: {cleanup_error}")
-
         except Exception as e:
             logger.error(f"Error processing recorded audio: {e}")
-            # Clean up temporary files even on error
+            # Clean up temporary audio file even on error
             try:
-                if (
-                    "processed_audio_file" in locals()
-                    and processed_audio_file != audio_file
-                    and os.path.exists(processed_audio_file)
-                ):
-                    os.unlink(processed_audio_file)
                 if "audio_file" in locals() and os.path.exists(audio_file):
                     os.unlink(audio_file)
             except Exception:

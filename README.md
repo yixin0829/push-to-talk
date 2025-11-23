@@ -16,7 +16,6 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **✨ Text Refinement**: Improves transcription quality using Refinement Models
 - **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
-- **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
 ## Demos
@@ -116,7 +115,6 @@ The application features a sophisticated real-time configuration system that app
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
 - **Chunk Size**: Buffer size configuration
 - **Channels**: Mono/stereo recording options
-- **Audio Processing**: Smart silence removal and pitch-preserving speed adjustment
 - **Helpful Recommendations**: Built-in guidance for optimal settings
 
 ### Hotkey Configuration
@@ -184,11 +182,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "enable_text_refinement": true,
   "enable_logging": true,
   "enable_audio_feedback": true,
-  "enable_audio_processing": true,
   "debug_mode": false,
-  "silence_threshold": -16.0,
-  "min_silence_duration": 400.0,
-  "speed_factor": 1.5,
   "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"]
 }
 ```
@@ -210,11 +204,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
-| `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
-| `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
-| `silence_threshold` | float | `-16.0` | dBFS threshold for silence detection. Higher values (closer to 0) are more sensitive to quiet sounds. |
-| `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
-| `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
+| `debug_mode` | boolean | `false` | Whether to enable debug mode for additional diagnostic information. |
 | `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
 
 #### Audio Quality Settings
@@ -232,23 +222,6 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 - **channels**:
   - `1` - Mono recording (recommended for speech)
   - `2` - Stereo recording (unnecessary for speech-to-text)
-
-#### Audio Processing Settings
-
-- **silence_threshold**:
-  - `-16.0` (dBFS) - Recommended balance between noise removal and speech preservation
-  - `-10.0` - More aggressive silence removal (may cut quiet speech)
-  - `-30.0` - Less aggressive (keeps more background noise)
-
-- **min_silence_duration**:
-  - `400.0` ms - Recommended for natural speech patterns
-  - `200.0` ms - More aggressive silence removal (faster processing)
-  - `800.0` ms - Conservative (preserves natural pauses)
-
-- **speed_factor**:
-  - `1.5` - Recommended 1.5x speedup with pitch preservation
-  - `1.0` - No speed adjustment (original timing)
-  - `2.0` - 2x speedup (more aggressive, may affect quality)
 
 ### Hotkey Options
 
@@ -305,7 +278,6 @@ The application consists of several modular components:
 - **ConfigurationGUI** (`src/config_gui.py`): User-friendly GUI for settings management
 - **MainGUI** (`main.py`): Entry point with welcome flow and startup management
 - **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
-- **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
 - **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
 - **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models with custom glossary support
 - **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
@@ -353,8 +325,7 @@ sequenceDiagram
     AudioThread-->>ProcessThread: Audio file returned
     FeedbackThread-->>HotkeyThread: Feedback played
 
-    Note over Main,FeedbackThread: Audio Processing Pipeline
-    ProcessThread->>ProcessThread: Process audio (silence removal, speed-up)
+    Note over Main,FeedbackThread: Audio Transcription Pipeline
     ProcessThread->>ProcessThread: Transcribe via OpenAI API
     ProcessThread->>ProcessThread: Refine text via GPT API
     ProcessThread->>ProcessThread: Insert text into active window
@@ -390,15 +361,14 @@ flowchart TB
     %% Main Flow
     PushToTalkApp -->|"Initialize"| HotkeyService
     HotkeyService -->|"Start/Stop Recording"| AudioRecorder
-    AudioRecorder -->|"Audio File"| AudioProcessor
-    AudioProcessor -->|"Processed Audio"| Transcriber
+    AudioRecorder -->|"Audio File"| Transcriber
     Transcriber -->|"AI Transcription"| TextRefiner
     TextRefiner -->|"AI Refinement"| TextInserter
 ```
 
 1. User presses hotkey → Audio recording starts
 2. User releases hotkey → Recording stops
-3. Audio file is processed (silence removal and speed adjustment for faster transcription)
+3. Audio file is sent for transcription
 4. Processed audio is sent to OpenAI Whisper for transcription
 5. Raw transcription is refined using Refinement Models (if enabled)
 6. Refined text is inserted into the active window
@@ -529,7 +499,6 @@ tests/
 ├── __init__.py
 ├── conftest.py                      # Test configuration and fixtures
 ├── test_audio_recorder.py           # Audio recording functionality tests
-├── test_audio_processor.py          # Audio processing and silence removal tests
 ├── test_transcription.py            # OpenAI Whisper integration tests
 ├── test_text_refiner.py             # AI text refinement tests
 ├── test_hotkey_service.py           # Hotkey detection and management tests
@@ -611,7 +580,6 @@ tests/
 
 ##### Integration Tests (`test_integration_simplified.py`, `test_format_instruction.py`)
 - **Real Audio File Processing**: Tests with actual WAV files from fixtures directory
-- **Audio Processing Pipeline**: End-to-end audio processing with different settings
 - **Debug Mode Validation**: Verification of debug file generation and processing metadata
 - **Format Instruction Processing**: Special handling of text refinement instructions
 - **Fallback Behavior**: API failure handling and graceful degradation
