@@ -59,6 +59,18 @@ class ConfigurationGUI:
         self.deepgram_widgets = {}
         self.stt_model_combo = None
 
+        # Provider-specific model selections (to preserve when switching)
+        self.openai_stt_model = (
+            self.config.stt_model
+            if self.config.stt_provider == "openai"
+            else "gpt-4o-mini-transcribe"
+        )
+        self.deepgram_stt_model = (
+            self.config.stt_model
+            if self.config.stt_provider == "deepgram"
+            else "nova-3"
+        )
+
     def create_gui(self) -> tk.Tk:
         """Create and return the main GUI window."""
         self.root = tk.Tk()
@@ -512,6 +524,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             width=20,
         )
         self.stt_model_combo.grid(row=3, column=1, sticky="w", padx=(10, 0), pady=2)
+        self.stt_model_combo.bind("<<ComboboxSelected>>", self._on_stt_model_changed)
 
         # Refinement Model (OpenAI only)
         ttk.Label(frame, text="Refinement Model:").grid(
@@ -546,6 +559,21 @@ Configure your settings below, then click "Start Application" to begin:"""
         self._update_api_key_visibility()
         self._update_stt_model_options()
 
+    def _on_stt_model_changed(self, event=None):
+        """Handle STT model changes - save to provider-specific variable."""
+        provider = self.config_vars.get("stt_provider")
+        if not provider:
+            return
+
+        provider_value = provider.get()
+        current_model = self.config_vars["stt_model"].get()
+
+        # Save the model selection to the appropriate provider-specific variable
+        if provider_value == "openai":
+            self.openai_stt_model = current_model
+        elif provider_value == "deepgram":
+            self.deepgram_stt_model = current_model
+
     def _update_api_key_visibility(self):
         """Show/hide API key fields based on selected provider."""
         provider = self.config_vars.get("stt_provider")
@@ -576,21 +604,38 @@ Configure your settings below, then click "Start Application" to begin:"""
             return
 
         provider_value = provider.get()
+        current_model = self.config_vars["stt_model"].get()
 
-        # Update model options based on provider
+        # Define model lists
+        openai_models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+        deepgram_models = ["nova-3", "nova-2", "base", "enhanced", "whisper-medium"]
+
+        # Save the current model to the appropriate provider-specific variable
+        # This preserves the selection before we change providers
+        if current_model in openai_models:
+            self.openai_stt_model = current_model
+        elif current_model in deepgram_models:
+            self.deepgram_stt_model = current_model
+
+        # Update model options and restore provider-specific selection
         if provider_value == "openai":
-            models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+            models = openai_models
+            # Restore the previously selected OpenAI model
+            if self.openai_stt_model in models:
+                self.config_vars["stt_model"].set(self.openai_stt_model)
+            else:
+                self.config_vars["stt_model"].set(models[0])
         elif provider_value == "deepgram":
-            models = ["nova-3", "nova-2", "base", "enhanced", "whisper-medium"]
+            models = deepgram_models
+            # Restore the previously selected Deepgram model
+            if self.deepgram_stt_model in models:
+                self.config_vars["stt_model"].set(self.deepgram_stt_model)
+            else:
+                self.config_vars["stt_model"].set(models[0])
         else:
             models = []
 
         self.stt_model_combo["values"] = models
-
-        # Set default model if current model is not in the new list
-        current_model = self.config_vars["stt_model"].get()
-        if current_model not in models and models:
-            self.config_vars["stt_model"].set(models[0])
 
     def _create_audio_section(self, parent: ttk.Widget):
         """Create audio configuration section."""

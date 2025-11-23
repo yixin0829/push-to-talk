@@ -278,3 +278,59 @@ def test_update_gui_from_config_updates_provider_fields():
     assert gui.config.stt_provider == "openai"
     assert gui.config.openai_api_key == "new-openai-key"
     assert gui.config.deepgram_api_key == "deepgram-key"
+
+
+def test_stt_model_preserved_when_switching_providers():
+    """Test that STT model selection is preserved when switching between providers."""
+    # Start with OpenAI provider and gpt-4o-transcribe model
+    config = PushToTalkConfig(
+        stt_provider="openai",
+        stt_model="gpt-4o-transcribe",
+        openai_api_key="test-key",
+    )
+    gui = _prepare_gui(config)
+
+    # Mock the stt_model_combo widget
+    gui.stt_model_combo = Mock()
+    gui.stt_model_combo.__setitem__ = Mock()
+
+    # Verify initial OpenAI model is stored
+    assert gui.openai_stt_model == "gpt-4o-transcribe"
+    assert gui.deepgram_stt_model == "nova-3"  # Default
+
+    # User changes OpenAI model to gpt-4o-mini-transcribe
+    gui.config_vars["stt_model"].set("gpt-4o-mini-transcribe")
+    gui._on_stt_model_changed()
+
+    # Verify the OpenAI model was saved
+    assert gui.openai_stt_model == "gpt-4o-mini-transcribe"
+
+    # Switch to Deepgram provider
+    gui.config_vars["stt_provider"].set("deepgram")
+    gui._update_stt_model_options()
+
+    # Verify Deepgram model is restored (default nova-3)
+    assert gui.config_vars["stt_model"].get() == "nova-3"
+
+    # User changes Deepgram model to nova-2
+    gui.config_vars["stt_model"].set("nova-2")
+    gui._on_stt_model_changed()
+
+    # Verify the Deepgram model was saved
+    assert gui.deepgram_stt_model == "nova-2"
+
+    # Switch back to OpenAI provider
+    gui.config_vars["stt_provider"].set("openai")
+    gui._update_stt_model_options()
+
+    # Verify OpenAI model is restored (should be gpt-4o-mini-transcribe, not whisper-1)
+    assert gui.config_vars["stt_model"].get() == "gpt-4o-mini-transcribe"
+    assert gui.openai_stt_model == "gpt-4o-mini-transcribe"
+
+    # Switch back to Deepgram again
+    gui.config_vars["stt_provider"].set("deepgram")
+    gui._update_stt_model_options()
+
+    # Verify Deepgram model is still nova-2
+    assert gui.config_vars["stt_model"].get() == "nova-2"
+    assert gui.deepgram_stt_model == "nova-2"
