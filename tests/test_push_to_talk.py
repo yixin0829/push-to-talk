@@ -86,16 +86,14 @@ def dependency_stubs(monkeypatch):
         def __init__(self, insertion_delay):
             self.insertion_delay = insertion_delay
             self.last_text = None
-            self.last_method = None
             self.insert_calls = 0
             self.should_succeed = True
             self.window_title = "TestWindow"
             tracker["text_inserter"].append(self)
 
-        def insert_text(self, text, method):
+        def insert_text(self, text):
             self.insert_calls += 1
             self.last_text = text
-            self.last_method = method
             return self.should_succeed
 
         def get_active_window_title(self):
@@ -151,7 +149,9 @@ def make_app(dependency_stubs):
     """Factory to create PushToTalkApp instances with the stubbed dependencies."""
 
     def factory(config=None):
-        config = config or push_to_talk.PushToTalkConfig(openai_api_key="test-key")
+        config = config or push_to_talk.PushToTalkConfig(
+            stt_provider="openai", openai_api_key="test-key"
+        )
         return push_to_talk.PushToTalkApp(config)
 
     return factory
@@ -202,7 +202,6 @@ def test_config_save_and_load_roundtrip(tmp_path):
         channels=2,
         hotkey="ctrl+alt+s",
         toggle_hotkey="ctrl+alt+t",
-        insertion_method="sendkeys",
         insertion_delay=0.01,
         enable_text_refinement=False,
         enable_logging=False,
@@ -231,6 +230,7 @@ def test_load_config_failure_returns_default(tmp_path):
 
 def test_initialization_wires_dependencies(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
+        stt_provider="openai",
         openai_api_key="key",
         custom_glossary=["ChatGPT"],
     )
@@ -299,7 +299,6 @@ def test_process_recorded_audio_pipeline(
     assert transcriber.last_path == str(audio_path)
     assert refiner.last_input == "hello"
     assert inserter.last_text == "hello refined"
-    assert inserter.last_method == app.config.insertion_method
     assert feedback_spy["start"] == 1
     assert feedback_spy["stop"] == 1
     assert not audio_path.exists()
@@ -373,7 +372,9 @@ def test_debug_mode_saves_audio(
     # Change to temp directory for test
     monkeypatch.chdir(tmp_path)
 
-    config = push_to_talk.PushToTalkConfig(openai_api_key="test-key", debug_mode=True)
+    config = push_to_talk.PushToTalkConfig(
+        stt_provider="openai", openai_api_key="test-key", debug_mode=True
+    )
     app = make_app(config)
 
     recorder = dependency_stubs.last("audio_recorder")
@@ -470,6 +471,7 @@ def test_update_configuration_restarts_hotkey_service_when_running(
 
 def test_toggle_text_refinement_recreates_refiner(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
+        stt_provider="openai",
         openai_api_key="key",
         custom_glossary=["api"],
     )
@@ -601,14 +603,12 @@ def test_config_requires_reinitialization_ignores_non_critical_fields():
     """Test that changes to non-critical fields don't trigger reinitialization."""
     base_config = push_to_talk.PushToTalkConfig(
         openai_api_key="test-key",
-        insertion_method="clipboard",
         enable_logging=True,
         enable_audio_feedback=True,
     )
 
     # Test fields that should NOT trigger reinitialization
     non_critical_changes = [
-        ("insertion_method", "sendkeys"),
         ("enable_logging", False),
         ("enable_audio_feedback", False),
     ]
@@ -645,7 +645,7 @@ def test_update_configuration_uses_requires_reinitialization(
     current_recorder = dependency_stubs.last("audio_recorder")
     current_service = dependency_stubs.last("hotkey_service")
 
-    non_critical_config = replace(app.config, insertion_method="sendkeys")
+    non_critical_config = replace(app.config, enable_logging=False)
     app.update_configuration(non_critical_config)
 
     # Should NOT have created new components

@@ -21,13 +21,13 @@ class PushToTalkConfig:
     """Configuration class for PushToTalk application."""
 
     # Transcription provider settings
-    stt_provider: str = "openai"  # "openai" or "deepgram"
+    stt_provider: str = "deepgram"  # "openai" or "deepgram"
     openai_api_key: str = ""
     deepgram_api_key: str = ""
-    stt_model: str = "gpt-4o-mini-transcribe"
+    stt_model: str = "nova-3"
 
     # Text refinement settings (OpenAI)
-    refinement_model: str = "gpt-4.1-nano"
+    refinement_model: str = "gpt-5-nano"
 
     # Audio settings
     sample_rate: int = 16000
@@ -37,17 +37,16 @@ class PushToTalkConfig:
     # Hotkey settings - will use platform-specific defaults if empty
     hotkey: str = field(
         default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
+            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
         )
     )
     toggle_hotkey: str = field(
         default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
+            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
         )
     )
 
     # Text insertion settings
-    insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
     insertion_delay: float = 0.005
 
     # Feature flags
@@ -91,7 +90,6 @@ class PushToTalkConfig:
         - Custom glossary (text refiner must be updated)
 
         Non-Critical Fields (runtime-only changes):
-        - insertion_method: Can be changed on TextInserter without recreation
         - enable_logging: Runtime logging toggle
         - enable_audio_feedback: Runtime audio feedback toggle
 
@@ -104,7 +102,6 @@ class PushToTalkConfig:
         # Fields that do NOT require component reinitialization when changed
         # These are UI-only or runtime-only settings that don't affect core components
         non_critical_fields = {
-            "insertion_method",  # Text insertion method (clipboard vs sendkeys)
             "enable_logging",  # Logging toggle (runtime setting)
             "enable_audio_feedback",  # Audio feedback toggle (runtime setting)
         }
@@ -393,9 +390,7 @@ class PushToTalkApp:
 
             # Insert text into active window
             logger.info("Inserting text into active window...")
-            success = self.text_inserter.insert_text(
-                final_text, method=self.config.insertion_method
-            )
+            success = self.text_inserter.insert_text(final_text)
 
             if success:
                 logger.info("Text insertion successful")

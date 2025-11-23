@@ -127,9 +127,7 @@ The application features a sophisticated real-time configuration system that app
 - **Examples**: Common hotkey combinations provided
 
 ### Text Insertion Settings
-- **Insertion Method**: Choose between clipboard (fast) or sendkeys (compatible)
-- **Insertion Delay**: Fine-tune timing for different applications
-- **Method Guidance**: Recommendations for each approach
+- **Insertion Delay**: Fine-tune timing for clipboard paste operation
 
 ### Custom Glossary
 - **Domain-Specific Terms**: Add specialized vocabulary, acronyms, and proper names
@@ -180,7 +178,6 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "channels": 1,
   "hotkey": "ctrl+shift+space",
   "toggle_hotkey": "ctrl+shift+^",
-  "insertion_method": "sendkeys",
   "insertion_delay": 0.005,
   "enable_text_refinement": true,
   "enable_logging": true,
@@ -204,8 +201,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
 | `hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for push-to-talk. See [Hotkey Options](#hotkey-options) for examples. |
 | `toggle_hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
-| `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
-| `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
+| `insertion_delay` | float | `0.005` | Delay in seconds before text insertion via clipboard. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
@@ -242,11 +238,6 @@ You can configure different hotkey combinations for both modes:
 - `ctrl+shift+t`
 
 Both hotkeys support any combination from the `keyboard` library.
-
-### Text Insertion Methods
-
-- **sendkeys** (default): Simulates individual keystrokes using pyautogui, better for special characters
-- **clipboard**: Faster and more reliable, uses pyperclip and pyautogui for Ctrl+V
 
 ### Custom Glossary
 
@@ -441,7 +432,6 @@ flowchart TB
 
 5. **Text not inserting**:
    - Make sure the target window is active and has a text input field
-   - Try switching insertion method in the GUI (sendkeys vs clipboard)
    - Check Windows permissions for clipboard access
    - Increase insertion delay if text appears truncated
 
@@ -461,9 +451,8 @@ Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The G
 2. **Enable audio processing**: Smart silence removal and speed adjustment can significantly reduce transcription time
 3. **Adjust silence threshold**: Fine-tune -16 dBFS for your environment (higher for noisy environments)
 4. **Disable text refinement**: For faster transcription without GPT processing
-5. **Use clipboard method**: Generally faster than sendkeys for text insertion
-6. **Short recordings**: Keep recordings under 30 seconds for optimal performance
-7. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
+5. **Short recordings**: Keep recordings under 30 seconds for optimal performance
+6. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
 
 ## Security Considerations
 

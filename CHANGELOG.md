@@ -18,11 +18,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - GUI now uses variable tracing with debounced updates
 - Renamed `transcription.py` → `transcription_openai.py`
 - Simplified integration tests (removed 221 lines)
+- Text insertion now always uses clipboard method (removed sendkeys option)
 
 ### Removed
 - Audio processing layer (`audio_processor.py`) for architectural simplification
 - Dependencies: numpy, soundfile, psola, pydub
 - AGENTS.md (consolidated into CLAUDE.md)
+- `insertion_method` configuration field - application now exclusively uses clipboard for text insertion
 
 ### Fixed
 - Hotkey service inactivity by switching from `keyboard` to `pynput` library

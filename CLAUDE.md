@@ -82,7 +82,7 @@ PushToTalk is a Python-based speech-to-text application with a GUI configuration
 - `DeepgramTranscriber` (`src/deepgram_transcription.py`): Deepgram API integration
 - `TranscriberFactory` (`src/transcriber_factory.py`): Factory pattern for creating transcriber instances
 - `TextRefiner` (`src/text_refiner.py`): GPT-based text improvement with format instructions
-- `TextInserter` (`src/text_inserter.py`): Cross-platform text insertion (clipboard/sendkeys)
+- `TextInserter` (`src/text_inserter.py`): Cross-platform text insertion via clipboard
 
 **Services:**
 - `HotkeyService` (`src/hotkey_service.py`): Global hotkey detection with push-to-talk and toggle modes
@@ -220,14 +220,13 @@ The system intelligently determines which changes require expensive component re
 - API keys, model settings, audio parameters, hotkeys, processing settings
 
 **Non-Critical Fields** (runtime-only changes):
-- `insertion_method`, `enable_logging`, `enable_audio_feedback`
+- `enable_logging`, `enable_audio_feedback`
 
 **Implementation** (`src/push_to_talk.py:81-109`):
 ```python
 def requires_component_reinitialization(self, other: "PushToTalkConfig") -> bool:
     """Check if component reinitialization is required."""
     non_critical_fields = {
-        "insertion_method",
         "enable_logging",
         "enable_audio_feedback",
     }
@@ -335,7 +334,7 @@ def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json")
 1. Record audio via PyAudio with configurable sample rate/channels
 2. Send recorded audio to OpenAI Whisper API for transcription
 3. Refine transcription using GPT models with custom glossary support and format instructions
-4. Insert text via clipboard or sendkeys methods
+4. Insert text via clipboard method
 
 ### Error Handling Patterns
 - Graceful fallbacks with error logging
@@ -346,7 +345,7 @@ def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json")
 ### Cross-Platform Considerations
 - Platform-specific hotkey defaults (cmd vs ctrl)
 - Different audio system requirements (PortAudio dependencies)
-- Text insertion method compatibility (clipboard vs sendkeys)
+- Text insertion via clipboard with platform-specific paste shortcuts
 - Build script variations per platform
 
 ### Custom Glossary Feature
