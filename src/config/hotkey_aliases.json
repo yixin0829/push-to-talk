@@ -1,0 +1,136 @@
+{
+  "alt": [
+    "alt",
+    "option",
+    "left_alt",
+    "right_alt",
+    "left alt",
+    "right alt",
+    "alt_l",
+    "alt_r"
+  ],
+  "backspace": [
+    "backspace"
+  ],
+  "caps_lock": [
+    "caps_lock",
+    "caps lock"
+  ],
+  "caret": [
+    "caret",
+    "^",
+    "shift+6",
+    "dead_circumflex"
+  ],
+  "cmd": [
+    "cmd",
+    "command",
+    "win",
+    "super",
+    "meta",
+    "left_cmd",
+    "right_cmd",
+    "left cmd",
+    "right cmd",
+    "cmd_l",
+    "cmd_r"
+  ],
+  "ctrl": [
+    "ctrl",
+    "control",
+    "left_ctrl",
+    "right_ctrl",
+    "left ctrl",
+    "right ctrl",
+    "ctrl_l",
+    "ctrl_r"
+  ],
+  "delete": [
+    "delete",
+    "del"
+  ],
+  "down": [
+    "down",
+    "arrow down",
+    "down_arrow"
+  ],
+  "end": [
+    "end"
+  ],
+  "enter": [
+    "enter",
+    "return"
+  ],
+  "esc": [
+    "esc",
+    "escape"
+  ],
+  "home": [
+    "home"
+  ],
+  "insert": [
+    "insert",
+    "ins"
+  ],
+  "left": [
+    "left",
+    "arrow left",
+    "left_arrow"
+  ],
+  "menu": [
+    "menu",
+    "apps"
+  ],
+  "page_down": [
+    "page_down",
+    "page down",
+    "pgdn",
+    "pgdown"
+  ],
+  "page_up": [
+    "page_up",
+    "page up",
+    "pgup"
+  ],
+  "pause": [
+    "pause",
+    "break"
+  ],
+  "print_screen": [
+    "print_screen",
+    "print screen",
+    "prtsc",
+    "prtscr",
+    "printscreen"
+  ],
+  "right": [
+    "right",
+    "arrow right",
+    "right_arrow"
+  ],
+  "scroll_lock": [
+    "scroll_lock",
+    "scroll lock"
+  ],
+  "shift": [
+    "shift",
+    "left_shift",
+    "right_shift",
+    "left shift",
+    "right shift",
+    "shift_l",
+    "shift_r"
+  ],
+  "space": [
+    "space",
+    "spacebar"
+  ],
+  "tab": [
+    "tab"
+  ],
+  "up": [
+    "up",
+    "arrow up",
+    "up_arrow"
+  ]
+}

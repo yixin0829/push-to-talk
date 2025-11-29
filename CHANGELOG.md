@@ -8,12 +8,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - **Multi-provider STT support**: Choose between OpenAI (whisper-1, gpt-4o-transcribe) and Deepgram (nova-3, nova-2, enhanced) transcription services
+- **Modular GUI Architecture**: Configuration interface refactored into focused, single-responsibility components
+  - Separated GUI into 8 specialized modules: API settings, audio configuration, hotkeys, text insertion, glossary, status display, validation, and persistence
+  - Each module under 350 lines for improved maintainability
+  - Clear separation of concerns with reusable section components
+- **Pydantic Configuration Validation**: Robust runtime validation for all configuration settings
+  - Automatic type coercion and validation on attribute assignment
+  - Built-in field constraints (numeric ranges, allowed values)
+  - Custom validators for provider selection, hotkey uniqueness, and parameter ranges
+  - Clear, structured error messages for invalid configurations
+- **Dependency Injection Pattern**: Constructor-based component injection for better testability
+  - Optional component parameters in `PushToTalkApp.__init__()` with default factory methods
+  - Injected components preserved throughout application lifecycle
+  - Enables mock injection in tests without affecting production code
+- **Hotkey Aliases Configuration**: Externalized key mappings to JSON for easier customization
+  - User-editable `src/config/hotkey_aliases.json` file
+  - LRU caching for efficient alias lookups
+  - Non-developers can add aliases without code changes
 - Factory pattern for transcriber abstraction with dynamic provider selection in GUI
 - Enhanced debug mode saves recorded audio files with timestamps for troubleshooting
 - Live configuration updates with automatic JSON persistence
 - Unit tests for utils, push_to_talk, and transcription providers (80% coverage)
 
 ### Changed
+- **Configuration System**: Migrated from dataclass to Pydantic BaseModel with validation
+  - `PushToTalkConfig` now validates all fields on creation and assignment
+  - Changed serialization from `asdict()` to `model_dump()`
+  - Enhanced error handling with structured validation errors
+- **GUI Architecture**: Refactored from monolithic `config_gui.py` to modular `src/gui/` package
+  - `configuration_window.py`: Main orchestrator (~516 lines, down from 1500+)
+  - `api_section.py`: API configuration (~344 lines)
+  - `audio_section.py`: Audio settings (~100 lines)
+  - `hotkey_section.py`: Hotkey configuration (~70 lines)
+  - `settings_section.py`: Text insertion & feature flags (~146 lines)
+  - `glossary_section.py`: Glossary management (~297 lines)
+  - `status_section.py`: Application status display (~124 lines)
+  - `validators.py`: Configuration validation (~110 lines)
+  - `config_persistence.py`: Async file I/O (~92 lines)
+- **Component Initialization**: Added smart reinitialization logic that preserves injected dependencies
+  - Components only recreated when configuration changes require it
+  - Injected test mocks preserved throughout lifecycle
+  - Service states maintained during updates (auto-restart)
 - Refactored to use loguru for logging
 - GUI now uses variable tracing with debounced updates
 - Renamed `transcription.py` → `transcription_openai.py`
@@ -28,6 +63,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Hotkey service inactivity by switching from `keyboard` to `pynput` library
+
+### Technical
+- **Type Safety**: Added comprehensive type hints including `TranscriberBase` abstract class
+- **Component Lifecycle**: Implemented `force_recreate` parameter for controlled component reinitialization
+- **Thread Safety**: Injected component preservation during configuration updates
+- **Testing Infrastructure**: Mock components can now be injected and persist through app lifecycle
+
+### Documentation
+- Updated CLAUDE.md with comprehensive architecture documentation
+  - Added "Modular GUI Architecture" section with package structure
+  - Added "Configuration Validation with Pydantic" section with examples
+  - Added "Dependency Injection Pattern" section with usage guidelines
+  - Added "Hotkey Aliases Configuration" section
+  - Updated all references from dataclass to Pydantic model
+- Updated README.md to mention validated Pydantic configuration models
+- Updated CONTRIBUTING.md with new project structure showing modular GUI package
 
 ### Security
 

@@ -96,7 +96,7 @@ The application features a sophisticated real-time configuration system that app
 #### Technical Features
 - **Instant Propagation**: Editing any field triggers a debounced update to the running PushToTalk service
 - **Persistent Storage**: Changes are automatically saved to JSON file asynchronously for permanent persistence
-- **Callback Support**: Optional listeners receive configuration dataclasses whenever values change
+- **Callback Support**: Optional listeners receive validated Pydantic configuration models whenever values change
 - **Glossary Sync**: Glossary edits are copied before rebuilds to prevent UI/model divergence
 - **Safe Programmatic Updates**: GUI refreshes suspend traces to avoid infinite callback loops
 - **Thread-Safe Saves**: Non-blocking background saves with deduplication prevent file conflicts

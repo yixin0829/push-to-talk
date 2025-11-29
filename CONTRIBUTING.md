@@ -485,33 +485,46 @@ Understanding the codebase organization:
 
 ```
 push-to-talk/
-├── main.py                  # Application entry point
-├── src/                     # Source code
-│   ├── push_to_talk.py     # Main application orchestrator
-│   ├── config_gui.py       # Configuration GUI interface
-│   ├── audio_recorder.py   # Audio recording functionality
-│   ├── audio_processor.py  # Smart audio processing pipeline
-│   ├── transcription.py    # OpenAI Whisper integration
-│   ├── text_refiner.py     # AI text refinement
-│   ├── text_inserter.py    # Cross-platform text insertion
-│   ├── hotkey_service.py   # Global hotkey management
-│   ├── utils.py            # Utility functions
-│   ├── config/             # Configuration management
-│   │   └── prompts.py      # AI prompt templates
-│   └── assets/             # Application assets
-│       └── audio/          # Audio feedback files
-├── tests/                   # Test suite
-├── build_script/           # Build and packaging scripts
-├── dist/                   # Built executables
-└── docs/                   # Additional documentation
+├── main.py                      # Application entry point
+├── src/                         # Source code
+│   ├── push_to_talk.py         # Main application orchestrator with dependency injection
+│   ├── gui/                    # Modular GUI package
+│   │   ├── configuration_window.py  # Main GUI orchestrator
+│   │   ├── api_section.py      # API configuration section
+│   │   ├── audio_section.py    # Audio settings section
+│   │   ├── hotkey_section.py   # Hotkey configuration section
+│   │   ├── settings_section.py # Text insertion & feature flags sections
+│   │   ├── glossary_section.py # Glossary management section
+│   │   ├── status_section.py   # Application status display
+│   │   ├── validators.py       # Configuration validation
+│   │   └── config_persistence.py # Async configuration file I/O
+│   ├── audio_recorder.py       # Audio recording functionality
+│   ├── transcription_base.py   # Abstract base for transcribers
+│   ├── transcription_openai.py # OpenAI Whisper integration
+│   ├── transcription_deepgram.py # Deepgram integration
+│   ├── transcriber_factory.py  # Factory for transcriber creation
+│   ├── text_refiner.py         # AI text refinement
+│   ├── text_inserter.py        # Cross-platform text insertion
+│   ├── hotkey_service.py       # Global hotkey management
+│   ├── utils.py                # Utility functions
+│   ├── config/                 # Configuration management
+│   │   ├── prompts.py          # AI prompt templates
+│   │   └── hotkey_aliases.json # Hotkey alias mappings
+│   └── assets/                 # Application assets
+│       └── audio/              # Audio feedback files
+├── tests/                       # Test suite
+├── build_script/               # Build and packaging scripts
+├── dist/                       # Built executables
+└── docs/                       # Additional documentation
 ```
 
 **Core Components:**
-- **GUI Layer**: `main.py`, `config_gui.py` - User interface
-- **Audio Pipeline**: `audio_recorder.py`, `audio_processor.py` - Audio handling
-- **AI Integration**: `transcription.py`, `text_refiner.py` - OpenAI services
+- **GUI Layer**: `main.py`, `src/gui/*` - Modular user interface
+- **Configuration**: `PushToTalkConfig` (Pydantic model with validation), `config/` - Settings and prompts
+- **Audio Pipeline**: `audio_recorder.py` - Audio handling
+- **AI Integration**: `transcription_*.py`, `transcriber_factory.py`, `text_refiner.py` - Multi-provider STT & refinement
 - **System Integration**: `hotkey_service.py`, `text_inserter.py` - OS interaction
-- **Configuration**: `config/` - Settings and prompts management
+- **Dependency Injection**: `PushToTalkApp` supports injecting custom components for testing
 
 ## Release Process
 

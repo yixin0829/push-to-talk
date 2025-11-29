@@ -2,7 +2,6 @@
 
 import json
 import threading
-from dataclasses import asdict
 from loguru import logger
 from src.push_to_talk import PushToTalkConfig
 
@@ -43,7 +42,7 @@ class ConfigurationPersistence:
                         return  # Another thread already completed the save
 
                     # Perform the actual save
-                    config_data = asdict(config)
+                    config_data = config.model_dump()
                     with open(filepath, "w") as f:
                         json.dump(config_data, f, indent=2)
 
@@ -81,7 +80,7 @@ class ConfigurationPersistence:
         Raises:
             Exception: If save operation fails
         """
-        config_data = asdict(config)
+        config_data = config.model_dump()
         with open(filepath, "w") as f:
             json.dump(config_data, f, indent=2)
         logger.info(f"Configuration saved to {filepath}")

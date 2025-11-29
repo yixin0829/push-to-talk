@@ -1,6 +1,9 @@
 import threading
 import time
 import sys
+import json
+import functools
+from pathlib import Path
 from typing import Callable, Optional, Set
 
 from loguru import logger
@@ -146,92 +149,41 @@ class HotkeyService:
         return normalized if normalized else None
 
     @staticmethod
+    @functools.lru_cache(maxsize=1)
     def _get_alias_map() -> dict[str, str]:
-        """Return mapping from alias name to canonical name."""
+        """
+        Return mapping from alias name to canonical name.
 
-        # Cached on first use
-        if not hasattr(HotkeyService, "_alias_lookup"):
-            alias_groups = {
-                "ctrl": {
-                    "ctrl",
-                    "control",
-                    "left_ctrl",
-                    "right_ctrl",
-                    "left ctrl",
-                    "right ctrl",
-                    "ctrl_l",
-                    "ctrl_r",
-                },
-                "shift": {
-                    "shift",
-                    "left_shift",
-                    "right_shift",
-                    "left shift",
-                    "right shift",
-                    "shift_l",
-                    "shift_r",
-                },
-                "alt": {
-                    "alt",
-                    "option",
-                    "left_alt",
-                    "right_alt",
-                    "left alt",
-                    "right alt",
-                    "alt_l",
-                    "alt_r",
-                },
-                "cmd": {
-                    "cmd",
-                    "command",
-                    "win",
-                    "super",
-                    "meta",
-                    "left_cmd",
-                    "right_cmd",
-                    "left cmd",
-                    "right cmd",
-                    "cmd_l",
-                    "cmd_r",
-                },
-                "space": {"space", "spacebar"},
-                "enter": {"enter", "return"},
-                "esc": {"esc", "escape"},
-                "tab": {"tab"},
-                "backspace": {"backspace"},
-                "delete": {"delete", "del"},
-                "home": {"home"},
-                "end": {"end"},
-                "page_up": {"page_up", "page up", "pgup"},
-                "page_down": {"page_down", "page down", "pgdn", "pgdown"},
-                "caps_lock": {"caps_lock", "caps lock"},
-                "print_screen": {
-                    "print_screen",
-                    "print screen",
-                    "prtsc",
-                    "prtscr",
-                    "printscreen",
-                },
-                "scroll_lock": {"scroll_lock", "scroll lock"},
-                "pause": {"pause", "break"},
-                "insert": {"insert", "ins"},
-                "menu": {"menu", "apps"},
-                "up": {"up", "arrow up", "up_arrow"},
-                "down": {"down", "arrow down", "down_arrow"},
-                "left": {"left", "arrow left", "left_arrow"},
-                "right": {"right", "arrow right", "right_arrow"},
-                "caret": {"caret", "^", "shift+6", "dead_circumflex"},
-            }
+        Loads from JSON configuration file and caches the result.
+        """
+        # Path to the hotkey aliases JSON file
+        config_dir = Path(__file__).parent / "config"
+        aliases_file = config_dir / "hotkey_aliases.json"
 
+        try:
+            with open(aliases_file, "r") as f:
+                alias_groups = json.load(f)
+
+            # Build lookup dictionary: each alias maps to its canonical name
             lookup: dict[str, str] = {}
             for canonical, aliases in alias_groups.items():
                 for alias in aliases:
                     lookup[alias] = canonical
+                # Also map canonical name to itself
                 lookup[canonical] = canonical
 
-            HotkeyService._alias_lookup = lookup
+            return lookup
 
-        return HotkeyService._alias_lookup
+        except FileNotFoundError:
+            logger.error(f"Hotkey aliases file not found: {aliases_file}")
+            # Return empty dict as fallback
+            return {}
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse hotkey aliases JSON: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading hotkey aliases: {e}")
+            return {}
 
     def set_callbacks(self, on_start_recording: Callable, on_stop_recording: Callable):
         """

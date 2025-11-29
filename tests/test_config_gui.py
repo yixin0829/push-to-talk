@@ -182,7 +182,11 @@ def test_config_changes_trigger_async_save(tmp_path):
     import time
     import json
 
-    config = PushToTalkConfig(openai_api_key="test-key", hotkey="ctrl+shift+space")
+    config = PushToTalkConfig(
+        openai_api_key="test-key",
+        hotkey="ctrl+shift+^",
+        toggle_hotkey="ctrl+shift+space",
+    )
     gui = _prepare_gui(config)
 
     # Use a temporary file for testing

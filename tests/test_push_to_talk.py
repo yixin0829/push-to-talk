@@ -1,5 +1,4 @@
 from collections import defaultdict
-from dataclasses import replace
 import sys
 import types
 
@@ -419,7 +418,7 @@ def test_update_configuration_reinitializes(make_app, dependency_stubs):
     initial_recorder = dependency_stubs.last("audio_recorder")
     initial_service = dependency_stubs.last("hotkey_service")
 
-    new_config = replace(app.config, chunk_size=app.config.chunk_size + 1)
+    new_config = app.config.model_copy(update={"chunk_size": app.config.chunk_size + 1})
 
     app.update_configuration(new_config)
 
@@ -434,7 +433,7 @@ def test_update_configuration_skips_reinit_when_unchanged(make_app, dependency_s
     initial_recorder = dependency_stubs.last("audio_recorder")
     initial_service = dependency_stubs.last("hotkey_service")
 
-    duplicate_config = replace(app.config)
+    duplicate_config = app.config.model_copy()
 
     app.update_configuration(duplicate_config)
 
@@ -456,7 +455,7 @@ def test_update_configuration_restarts_hotkey_service_when_running(
     assert initial_service.is_service_running()
 
     # Update configuration with a change that requires component reinitialization
-    new_config = replace(app.config, chunk_size=app.config.chunk_size + 1)
+    new_config = app.config.model_copy(update={"chunk_size": app.config.chunk_size + 1})
     app.update_configuration(new_config)
 
     # Should have a new service instance that's been started automatically
@@ -569,7 +568,7 @@ def test_config_requires_component_reinitialization():
     )
 
     # Test that identical configs don't require reinitialization
-    identical_config = replace(base_config)
+    identical_config = base_config.model_copy()
     assert not base_config.requires_component_reinitialization(identical_config)
     assert not identical_config.requires_component_reinitialization(base_config)
 
@@ -590,7 +589,7 @@ def test_config_requires_component_reinitialization():
     ]
 
     for field_name, new_value in test_cases:
-        changed_config = replace(base_config, **{field_name: new_value})
+        changed_config = base_config.model_copy(update={field_name: new_value})
         assert base_config.requires_component_reinitialization(changed_config), (
             f"Change to {field_name} should require reinitialization"
         )
@@ -614,7 +613,7 @@ def test_config_requires_reinitialization_ignores_non_critical_fields():
     ]
 
     for field_name, new_value in non_critical_changes:
-        changed_config = replace(base_config, **{field_name: new_value})
+        changed_config = base_config.model_copy(update={field_name: new_value})
         assert not base_config.requires_component_reinitialization(changed_config), (
             f"Change to {field_name} should NOT require reinitialization"
         )
@@ -633,7 +632,7 @@ def test_update_configuration_uses_requires_reinitialization(
     initial_service = dependency_stubs.last("hotkey_service")
 
     # Change a field that requires reinitialization
-    new_config = replace(app.config, chunk_size=app.config.chunk_size + 1)
+    new_config = app.config.model_copy(update={"chunk_size": app.config.chunk_size + 1})
     app.update_configuration(new_config)
 
     # Should have created new components
@@ -645,7 +644,7 @@ def test_update_configuration_uses_requires_reinitialization(
     current_recorder = dependency_stubs.last("audio_recorder")
     current_service = dependency_stubs.last("hotkey_service")
 
-    non_critical_config = replace(app.config, enable_logging=False)
+    non_critical_config = app.config.model_copy(update={"enable_logging": False})
     app.update_configuration(non_critical_config)
 
     # Should NOT have created new components

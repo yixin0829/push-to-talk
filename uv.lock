@@ -641,6 +641,7 @@ dependencies = [
     { name = "playsound3" },
     { name = "pyaudio" },
     { name = "pyautogui" },
+    { name = "pydantic" },
     { name = "pynput" },
     { name = "pyperclip" },
 ]
@@ -663,6 +664,7 @@ requires-dist = [
     { name = "playsound3", specifier = ">=3.2.4" },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pyautogui", specifier = ">=0.9.54" },
+    { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pynput", specifier = ">=1.7.7" },
     { name = "pyperclip", specifier = ">=1.9.0" },
 ]
