@@ -233,11 +233,6 @@ class HotkeyService:
 
         return HotkeyService._alias_lookup
 
-    def _parse_hotkey(self):
-        """Parse the hotkey string to extract individual keys."""
-        # This method is kept for backward compatibility but now calls the new method
-        self._parse_hotkey_combination(self.hotkey, self.hotkey_keys)
-
     def set_callbacks(self, on_start_recording: Callable, on_stop_recording: Callable):
         """
         Set callback functions for recording start and stop events.

@@ -1,11 +1,11 @@
 import os
 from loguru import logger
 import time
-import wave
 from typing import Optional
 from openai import OpenAI
 
 from src.transcription_base import TranscriberBase
+from src.utils import validate_audio_file_exists, validate_audio_duration
 
 
 class OpenAITranscriber(TranscriberBase):
@@ -17,11 +17,8 @@ class OpenAITranscriber(TranscriberBase):
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
             model: STT Model to use (default: whisper-1)
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter."
-            )
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
+        super().__init__(api_key, "OpenAI")
 
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
@@ -39,26 +36,13 @@ class OpenAITranscriber(TranscriberBase):
         Returns:
             Transcribed text or None if transcription failed
         """
-        if not os.path.exists(audio_file_path):
-            logger.error(f"Audio file not found: {audio_file_path}")
+        # Validate file exists
+        if not validate_audio_file_exists(audio_file_path):
             return None
 
-        # Skip very short audio clips (< 0.5s) to avoid unnecessary API calls
-        try:
-            with wave.open(audio_file_path, "rb") as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate() or 0
-                duration_seconds = frames / float(rate) if rate else 0.0
-            if duration_seconds < 0.5:
-                logger.info(
-                    f"Audio too short ({duration_seconds:.3f}s); skipping transcription"
-                )
-                return None
-        except Exception as e:
-            # If duration cannot be determined (e.g., not a valid WAV), handle it gracefully
-            logger.debug(
-                f"Could not determine audio duration for {audio_file_path}: {e}"
-            )
+        # Validate audio duration
+        if not validate_audio_duration(audio_file_path):
+            return None
 
         try:
             start_time = time.time()

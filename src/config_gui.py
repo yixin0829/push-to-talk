@@ -8,6 +8,7 @@ from dataclasses import asdict
 import json
 
 from src.push_to_talk import PushToTalkConfig
+from src.config.constants import CONFIG_CHANGE_DEBOUNCE_DELAY_MS
 
 
 class ConfigurationGUI:
@@ -309,7 +310,9 @@ Configure your settings below, then click "Start Application" to begin:"""
                     self.root.after_cancel(self._pending_update_job)
                 except Exception:
                     pass
-            self._pending_update_job = self.root.after(1000, self._apply_config_changes)
+            self._pending_update_job = self.root.after(
+                CONFIG_CHANGE_DEBOUNCE_DELAY_MS, self._apply_config_changes
+            )
         else:
             self._apply_config_changes()
 
@@ -1300,18 +1303,6 @@ Configure your settings below, then click "Start Application" to begin:"""
         else:
             self.result = "close"
             self.root.quit()
-
-    def _save_and_start(self):
-        """Save configuration and start the application."""
-        # This method is now replaced by _toggle_application
-        # Keeping for compatibility but redirecting
-        self._start_application()
-
-    def _cancel(self):
-        """Cancel configuration and exit."""
-        # This method is now replaced by _close_application
-        # Keeping for compatibility but redirecting
-        self._close_application()
 
     def show_modal(self) -> str:
         """Show the configuration GUI as a modal dialog and return the result."""
