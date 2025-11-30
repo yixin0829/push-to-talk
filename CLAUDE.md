@@ -1,498 +1,109 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Developer guidance for working with this codebase.
 
 ## Development Commands
 
-### Running the Application
 ```bash
-# Run GUI application for end users
+# Run application
 uv run python main.py
 
-# Run from command line (development)
-python main.py
-```
+# Run tests
+uv run pytest tests/ -v                          # All tests
+uv run pytest tests/ -v -m "not integration"     # Unit tests only
+uv run pytest tests/ --cov=src --cov-report=html # With coverage
 
-### Testing
-```bash
-# Run all tests
-uv run pytest tests/ -v
+# Code quality
+uv run ruff check    # Lint
+uv run ruff format   # Format
 
-# Run unit tests only
-uv run pytest tests/ -v -m "not integration"
-
-# Run integration tests (uses real audio files)
-uv run pytest tests/ -v -m integration
-
-# Run with coverage
-uv run pytest tests/ --cov=src --cov-report=html
-
-# Run specific test file
-uv run pytest tests/test_audio_recorder.py -v
-```
-
-### Code Quality
-```bash
-# Lint code
-uv run ruff check
-
-# Format code
-uv run ruff format
-
-# Set up pre-commit hooks (if needed)
-uv run pre-commit install
-```
-
-### Building
-```bash
-# Windows
-build.bat
-
-# macOS
-chmod +x build_macos.sh && ./build_macos.sh
-
-# Linux
-chmod +x build_linux.sh && ./build_linux.sh
-
-# Multi-platform build script
-uv run python build.py -p all
+# Build
+build.bat            # Windows
+./build_macos.sh     # macOS
+./build_linux.sh     # Linux
 ```
 
 ## Architecture Overview
 
-PushToTalk is a Python-based speech-to-text application with a GUI configuration interface and background service architecture.
-
-### Core Application Flow
-1. **GUI Entry Point** (`main.py`) → Loads/creates config → Shows persistent configuration GUI
-2. **Configuration GUI** (`src/gui/`) → Modular GUI with separate sections for settings and application control
-3. **Main Application** (`src/push_to_talk.py`) → Orchestrates all components when "Start Application" clicked
-4. **Background Service** → Runs hotkey detection and audio transcription pipeline
-
-### Key Components
-
-**Core Application Classes:**
-- `PushToTalkApp` (`src/push_to_talk.py`): Main orchestrator with component lifecycle management and dependency injection support
-- `PushToTalkConfig` (`src/push_to_talk.py`): Pydantic BaseModel with automatic validation for all configuration settings
-- `ConfigurationWindow` (`src/gui/configuration_window.py`): Main GUI orchestrator coordinating modular sections
-
-**Audio Pipeline:**
-- `AudioRecorder` (`src/audio_recorder.py`): PyAudio-based recording with threading
-- `TranscriberBase` (`src/transcription_base.py`): Abstract base class for all transcription providers
-- `OpenAITranscriber` (`src/transcription.py`): OpenAI Whisper integration
-- `DeepgramTranscriber` (`src/deepgram_transcription.py`): Deepgram API integration
-- `TranscriberFactory` (`src/transcriber_factory.py`): Factory pattern for creating transcriber instances
-- `TextRefiner` (`src/text_refiner.py`): GPT-based text improvement with format instructions
-- `TextInserter` (`src/text_inserter.py`): Cross-platform text insertion via clipboard
-
-**Services:**
-- `HotkeyService` (`src/hotkey_service.py`): Global hotkey detection with push-to-talk and toggle modes
-  - Hotkey aliases loaded from `src/config/hotkey_aliases.json` for flexible key mapping
-- Audio feedback utilities (`src/utils.py`): Non-blocking start/stop sounds using playsound3
-- `config/prompts.py`: Contains text refinement prompts with/without custom glossary support
-
-**Configuration:**
-- `ConfigurationPersistence` (`src/gui/config_persistence.py`): Async file I/O for configuration persistence
-- `hotkey_aliases.json` (`src/config/hotkey_aliases.json`): JSON configuration for hotkey alias mappings
-
-### Modular GUI Architecture
-
-The configuration GUI has been refactored into modular, focused components for better maintainability:
-
-**GUI Package Structure** (`src/gui/`):
-- `configuration_window.py`: Main orchestrator coordinating all sections (~516 lines)
-- `api_section.py`: API configuration (OpenAI/Deepgram provider selection, API keys, models) (~344 lines)
-- `audio_section.py`: Audio settings (sample rate, chunk size, channels) (~100 lines)
-- `hotkey_section.py`: Hotkey configuration (push-to-talk and toggle hotkeys) (~70 lines)
-- `settings_section.py`: Text insertion and feature flags sections (~146 lines)
-- `glossary_section.py`: Glossary management with search functionality (~297 lines)
-- `status_section.py`: Application status display and controls (~124 lines)
-- `validators.py`: API key and configuration validation (~110 lines)
-- `config_persistence.py`: Async configuration file I/O (~92 lines)
-
-**Benefits:**
-- Each module under 350 lines (highly maintainable)
-- Clear separation of concerns
-- Easier to test individual components
-- Reusable section components
-
-### Configuration Validation with Pydantic
-
-`PushToTalkConfig` uses Pydantic BaseModel for automatic validation:
-
-**Features:**
-- **Runtime Validation**: Validates on both creation and attribute assignment
-- **Type Safety**: Automatic type coercion and validation
-- **Field Constraints**: Built-in validators (ge, le, gt, min_length, etc.)
-- **Custom Validators**:
-  - `stt_provider` must be "openai" or "deepgram"
-  - Hotkeys must be different
-  - Numeric ranges validated (sample_rate, chunk_size, channels, insertion_delay)
-- **Better Error Messages**: Clear, structured validation errors
-
-**Example:**
-```python
-# Invalid config raises validation error
-config = PushToTalkConfig(
-    sample_rate=-1,  # ValidationError: sample_rate must be > 0
-    stt_provider="invalid"  # ValidationError: must be 'openai' or 'deepgram'
-)
-```
-
-### Dependency Injection Pattern
-
-`PushToTalkApp` supports dependency injection for better testability:
-
-**Constructor Signature:**
-```python
-def __init__(
-    self,
-    config: Optional[PushToTalkConfig] = None,
-    audio_recorder: Optional[AudioRecorder] = None,
-    transcriber: Optional[TranscriberBase] = None,
-    text_refiner: Optional[TextRefiner] = None,
-    text_inserter: Optional[TextInserter] = None,
-    hotkey_service: Optional[HotkeyService] = None,
-):
-```
-
-**Behavior:**
-- **Default**: If dependencies are None, creates instances from configuration
-- **Testing**: Inject mock components that are preserved throughout lifecycle
-- **Flexibility**: Allows custom component implementations without code changes
-
-**Example:**
-```python
-# Production: uses default components
-app = PushToTalkApp(config)
-
-# Testing: inject mocks
-mock_recorder = Mock(spec=AudioRecorder)
-app = PushToTalkApp(config, audio_recorder=mock_recorder)
-# mock_recorder is preserved even during configuration updates
-```
-
-### Hotkey Aliases Configuration
-
-Hotkey aliases are externalized to JSON for easier maintenance:
-
-**File**: `src/config/hotkey_aliases.json`
-
-**Structure:**
-```json
-{
-  "ctrl": ["ctrl", "control", "left_ctrl", "right_ctrl", ...],
-  "cmd": ["cmd", "command", "win", "super", "meta", ...],
-  "alt": ["alt", "option", "left_alt", "right_alt", ...],
-  ...
-}
-```
-
-**Benefits:**
-- Non-developers can add aliases without code changes
-- Centralized configuration for all key mappings
-- Loaded with `@functools.lru_cache` for performance
-- Reduced code complexity in `HotkeyService`
-
-### Transcription Provider Architecture
-
-The application supports multiple STT providers through a clean factory pattern:
-
-**Design Patterns:**
-- **Abstract Base Class**: `TranscriberBase` defines the common interface (`transcribe_audio` method)
-- **Factory Pattern**: `TranscriberFactory.create_transcriber()` instantiates the correct provider
-- **Polymorphism**: `PushToTalkApp` works with any transcriber through the base interface
-
-**Supported Providers:**
-- **OpenAI**: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe models
-- **Deepgram**: nova-3 (recommended), nova-2, base, enhanced, whisper-medium models
-
-**Provider Selection:**
-- Configuration field `stt_provider` determines active provider ("openai" or "deepgram")
-- GUI dropdown allows runtime provider switching with conditional API key fields
-- Factory creates appropriate transcriber instance in `_initialize_components()`
-- Text refinement always uses OpenAI GPT models (independent of STT provider)
-
-### Threading Architecture
-
-The application uses multiple threads to prevent blocking:
-
-1. **Main Thread**: GUI and application control
-2. **Hotkey Service Thread**: Global hotkey detection (keyboard library)
-3. **Audio Recording Thread**: PyAudio recording operations
-4. **Transcription Processing Thread**: Daemon thread for transcription and refinement pipeline (doesn't block hotkey detection)
-5. **Audio Feedback Threads**: Non-blocking start/stop sound playback
-
-### Configuration System
-
-- **Primary**: `push_to_talk_config.json` file with all settings including custom glossary
-- **Fallback**: Environment variables `OPENAI_API_KEY` and `DEEPGRAM_API_KEY` for API keys
-- **Provider Selection**: `stt_provider` field determines transcription service ("openai" or "deepgram")
-- **Platform-specific defaults**: Different hotkeys for macOS (cmd) vs Windows/Linux (ctrl)
-- **Real-time updates**: Tk variable traces call `_notify_config_changed()` which debounces GUI edits and pushes new `PushToTalkConfig` objects into the running app via `PushToTalkApp.update_configuration()`
-- **Custom Glossary**: Stored as `custom_glossary: ["term1", "term2"]` in config JSON
-
-### Live Configuration Updates
-
-The application implements a sophisticated auto-update system that applies configuration changes in real-time while the application is running, using **variable tracing** and **debouncing** mechanisms.
-
-#### Variable Tracing System
-
-**What it does**: Automatically detects when any GUI field changes and triggers update callbacks.
-
-**Implementation** (`src/gui/configuration_window.py`):
-```python
-def _setup_variable_traces(self):
-    """Attach trace callbacks to configuration variables for live updates."""
-    for var in self.config_vars.values():
-        trace_id = var.trace_add("write", self._on_config_var_changed)
-        self._variable_traces.append((var, trace_id))
-```
-
-**Key Components**:
-- **Trace Registration**: Each Tkinter variable (StringVar, IntVar, BooleanVar, etc.) gets a "write" trace
-- **Automatic Detection**: No manual polling needed - changes are detected instantly
-- **Event-Driven**: Triggers `_on_config_var_changed()` whenever any field changes
-- **Trace Management**: Traces can be suspended via `_suspend_change_events` to prevent infinite loops during programmatic GUI updates
-
-#### Debouncing System
-
-**What it does**: Prevents excessive updates during rapid user input (e.g., typing).
-
-**Problem Without Debouncing**:
-```
-User types "ctrl+alt+space":
-'c' → Update triggered → Component reinitialization
-'t' → Update triggered → Component reinitialization
-'r' → Update triggered → Component reinitialization
-... (16 total updates for one hotkey change!)
-```
-
-**Solution With Debouncing**:
-```
-User types "ctrl+alt+space":
-'c' → Schedule update after debounce delay
-'t' → Cancel previous, schedule new update after debounce delay
-'r' → Cancel previous, schedule new update after debounce delay
-... (continue canceling and rescheduling)
-User stops typing → Debounce delay passes → Single update executed
-```
-
-**Implementation** (`src/gui/configuration_window.py`):
-```python
-def _on_config_var_changed(self, *args):
-    """Handle configuration variable changes from the GUI."""
-    if self._suspend_change_events:
-        return
-
-    # Cancel any pending update
-    if self._pending_update_job:
-        self.root.after_cancel(self._pending_update_job)
-
-    # Schedule new update with debounce delay (see code for exact timing)
-    self._pending_update_job = self.root.after(1000, self._apply_config_changes)
-```
-
-#### Configuration Update Pipeline
-
-**Step 1: Trace Fires** → `_on_config_var_changed()`
-- Cancels any pending update timer
-- Schedules new update after debounce delay
-
-**Step 2: Timer Expires** → `_apply_config_changes()`
-- Clears timer reference
-- Calls `_notify_config_changed()`
-
-**Step 3: Configuration Processing** → `_notify_config_changed()`
-- Builds new `PushToTalkConfig` from current GUI state
-- Short-circuits if no actual changes detected
-- Updates internal config reference
-- Calls optional `on_config_changed` callback
-- Updates running application via `app_instance.update_configuration()`
-- **Saves configuration to JSON file asynchronously** via `_save_config_to_file_async()`
-- Refreshes status display
-
-**Step 4: Application Update** → `PushToTalkApp.update_configuration()`
-- Compares old vs new config using `requires_component_reinitialization()`
-- Only reinitializes components when critical settings change
-- Automatically restarts services (like hotkey detection) if they were running
-
-#### Smart Component Reinitialization
-
-The system intelligently determines which changes require expensive component reinitialization:
-
-**Critical Fields** (require reinitialization):
-- API keys, model settings, audio parameters, hotkeys, processing settings
-
-**Non-Critical Fields** (runtime-only changes):
-- `enable_logging`, `enable_audio_feedback`
-
-**Implementation** (`src/push_to_talk.py:81-109`):
-```python
-def requires_component_reinitialization(self, other: "PushToTalkConfig") -> bool:
-    """Check if component reinitialization is required."""
-    non_critical_fields = {
-        "enable_logging",
-        "enable_audio_feedback",
-    }
-
-    all_fields = {f.name for f in fields(self)}
-    critical_fields = all_fields - non_critical_fields
-
-    for field_name in critical_fields:
-        if getattr(self, field_name) != getattr(other, field_name):
-            return True
-    return False
-```
-
-#### Service Continuity During Updates
-
-**Problem**: When components are reinitialized, services like hotkey detection get stopped.
-
-**Solution**: The system remembers service states and automatically restarts them:
-
-```python
-def _initialize_components(self):
-    # Remember if hotkey service was running
-    hotkey_service_was_running = (
-        self.hotkey_service and self.hotkey_service.is_service_running()
-    )
-
-    # Stop and recreate components
-    if self.hotkey_service:
-        self.hotkey_service.stop_service()
-
-    self.hotkey_service = HotkeyService(...)
-
-    # Restart if it was running before and app is still running
-    if hotkey_service_was_running and self.is_running:
-        self.hotkey_service.start_service()
-```
-
-#### Non-Blocking Configuration Persistence
-
-**What it does**: Automatically saves configuration changes to JSON file during runtime without blocking the GUI.
-
-**Problem**: Previously, configuration changes during runtime were applied to the running application but not persisted to the JSON file, meaning changes would be lost on restart.
-
-**Solution**: Asynchronous file saving with thread safety and deduplication.
-
-**Implementation** (`src/gui/config_persistence.py`):
-```python
-def _save_config_to_file_async(self, filepath: str = "push_to_talk_config.json"):
-    """Save configuration to JSON file asynchronously for persistence."""
-    def _save_worker():
-        try:
-            with self._save_lock:
-                if not self._save_pending:
-                    return  # Another thread already completed the save
-
-                config_data = self.config.model_dump()
-                with open(filepath, "w") as f:
-                    json.dump(config_data, f, indent=2)
-
-                self._save_pending = False
-        except Exception as error:
-            logger.error(f"Failed to auto-save configuration: {error}")
-            self._save_pending = False
-
-    # Thread-safe deduplication
-    with self._save_lock:
-        if self._save_pending:
-            return  # Save already in progress
-        self._save_pending = True
-
-    # Start background save
-    threading.Thread(target=_save_worker, daemon=True).start()
-```
-
-**Key Features**:
-- **Thread-Safe**: Uses locks to prevent race conditions
-- **Non-Blocking**: Saves happen in background daemon threads
-- **Deduplication**: Multiple rapid changes trigger only one save
-- **Error Handling**: Failures are logged but don't interrupt the GUI
-- **Automatic**: Triggered by any configuration change during runtime
-
-#### Development Guidelines
-
-**When adding new config fields**:
-1. Add the field to `PushToTalkConfig` Pydantic model with appropriate validation
-2. Add corresponding Tkinter variable in the appropriate GUI section (e.g., `APISection`, `AudioSection`)
-3. Update `tests/test_config_gui.py` for test coverage
-4. Determine if the field requires component reinitialization and update the logic in `requires_component_reinitialization()` accordingly
-5. Pydantic will automatically validate the field on assignment and during serialization
-
-**Testing auto-update behavior**:
-- Unit tests validate trace setup and debouncing logic
-- Integration tests verify end-to-end configuration updates
-- Mock stubs simulate component reinitialization for reliable testing
-
-### Testing Structure
-
-- **Unit Tests**: Mock-based testing for individual components (`test_*.py`)
-- **Integration Tests**: Real audio file testing (`test_integration.py`, fixtures/ directory)
-- **Test Configuration**: `conftest.py` sets up loguru logging and Python path
-- **Audio Fixtures**: `fixtures/audio*.wav` files with corresponding expected transcripts
-
-## Key Implementation Details
-
-### Audio Transcription Pipeline
-1. Record audio via PyAudio with configurable sample rate/channels
-2. Send recorded audio to OpenAI Whisper API for transcription
-3. Refine transcription using GPT models with custom glossary support and format instructions
-4. Insert text via clipboard method
-
-### Error Handling Patterns
-- Graceful fallbacks with error logging
-- Centralized temporary file cleanup in `_process_recorded_audio()` for simplified logic
-- Thread-safe operations with threading.Lock()
-- Component reinitialization on configuration changes
-
-### Cross-Platform Considerations
-- Platform-specific hotkey defaults (cmd vs ctrl)
-- Different audio system requirements (PortAudio dependencies)
-- Text insertion via clipboard with platform-specific paste shortcuts
-- Build script variations per platform
-
-### Custom Glossary Feature
-
-The application supports custom glossary terms to improve transcription accuracy for domain-specific vocabulary:
-
-**Implementation:**
-- Glossary stored as `List[str]` in `PushToTalkConfig.custom_glossary`
-- GUI provides add/edit/delete interface with search functionality (`_create_glossary_section`)
-- TextRefiner automatically switches between prompts based on glossary availability:
-  - `text_refiner_prompt_w_glossary` when terms exist (formats glossary into prompt)
-  - `text_refiner_prompt_wo_glossary` when no terms configured
-
-**Key Methods:**
-- `TextRefiner.set_glossary(terms: List[str])`: Update glossary terms
-- `TextRefiner._get_appropriate_prompt()`: Auto-select prompt with/without glossary
-- Glossary terms are sorted alphabetically in the formatted prompt
-
-**Configuration Integration:**
-- Glossary changes trigger component reinitialization via `update_configuration()`
-- Terms are persisted in JSON config and restored on app startup
-- GUI changes are immediately reflected in the active TextRefiner instance
-
-## Development Tips
-
-### When Adding Features
-1. Update `PushToTalkConfig` Pydantic model for new settings (with validation)
-2. Modify appropriate GUI section in `src/gui/` for user controls
-3. Add component reinitialization logic in `update_configuration()` if needed
-4. Include corresponding unit tests with mocking
-
-### When Modifying Audio Pipeline
-1. Components are initialized in `_initialize_components()`
-2. Audio transcription runs in daemon threads to avoid blocking
-3. Temporary file cleanup is handled centrally in `_process_recorded_audio()` for both success and error cases
-4. Test with integration tests using real audio fixtures
-
-### Configuration Changes
-- Settings auto-save when "Start Application" is clicked
-- Component reinitialization occurs when relevant settings change
-- GUI shows real-time application status with visual indicators
-- Platform-specific defaults are handled in Pydantic field factories
+### Application Flow
+1. [main.py](main.py) → Load config → Launch GUI
+2. [src/gui/](src/gui/) → Modular configuration interface
+3. [src/push_to_talk.py](src/push_to_talk.py) → Orchestrate components
+4. Background services → Hotkey detection + audio pipeline
+
+### Core Components
+
+**Application Core:**
+- `PushToTalkApp` ([src/push_to_talk.py](src/push_to_talk.py)) - Main orchestrator with dependency injection
+- `PushToTalkConfig` ([src/push_to_talk.py](src/push_to_talk.py)) - Pydantic model with validation
+- `ConfigurationWindow` ([src/gui/configuration_window.py](src/gui/configuration_window.py)) - GUI coordinator
+
+**Audio & Transcription:**
+- [src/audio_recorder.py](src/audio_recorder.py) - PyAudio recording
+- [src/transcription_base.py](src/transcription_base.py) - Abstract transcriber interface
+- [src/transcription_openai.py](src/transcription_openai.py) - OpenAI Whisper
+- [src/transcription_deepgram.py](src/transcription_deepgram.py) - Deepgram API
+- [src/transcriber_factory.py](src/transcriber_factory.py) - Provider factory
+- [src/text_refiner.py](src/text_refiner.py) - GPT refinement
+- [src/text_inserter.py](src/text_inserter.py) - Clipboard insertion
+
+**Services & Config:**
+- [src/hotkey_service.py](src/hotkey_service.py) - Global hotkey detection
+- [src/config/hotkey_aliases.json](src/config/hotkey_aliases.json) - Key alias mappings
+- [src/config/prompts.py](src/config/prompts.py) - Refinement prompts
+- [src/utils.py](src/utils.py) - Audio feedback utilities
+
+### GUI Modular Structure
+See [src/gui/](src/gui/) for all modules. Each module under 350 lines for maintainability.
+
+### Key Patterns
+
+**Pydantic Validation** - See `PushToTalkConfig` in [src/push_to_talk.py](src/push_to_talk.py)
+- Runtime validation on creation and assignment
+- Custom validators for provider, hotkeys, numeric ranges
+
+**Dependency Injection** - See `PushToTalkApp.__init__()` in [src/push_to_talk.py](src/push_to_talk.py)
+- Optional component parameters for testing
+- Injected components preserved during lifecycle
+- Default factory methods create production instances
+
+**Multi-Provider STT** - See [src/transcriber_factory.py](src/transcriber_factory.py)
+- Factory pattern for provider abstraction
+- OpenAI: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe
+- Deepgram: nova-3, nova-2, base, enhanced, whisper-medium
+
+**Configuration System**
+- Primary: `push_to_talk_config.json` (all settings + glossary)
+- Fallback: Environment variables for API keys
+- Live updates: GUI variable tracing → debounced updates → component reinitialization
+- See [src/gui/configuration_window.py](src/gui/configuration_window.py) for implementation
+
+**Threading**
+1. Main: GUI control
+2. Hotkey Service: Global detection
+3. Audio Recording: PyAudio operations
+4. Transcription: Daemon processing pipeline
+5. Audio Feedback: Non-blocking sounds
+
+## Development Guidelines
+
+### Adding New Config Fields
+1. Add to `PushToTalkConfig` Pydantic model in [src/push_to_talk.py](src/push_to_talk.py)
+2. Add GUI control in appropriate [src/gui/](src/gui/) section
+3. Update `requires_component_reinitialization()` if needed
+4. Add tests to [tests/test_config_gui.py](tests/test_config_gui.py)
+
+### Modifying Audio Pipeline
+- Components initialized in `_initialize_components()` - see [src/push_to_talk.py](src/push_to_talk.py)
+- Transcription runs in daemon threads (non-blocking)
+- Temp file cleanup in `_process_recorded_audio()`
+- Test with integration tests in [tests/](tests/) using real audio fixtures
+
+### Custom Glossary
+- Stored in `PushToTalkConfig.custom_glossary` as `List[str]`
+- GUI management in [src/gui/glossary_section.py](src/gui/glossary_section.py)
+- Prompt selection in [src/text_refiner.py](src/text_refiner.py) via `_get_appropriate_prompt()`
+- Prompts in [src/config/prompts.py](src/config/prompts.py)
 
 ## Important Development Instructions
 
