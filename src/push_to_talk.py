@@ -276,6 +276,10 @@ class PushToTalkApp:
         if self.text_refiner and self.config.custom_glossary:
             self.text_refiner.set_glossary(self.config.custom_glossary)
 
+        # Set glossary for transcriber if enabled
+        if self.transcriber:
+            self.transcriber.set_glossary(self.config.custom_glossary)
+
         # Initialize text inserter
         if recreate_text_inserter:
             self.text_inserter = self._create_default_text_inserter()
@@ -312,11 +316,12 @@ class PushToTalkApp:
         else:
             raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
-        # Create transcriber using factory
+        # Create transcriber using factory with glossary
         return TranscriberFactory.create_transcriber(
             provider=self.config.stt_provider,
             api_key=api_key,
             model=self.config.stt_model,
+            glossary=self.config.custom_glossary,
         )
 
     def _create_default_text_refiner(self) -> Optional[TextRefiner]:
@@ -647,6 +652,10 @@ class PushToTalkApp:
             # Set glossary if text refiner is enabled
             if self.text_refiner and self.config.custom_glossary:
                 self.text_refiner.set_glossary(self.config.custom_glossary)
+
+            # Set glossary for transcriber if enabled
+            if self.transcriber:
+                self.transcriber.set_glossary(self.config.custom_glossary)
 
         logger.info(
             f"Text refinement {'enabled' if self.config.enable_text_refinement else 'disabled'}"

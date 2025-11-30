@@ -69,8 +69,11 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 
 3. **Run the GUI application**:
    ```bash
-   uv run python main.py
+   uv run python main.py           # Normal mode (logs to file only)
+   uv run python main.py --debug   # Debug mode (logs to console and file)
    ```
+
+   The `--debug` flag enables console logging for real-time debugging and troubleshooting.
 
 ## GUI Configuration Interface
 

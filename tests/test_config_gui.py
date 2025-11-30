@@ -42,16 +42,22 @@ from src.push_to_talk import PushToTalkConfig  # noqa: E402
 ConfigurationGUI = ConfigurationWindow
 
 
-def _prepare_gui(config: PushToTalkConfig) -> ConfigurationGUI:
+def _prepare_gui(
+    config: PushToTalkConfig, config_file_path: str = "push_to_talk_config_test.json"
+) -> ConfigurationGUI:
     """
     Prepare a GUI instance with mocked sections.
 
     Note: The new architecture uses modular sections, so we need to create
     them with the config values for testing.
+
+    Args:
+        config: Configuration to use for the GUI
+        config_file_path: Path to config file (defaults to test file to avoid overwriting real config)
     """
     import tkinter as tk
 
-    gui = ConfigurationGUI(config)
+    gui = ConfigurationGUI(config, config_file_path=config_file_path)
 
     # Create mocked sections that respond to get/set operations
     from src.gui.api_section import APISection
@@ -194,6 +200,8 @@ def test_config_changes_trigger_async_save(tmp_path):
 
     # Mock the GUI to be running so changes trigger saves
     gui.is_running = True
+    # Mark initialization as complete so saves are triggered
+    gui._initialization_complete = True
 
     # Patch the save method to use our test file
     with patch.object(gui._config_persistence, "save_async") as mock_save:
@@ -378,3 +386,75 @@ def test_stt_model_preserved_when_switching_providers():
     # Verify Deepgram model is still nova-2
     assert gui.api_section.stt_model_var.get() == "nova-2"
     assert gui.api_section.deepgram_stt_model == "nova-2"
+
+
+def test_loaded_config_not_overwritten_during_initialization(tmp_path):
+    """Test that loaded configuration is not overwritten by async save during GUI initialization."""
+    import time
+    import json
+
+    # Create a config file with specific non-default values
+    test_config_file = tmp_path / "test_config.json"
+    loaded_config = PushToTalkConfig(
+        openai_api_key="loaded-api-key",
+        hotkey="ctrl+shift+loaded",
+        toggle_hotkey="ctrl+alt+loaded",
+        sample_rate=16000,
+        enable_text_refinement=False,
+        enable_audio_feedback=False,
+    )
+
+    # Save this config to file
+    with open(test_config_file, "w") as f:
+        json.dump(loaded_config.model_dump(), f, indent=2)
+
+    # Now create a GUI with this loaded config
+    gui = _prepare_gui(loaded_config)
+
+    # Mock the config persistence to track saves
+    original_save_async = gui._config_persistence.save_async
+    save_calls = []
+
+    def track_save_async(config, filepath="push_to_talk_config.json"):
+        save_calls.append(config.model_dump())
+        return original_save_async(config, filepath)
+
+    with patch.object(
+        gui._config_persistence, "save_async", side_effect=track_save_async
+    ):
+        # Simulate the initialization process
+        gui._update_sections_from_config(loaded_config)
+        gui._setup_variable_traces()
+
+        # At this point, _initialization_complete should be False
+        assert gui._initialization_complete is False
+
+        # Trigger a config change notification (simulating what might happen during init)
+        gui._notify_config_changed()
+
+        # Verify that NO save was triggered because initialization is not complete
+        assert len(save_calls) == 0, "Config should not be saved during initialization"
+
+        # Now mark initialization as complete
+        gui._initialization_complete = True
+
+        # Make an actual change to trigger save
+        gui.hotkey_section.hotkey_var.set("ctrl+shift+changed")
+        gui._notify_config_changed()
+
+        # Wait a bit for async save
+        time.sleep(0.1)
+
+        # NOW a save should have been triggered
+        assert len(save_calls) == 1, (
+            "Config should be saved after initialization is complete"
+        )
+
+        # Verify the saved config has the changed value
+        saved_config = save_calls[0]
+        assert saved_config["openai_api_key"] == "loaded-api-key"
+        assert saved_config["hotkey"] == "ctrl+shift+changed"  # This was changed
+        assert saved_config["toggle_hotkey"] == "ctrl+alt+loaded"
+        assert saved_config["sample_rate"] == 16000
+        assert saved_config["enable_text_refinement"] is False
+        assert saved_config["enable_audio_feedback"] is False

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 
 class TranscriberBase(ABC):
@@ -22,6 +22,16 @@ class TranscriberBase(ABC):
                 f"environment variable or pass api_key parameter."
             )
         self.api_key = api_key
+        self.glossary: List[str] = []
+
+    def set_glossary(self, glossary: List[str]) -> None:
+        """
+        Set custom glossary terms for improved transcription accuracy.
+
+        Args:
+            glossary: List of custom terms/phrases to improve recognition
+        """
+        self.glossary = glossary if glossary else []
 
     @abstractmethod
     def transcribe_audio(

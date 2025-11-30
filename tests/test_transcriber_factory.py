@@ -133,3 +133,41 @@ class TestTranscriberFactory:
         assert callable(deepgram_transcriber.transcribe_audio)
 
         logger.info("All transcribers implement base interface test passed")
+
+    def test_create_transcriber_with_glossary(self):
+        """Test factory creates transcriber with glossary"""
+        logger.info("Testing factory creates transcriber with glossary")
+
+        glossary = ["test", "terms", "custom", "glossary"]
+
+        # Test with OpenAI transcriber
+        openai_transcriber = TranscriberFactory.create_transcriber(
+            provider="openai", api_key="test-key", model="whisper-1", glossary=glossary
+        )
+
+        assert isinstance(openai_transcriber, OpenAITranscriber)
+        assert openai_transcriber.glossary == glossary
+
+        # Test with Deepgram transcriber
+        deepgram_transcriber = TranscriberFactory.create_transcriber(
+            provider="deepgram", api_key="test-key", model="nova-3", glossary=glossary
+        )
+
+        assert isinstance(deepgram_transcriber, DeepgramTranscriber)
+        assert deepgram_transcriber.glossary == glossary
+
+        logger.info("Create transcriber with glossary test passed")
+
+    def test_create_transcriber_without_glossary(self):
+        """Test factory creates transcriber without glossary"""
+        logger.info("Testing factory creates transcriber without glossary")
+
+        # Test without glossary parameter
+        transcriber = TranscriberFactory.create_transcriber(
+            provider="deepgram", api_key="test-key", model="nova-3"
+        )
+
+        assert isinstance(transcriber, DeepgramTranscriber)
+        assert transcriber.glossary == []
+
+        logger.info("Create transcriber without glossary test passed")

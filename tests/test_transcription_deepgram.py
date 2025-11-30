@@ -320,3 +320,118 @@ class TestDeepgramTranscriber:
         assert call_kwargs["model"] == "base"
 
         logger.info("Transcribe audio with custom model test passed")
+
+    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
+    @patch("os.path.exists")
+    def test_transcribe_audio_with_glossary(self, mock_exists):
+        """Test transcription with glossary/keyterm prompting"""
+        logger.info("Testing transcription with glossary/keyterm prompting")
+
+        mock_exists.return_value = True
+
+        # Set glossary terms
+        glossary = ["Deepgram", "Nova-3", "API", "transcription", "keyterm"]
+        self.transcriber.set_glossary(glossary)
+
+        # Mock response
+        mock_response = MagicMock()
+        mock_response.results.channels = [MagicMock()]
+        mock_response.results.channels[0].alternatives = [MagicMock()]
+        mock_response.results.channels[0].alternatives[
+            0
+        ].transcript = "Deepgram Nova-3 API transcription with keyterm"
+
+        self.transcriber.client.listen.v1.media.transcribe_file = MagicMock(
+            return_value=mock_response
+        )
+
+        result = self.transcriber.transcribe_audio("test_audio.wav")
+
+        assert result == "Deepgram Nova-3 API transcription with keyterm"
+
+        # Verify keyterms were passed to API
+        call_kwargs = self.transcriber.client.listen.v1.media.transcribe_file.call_args[
+            1
+        ]
+        assert "keyterm" in call_kwargs
+        assert call_kwargs["keyterm"] == glossary
+
+        logger.info("Transcribe audio with glossary test passed")
+
+    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
+    @patch("os.path.exists")
+    def test_transcribe_audio_with_large_glossary(self, mock_exists):
+        """Test transcription with large glossary that exceeds token limit"""
+        logger.info("Testing transcription with large glossary")
+
+        mock_exists.return_value = True
+
+        # Create a large glossary that would exceed token limit
+        large_glossary = [
+            f"term_{i}_" + "x" * 100 for i in range(50)
+        ]  # 50 terms with ~100 chars each
+        self.transcriber.set_glossary(large_glossary)
+
+        # Mock response
+        mock_response = MagicMock()
+        mock_response.results.channels = [MagicMock()]
+        mock_response.results.channels[0].alternatives = [MagicMock()]
+        mock_response.results.channels[0].alternatives[
+            0
+        ].transcript = "Transcription with limited keyterms"
+
+        self.transcriber.client.listen.v1.media.transcribe_file = MagicMock(
+            return_value=mock_response
+        )
+
+        result = self.transcriber.transcribe_audio("test_audio.wav")
+
+        assert result == "Transcription with limited keyterms"
+
+        # Verify keyterms were limited
+        call_kwargs = self.transcriber.client.listen.v1.media.transcribe_file.call_args[
+            1
+        ]
+        assert "keyterm" in call_kwargs
+        # Should have limited the number of keyterms
+        assert len(call_kwargs["keyterm"]) < len(large_glossary)
+
+        logger.info("Transcribe audio with large glossary test passed")
+
+    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
+    @patch("os.path.exists")
+    def test_transcribe_audio_with_unsupported_model(self, mock_exists):
+        """Test that glossary is not used with unsupported models"""
+        logger.info("Testing glossary with unsupported model")
+
+        mock_exists.return_value = True
+
+        # Create transcriber with unsupported model for keyterms
+        with patch.dict(os.environ, {"DEEPGRAM_API_KEY": "test-key"}):
+            transcriber = DeepgramTranscriber(model="base")
+
+        # Set glossary
+        glossary = ["test", "terms"]
+        transcriber.set_glossary(glossary)
+
+        # Mock response
+        mock_response = MagicMock()
+        mock_response.results.channels = [MagicMock()]
+        mock_response.results.channels[0].alternatives = [MagicMock()]
+        mock_response.results.channels[0].alternatives[
+            0
+        ].transcript = "Transcription without keyterms"
+
+        transcriber.client.listen.v1.media.transcribe_file = MagicMock(
+            return_value=mock_response
+        )
+
+        result = transcriber.transcribe_audio("test_audio.wav")
+
+        assert result == "Transcription without keyterms"
+
+        # Verify keyterms were NOT passed for unsupported model
+        call_kwargs = transcriber.client.listen.v1.media.transcribe_file.call_args[1]
+        assert "keyterm" not in call_kwargs
+
+        logger.info("Glossary with unsupported model test passed")

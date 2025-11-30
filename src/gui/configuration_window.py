@@ -26,6 +26,7 @@ class ConfigurationWindow:
         self,
         config: PushToTalkConfig,
         on_config_changed: Callable[[PushToTalkConfig], None] | None = None,
+        config_file_path: str = "push_to_talk_config.json",
     ):
         """
         Initialize the configuration window.
@@ -33,9 +34,11 @@ class ConfigurationWindow:
         Args:
             config: Current configuration object
             on_config_changed: Callback function called when configuration is updated
+            config_file_path: Path to the configuration file for persistence
         """
         self.config = config
         self.on_config_changed = on_config_changed
+        self.config_file_path = config_file_path
         self.root = None
         self.result = None  # To store user's choice
 
@@ -60,6 +63,7 @@ class ConfigurationWindow:
         self._variable_traces: list[tuple[tk.Variable, str]] = []
         self._suspend_change_events = False
         self._pending_update_job: str | None = None
+        self._initialization_complete = False  # Track if initial setup is done
 
         # Configuration persistence
         self._config_persistence = ConfigurationPersistence()
@@ -127,6 +131,9 @@ class ConfigurationWindow:
 
         # Monitor configuration variables for live updates
         self._setup_variable_traces()
+
+        # Mark initialization as complete - now changes should trigger saves
+        self._initialization_complete = True
 
         # Center the window
         self.root.update_idletasks()
@@ -320,7 +327,9 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.status_section.update_display(True, new_config)
 
         # Save configuration to JSON file for persistence
-        self._config_persistence.save_async(new_config)
+        # Only save if initialization is complete to avoid overwriting loaded config
+        if self._initialization_complete:
+            self._config_persistence.save_async(new_config, self.config_file_path)
 
     def _get_config_from_sections(self) -> PushToTalkConfig:
         """Create a configuration object from current section values."""
@@ -409,8 +418,8 @@ Configure your settings below, then click "Start Application" to begin:"""
             # Update config object
             self.config = config
 
-            # Save to default file
-            self._config_persistence.save_sync(config, "push_to_talk_config.json")
+            # Save to config file
+            self._config_persistence.save_sync(config, self.config_file_path)
 
             # Import here to avoid circular imports
             from src.push_to_talk import PushToTalkApp

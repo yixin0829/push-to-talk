@@ -57,11 +57,15 @@ def dependency_stubs(monkeypatch):
             self.model = model
             self.last_path = None
             self.result = "transcribed text"
+            self.glossary = []
             tracker["transcriber"].append(self)
 
         def transcribe_audio(self, audio_path):
             self.last_path = audio_path
             return self.result
+
+        def set_glossary(self, glossary):
+            self.glossary = glossary if glossary else []
 
     class StubTextRefiner:
         def __init__(self, api_key, model):
@@ -131,8 +135,11 @@ def dependency_stubs(monkeypatch):
 
     class StubTranscriberFactory:
         @staticmethod
-        def create_transcriber(provider, api_key, model):
-            return StubTranscriber(api_key, model)
+        def create_transcriber(provider, api_key, model, glossary=None):
+            transcriber = StubTranscriber(api_key, model)
+            if glossary:
+                transcriber.set_glossary(glossary)
+            return transcriber
 
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
     monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
