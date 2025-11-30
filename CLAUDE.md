@@ -18,9 +18,9 @@ uv run ruff check    # Lint
 uv run ruff format   # Format
 
 # Build
-build.bat            # Windows
-./build_macos.sh     # macOS
-./build_linux.sh     # Linux
+build_script/build.bat          # Windows
+build_script/build_macos.sh     # macOS
+build_script/build_linux.sh     # Linux
 ```
 
 ## Architecture Overview
