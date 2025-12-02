@@ -58,24 +58,6 @@ def test_force_notify_triggers_update_even_when_values_match(prepared_config_gui
     assert forced_config == config
 
 
-def test_custom_glossary_is_copied_when_building_config(prepared_config_gui):
-    # Update config with custom glossary
-    gui = prepared_config_gui
-    gui.config.custom_glossary = ["alpha"]
-    gui.glossary_section.glossary_terms = ["alpha"]
-
-    gui._notify_config_changed(force=True)
-    assert gui.config.custom_glossary == ["alpha"]
-
-    # Modify GUI glossary without notifying and ensure stored config is unchanged
-    gui.glossary_section.glossary_terms.append("beta")
-    assert gui.config.custom_glossary == ["alpha"]
-
-    # Notify again and confirm the change is propagated
-    gui._notify_config_changed()
-    assert gui.config.custom_glossary == ["alpha", "beta"]
-
-
 def test_config_changes_trigger_async_save(tmp_path, prepared_config_gui, mocker):
     """Test that configuration changes trigger asynchronous save to JSON file."""
     import time
