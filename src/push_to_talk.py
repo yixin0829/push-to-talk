@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 from src.audio_recorder import AudioRecorder
 from src.transcriber_factory import TranscriberFactory
 from src.transcription_base import TranscriberBase
-from src.text_refiner import TextRefiner
+from src.text_refiner_base import TextRefinerBase
+from src.text_refiner_factory import TextRefinerFactory
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
@@ -41,10 +42,15 @@ class PushToTalkConfig(BaseModel):
     deepgram_api_key: str = Field(default="", description="Deepgram API key")
     stt_model: str = Field(default="nova-3", description="STT model name")
 
-    # Text refinement settings (OpenAI)
-    refinement_model: str = Field(
-        default="gpt-5-nano", description="OpenAI model for text refinement"
+    # Text refinement settings
+    refinement_provider: str = Field(
+        default="cerebras",
+        description="Text refinement provider: 'openai' or 'cerebras'",
     )
+    refinement_model: str = Field(
+        default="llama-3.3-70b", description="Model for text refinement"
+    )
+    cerebras_api_key: str = Field(default="", description="Cerebras API key")
 
     # Audio settings
     sample_rate: int = Field(default=16000, gt=0, description="Audio sample rate in Hz")
@@ -85,6 +91,16 @@ class PushToTalkConfig(BaseModel):
         """Validate STT provider is either 'openai' or 'deepgram'."""
         if v not in ["openai", "deepgram"]:
             raise ValueError(f"stt_provider must be 'openai' or 'deepgram', got '{v}'")
+        return v
+
+    @field_validator("refinement_provider")
+    @classmethod
+    def validate_refinement_provider(cls, v: str) -> str:
+        """Validate refinement provider is either 'openai' or 'cerebras'."""
+        if v not in ["openai", "cerebras"]:
+            raise ValueError(
+                f"refinement_provider must be 'openai' or 'cerebras', got '{v}'"
+            )
         return v
 
     @model_validator(mode="after")
@@ -161,7 +177,7 @@ class PushToTalkApp:
         config: Optional[PushToTalkConfig] = None,
         audio_recorder: Optional[AudioRecorder] = None,
         transcriber: Optional["TranscriberBase"] = None,
-        text_refiner: Optional[TextRefiner] = None,
+        text_refiner: Optional[TextRefinerBase] = None,
         text_inserter: Optional[TextInserter] = None,
         hotkey_service: Optional[HotkeyService] = None,
     ):
@@ -324,12 +340,30 @@ class PushToTalkApp:
             glossary=self.config.custom_glossary,
         )
 
-    def _create_default_text_refiner(self) -> Optional[TextRefiner]:
+    def _create_default_text_refiner(self) -> Optional[TextRefinerBase]:
         """Create default TextRefiner instance from configuration."""
         if self.config.enable_text_refinement:
-            return TextRefiner(
-                api_key=self.config.openai_api_key,
+            # Get the appropriate API key based on provider
+            if self.config.refinement_provider == "openai":
+                api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+            elif self.config.refinement_provider == "cerebras":
+                api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
+            else:
+                raise ValueError(
+                    f"Unknown refinement provider: {self.config.refinement_provider}"
+                )
+
+            if not api_key:
+                raise ValueError(
+                    f"{self.config.refinement_provider.upper()} API key is required for text refinement. "
+                    f"Set {self.config.refinement_provider.upper()}_API_KEY environment variable or provide in config."
+                )
+
+            return TextRefinerFactory.create_refiner(
+                provider=self.config.refinement_provider,
+                api_key=api_key,
                 model=self.config.refinement_model,
+                glossary=self.config.custom_glossary,
             )
         return None
 
@@ -640,18 +674,27 @@ class PushToTalkApp:
 
         # Reinitialize text refiner if needed
         if old_value != self.config.enable_text_refinement:
-            self.text_refiner = (
-                TextRefiner(
-                    api_key=self.config.openai_api_key,
-                    model=self.config.refinement_model,
-                )
-                if self.config.enable_text_refinement
-                else None
-            )
+            if self.config.enable_text_refinement:
+                # Get the appropriate API key based on provider
+                if self.config.refinement_provider == "openai":
+                    api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+                elif self.config.refinement_provider == "cerebras":
+                    api_key = self.config.cerebras_api_key or os.getenv(
+                        "CEREBRAS_API_KEY"
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown refinement provider: {self.config.refinement_provider}"
+                    )
 
-            # Set glossary if text refiner is enabled
-            if self.text_refiner and self.config.custom_glossary:
-                self.text_refiner.set_glossary(self.config.custom_glossary)
+                self.text_refiner = TextRefinerFactory.create_refiner(
+                    provider=self.config.refinement_provider,
+                    api_key=api_key,
+                    model=self.config.refinement_model,
+                    glossary=self.config.custom_glossary,
+                )
+            else:
+                self.text_refiner = None
 
             # Set glossary for transcriber if enabled
             if self.transcriber:

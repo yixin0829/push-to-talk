@@ -120,7 +120,9 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         config.stt_provider,
         config.openai_api_key,
         config.deepgram_api_key,
+        config.cerebras_api_key,
         config.stt_model,
+        config.refinement_provider,
         config.refinement_model,
     )
 

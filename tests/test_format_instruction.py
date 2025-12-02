@@ -2,7 +2,7 @@ import pytest
 from loguru import logger
 from pathlib import Path
 
-from src.text_refiner import TextRefiner
+from src.text_refiner_openai import TextRefinerOpenAI
 
 
 @pytest.mark.integration
@@ -52,7 +52,7 @@ class TestFormatInstructionIntegration:
         mock_client.responses.create.return_value = mock_response
 
         # Create refiner with test API key
-        refiner = TextRefiner(api_key="test-format-key")
+        refiner = TextRefinerOpenAI(api_key="test-format-key")
 
         # Process the audio3 script with format instruction
         result = refiner.refine_text(self.audio3_script)
@@ -194,7 +194,7 @@ class TestFormatInstructionIntegration:
             mock_response.output_text = test_case["mock_response"]
             mock_client.responses.create.return_value = mock_response
 
-            refiner = TextRefiner(api_key=f"test-key-{i}")
+            refiner = TextRefinerOpenAI(api_key=f"test-key-{i}")
             result = refiner.refine_text(test_case["input"])
 
             # Verify format instruction was processed
@@ -225,7 +225,7 @@ class TestFormatInstructionIntegration:
         mock_response.output_text = "• A\n• B\n• C"
         mock_client.responses.create.return_value = mock_response
 
-        refiner = TextRefiner(api_key="test-short-key")
+        refiner = TextRefinerOpenAI(api_key="test-short-key")
         result = refiner.refine_text(short_text)
 
         # Should be processed because it has format instruction

@@ -7,9 +7,10 @@ from src.config.prompts import (
     text_refiner_prompt_wo_glossary,
     text_refiner_prompt_w_glossary,
 )
+from src.text_refiner_base import TextRefinerBase
 
 
-class TextRefiner:
+class TextRefinerOpenAI(TextRefinerBase):
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-nano"):
         """
         Initialize the text refiner with OpenAI API.
@@ -18,6 +19,8 @@ class TextRefiner:
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
             model: Refinement Model to use (default: gpt-4.1-nano)
         """
+        super().__init__()
+
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -26,12 +29,6 @@ class TextRefiner:
 
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
-
-        # Custom glossary for transcription refinement
-        self.glossary = []
-
-        # Custom refinement prompt (aka instructions) for transcription text refinement
-        self.custom_refinement_prompt = None
 
     def refine_text(self, raw_text: str) -> Optional[str]:
         """
@@ -94,49 +91,6 @@ class TextRefiner:
             logger.error(f"Text refinement failed: {e}")
             logger.info("Falling back to original text")
             return raw_text.strip()
-
-    def set_custom_prompt(self, prompt: str):
-        """
-        Set a custom system prompt for text refinement.
-
-        Args:
-            prompt: Custom system prompt for the refiner
-        """
-        self.custom_refinement_prompt = prompt
-        logger.info(f"Custom refinement prompt set to:\n{prompt}")
-
-    def get_current_prompt(self) -> str:
-        """
-        Get the current system prompt.
-
-        Returns:
-            Current system prompt string
-        """
-        return self.custom_refinement_prompt
-
-    def set_glossary(self, glossary: list[str]):
-        """
-        Set the custom glossary for transcription refinement.
-
-        Args:
-            glossary: List of domain-specific terms, acronyms, and technical words
-        """
-        self.glossary = glossary if glossary else []
-        logger.info(f"Glossary updated with {len(self.glossary)} terms")
-
-    def get_glossary(self) -> list[str]:
-        """
-        Get the current custom glossary.
-
-        Returns:
-            List of glossary terms
-        """
-        return self.glossary.copy()
-
-    def clear_glossary(self):
-        """Clear the custom glossary."""
-        self.glossary = []
-        logger.info("Glossary cleared")
 
     def _get_default_developer_prompt(self) -> str:
         """

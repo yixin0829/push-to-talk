@@ -139,9 +139,17 @@ def dependency_stubs(monkeypatch):
                 transcriber.set_glossary(glossary)
             return transcriber
 
+    class StubTextRefinerFactory:
+        @staticmethod
+        def create_refiner(provider, api_key, model, glossary=None):
+            refiner = StubTextRefiner(api_key, model)
+            if glossary:
+                refiner.set_glossary(glossary)
+            return refiner
+
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
     monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
-    monkeypatch.setattr(push_to_talk, "TextRefiner", StubTextRefiner)
+    monkeypatch.setattr(push_to_talk, "TextRefinerFactory", StubTextRefinerFactory)
     monkeypatch.setattr(push_to_talk, "TextInserter", StubTextInserter)
     monkeypatch.setattr(push_to_talk, "HotkeyService", StubHotkeyService)
 

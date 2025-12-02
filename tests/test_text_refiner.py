@@ -3,56 +3,56 @@ import os
 from loguru import logger
 from unittest.mock import MagicMock
 
-from src.text_refiner import TextRefiner
+from src.text_refiner_openai import TextRefinerOpenAI
 
 
-class TestTextRefiner:
+class TestTextRefinerOpenAI:
     @pytest.fixture(autouse=True)
     def setup(self, mocker):
         """Setup for each test method"""
-        logger.info("Setting up TextRefiner test")
+        logger.info("Setting up TextRefinerOpenAI test")
 
         # Use a mock API key for testing
         mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
-        self.refiner = TextRefiner()
+        self.refiner = TextRefinerOpenAI()
 
     def test_initialization_with_env_var(self, mocker):
-        """Test TextRefiner initialization with environment variable"""
-        logger.info("Testing TextRefiner initialization with env var")
+        """Test TextRefinerOpenAI initialization with environment variable"""
+        logger.info("Testing TextRefinerOpenAI initialization with env var")
 
         mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"})
-        refiner = TextRefiner()
+        refiner = TextRefinerOpenAI()
 
         assert refiner.api_key == "env-api-key"
         assert refiner.model == "gpt-4.1-nano"
         assert refiner.client is not None
         assert refiner.custom_refinement_prompt is None
 
-        logger.info("TextRefiner initialization with env var test passed")
+        logger.info("TextRefinerOpenAI initialization with env var test passed")
 
     def test_initialization_with_explicit_key(self):
-        """Test TextRefiner initialization with explicit API key"""
-        logger.info("Testing TextRefiner initialization with explicit key")
+        """Test TextRefinerOpenAI initialization with explicit API key"""
+        logger.info("Testing TextRefinerOpenAI initialization with explicit key")
 
-        refiner = TextRefiner(api_key="explicit-api-key", model="gpt-4")
+        refiner = TextRefinerOpenAI(api_key="explicit-api-key", model="gpt-4")
 
         assert refiner.api_key == "explicit-api-key"
         assert refiner.model == "gpt-4"
         assert refiner.client is not None
 
-        logger.info("TextRefiner initialization with explicit key test passed")
+        logger.info("TextRefinerOpenAI initialization with explicit key test passed")
 
     def test_initialization_no_api_key(self, mocker):
-        """Test TextRefiner initialization without API key"""
-        logger.info("Testing TextRefiner initialization without API key")
+        """Test TextRefinerOpenAI initialization without API key"""
+        logger.info("Testing TextRefinerOpenAI initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
         with pytest.raises(ValueError) as exc_info:
-            TextRefiner()
+            TextRefinerOpenAI()
 
         assert "OpenAI API key is required" in str(exc_info.value)
 
-        logger.info("TextRefiner initialization no API key test passed")
+        logger.info("TextRefinerOpenAI initialization no API key test passed")
 
     def test_refine_text_success(self):
         """Test successful text refinement"""
@@ -194,7 +194,7 @@ class TestTextRefiner:
 
         # Create refiner with GPT-5 model
         mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
-        refiner = TextRefiner(model="gpt-5-preview")
+        refiner = TextRefinerOpenAI(model="gpt-5-preview")
 
         mock_response = MagicMock()
         mock_response.output_text = "GPT-5 refined text"
