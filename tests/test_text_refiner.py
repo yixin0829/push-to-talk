@@ -1,31 +1,32 @@
 import pytest
 import os
 from loguru import logger
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from src.text_refiner import TextRefiner
 
 
 class TestTextRefiner:
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, mocker):
         """Setup for each test method"""
         logger.info("Setting up TextRefiner test")
 
         # Use a mock API key for testing
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"}):
-            self.refiner = TextRefiner()
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
+        self.refiner = TextRefiner()
 
-    def test_initialization_with_env_var(self):
+    def test_initialization_with_env_var(self, mocker):
         """Test TextRefiner initialization with environment variable"""
         logger.info("Testing TextRefiner initialization with env var")
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"}):
-            refiner = TextRefiner()
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"})
+        refiner = TextRefiner()
 
-            assert refiner.api_key == "env-api-key"
-            assert refiner.model == "gpt-4.1-nano"
-            assert refiner.client is not None
-            assert refiner.custom_refinement_prompt is None
+        assert refiner.api_key == "env-api-key"
+        assert refiner.model == "gpt-4.1-nano"
+        assert refiner.client is not None
+        assert refiner.custom_refinement_prompt is None
 
         logger.info("TextRefiner initialization with env var test passed")
 
@@ -41,15 +42,15 @@ class TestTextRefiner:
 
         logger.info("TextRefiner initialization with explicit key test passed")
 
-    def test_initialization_no_api_key(self):
+    def test_initialization_no_api_key(self, mocker):
         """Test TextRefiner initialization without API key"""
         logger.info("Testing TextRefiner initialization without API key")
 
-        with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ValueError) as exc_info:
-                TextRefiner()
+        mocker.patch.dict(os.environ, {}, clear=True)
+        with pytest.raises(ValueError) as exc_info:
+            TextRefiner()
 
-            assert "OpenAI API key is required" in str(exc_info.value)
+        assert "OpenAI API key is required" in str(exc_info.value)
 
         logger.info("TextRefiner initialization no API key test passed")
 
@@ -78,7 +79,7 @@ class TestTextRefiner:
 
         logger.info("Refine text success test passed")
 
-    def test_refine_text_with_custom_prompt(self):
+    def test_refine_text_with_custom_prompt(self, mocker):
         """Test text refinement with custom prompt"""
         logger.info("Testing text refinement with custom prompt")
 
@@ -89,18 +90,20 @@ class TestTextRefiner:
         custom_prompt = "Custom refinement instructions"
         self.refiner.set_custom_prompt(custom_prompt)
 
-        with patch.object(
+        mock_create = mocker.patch.object(
             self.refiner.client.responses, "create", return_value=mock_response
-        ) as mock_create:
-            raw_text = "some text to refine with custom prompt that is long enough"  # >20 chars
-            result = self.refiner.refine_text(raw_text)
+        )
+        raw_text = (
+            "some text to refine with custom prompt that is long enough"  # >20 chars
+        )
+        result = self.refiner.refine_text(raw_text)
 
-            assert result == "Custom refined text."
+        assert result == "Custom refined text."
 
-            # Verify custom prompt was used in the API call
-            mock_create.assert_called_once()
-            call_args = mock_create.call_args
-            assert call_args[1]["instructions"] == custom_prompt
+        # Verify custom prompt was used in the API call
+        mock_create.assert_called_once()
+        call_args = mock_create.call_args
+        assert call_args[1]["instructions"] == custom_prompt
 
         logger.info("Refine text with custom prompt test passed")
 
@@ -119,7 +122,7 @@ class TestTextRefiner:
 
         logger.info("Refine text empty input test passed")
 
-    def test_refine_text_too_short(self):
+    def test_refine_text_too_short(self, mocker):
         """Test refinement with text too short"""
         logger.info("Testing refinement with text too short")
 
@@ -130,9 +133,9 @@ class TestTextRefiner:
         assert result == short_text
 
         # Verify API was not called
-        with patch.object(self.refiner.client.responses, "create") as mock_create:
-            self.refiner.refine_text(short_text)
-            mock_create.assert_not_called()
+        mock_create = mocker.patch.object(self.refiner.client.responses, "create")
+        self.refiner.refine_text(short_text)
+        mock_create.assert_not_called()
 
         logger.info("Refine text too short test passed")
 
@@ -185,13 +188,13 @@ class TestTextRefiner:
 
         logger.info("Refine text None API response test passed")
 
-    def test_refine_text_gpt5_model_settings(self):
+    def test_refine_text_gpt5_model_settings(self, mocker):
         """Test refinement with GPT-5 model settings"""
         logger.info("Testing refinement with GPT-5 model settings")
 
         # Create refiner with GPT-5 model
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-            refiner = TextRefiner(model="gpt-5-preview")
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+        refiner = TextRefiner(model="gpt-5-preview")
 
         mock_response = MagicMock()
         mock_response.output_text = "GPT-5 refined text"
@@ -229,12 +232,12 @@ class TestTextRefiner:
 
         logger.info("Refine text non-GPT-5 model settings test passed")
 
-    @patch("time.time")
-    def test_refine_text_timing(self, mock_time):
+    def test_refine_text_timing(self, mocker):
         """Test refinement timing measurement"""
         logger.info("Testing refinement timing measurement")
 
         # Mock time progression - need more calls for logging
+        mock_time = mocker.patch("time.time")
         mock_time.side_effect = [1000.0, 1001.5, 1001.6, 1001.7, 1001.8, 1001.9]
 
         mock_response = MagicMock()
@@ -314,9 +317,9 @@ class TestTextRefiner:
         assert "Role and Objective" in default_prompt
         assert "Instructions" in default_prompt
         assert "Output Format" in default_prompt
-        assert "punctuation and capitalization" in default_prompt
-        assert "Remove filler words and unnecessary stop words" in default_prompt
-        assert "preserved" in default_prompt.lower()
+        assert "Refine transcribed speech-to-text outputs" in default_prompt
+        assert "Preserve the original meaning and intent" in default_prompt
+        assert "formatting compliance" in default_prompt
 
         logger.info("Default prompt content test passed")
 

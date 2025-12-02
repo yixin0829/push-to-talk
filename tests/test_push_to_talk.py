@@ -4,12 +4,10 @@ import types
 
 import pytest
 
-pyautogui_stub = types.SimpleNamespace(
-    hotkey=lambda *_, **__: None,
-    write=lambda *_, **__: None,
-    getActiveWindow=lambda: None,
-)
+from tests.test_helpers import create_pyautogui_stub
 
+# Setup pyautogui stub for imports
+pyautogui_stub = create_pyautogui_stub()
 sys.modules.setdefault("mouseinfo", types.SimpleNamespace())
 sys.modules.setdefault("pyautogui", pyautogui_stub)
 

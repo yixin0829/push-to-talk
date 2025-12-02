@@ -1,18 +1,19 @@
+import pytest
 import threading
 from loguru import logger
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from src.audio_recorder import AudioRecorder
 
 
 class TestAudioRecorder:
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Setup for each test method"""
         logger.info("Setting up AudioRecorder test")
         self.recorder = AudioRecorder(sample_rate=16000, chunk_size=1024, channels=1)
-
-    def teardown_method(self):
-        """Cleanup after each test method"""
+        yield
+        # Cleanup after test
         logger.info("Tearing down AudioRecorder test")
         if hasattr(self.recorder, "is_recording") and self.recorder.is_recording:
             self.recorder.stop_recording()
@@ -44,13 +45,13 @@ class TestAudioRecorder:
 
         logger.info("AudioRecorder custom initialization test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_start_recording_success(self, mock_pyaudio):
+    def test_start_recording_success(self, mocker):
         """Test successful start of recording"""
         logger.info("Testing successful start of recording")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -65,13 +66,13 @@ class TestAudioRecorder:
         mock_audio_interface.open.assert_called_once()
         logger.info("Start recording success test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_start_recording_already_recording(self, mock_pyaudio):
+    def test_start_recording_already_recording(self, mocker):
         """Test starting recording when already recording"""
         logger.info("Testing start recording when already recording")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -85,11 +86,11 @@ class TestAudioRecorder:
 
         logger.info("Start recording already recording test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_start_recording_failure(self, mock_pyaudio):
+    def test_start_recording_failure(self, mocker):
         """Test recording start failure"""
         logger.info("Testing recording start failure")
 
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.side_effect = Exception("PyAudio initialization failed")
 
         result = self.recorder.start_recording()
@@ -101,8 +102,7 @@ class TestAudioRecorder:
 
         logger.info("Start recording failure test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_stop_recording_not_started(self, mock_pyaudio):
+    def test_stop_recording_not_started(self, mocker):
         """Test stopping recording when not started"""
         logger.info("Testing stop recording when not started")
 
@@ -111,16 +111,14 @@ class TestAudioRecorder:
         assert result is None
         logger.info("Stop recording not started test passed")
 
-    @patch("tempfile.NamedTemporaryFile")
-    @patch("wave.open")
-    @patch("pyaudio.PyAudio")
-    def test_stop_recording_success(self, mock_pyaudio, mock_wave_open, mock_temp_file):
+    def test_stop_recording_success(self, mocker):
         """Test successful stop of recording"""
         logger.info("Testing successful stop of recording")
 
         # Setup mocks
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
         mock_audio_interface.get_sample_size.return_value = 2  # 16-bit
@@ -129,10 +127,12 @@ class TestAudioRecorder:
         temp_file_mock = MagicMock()
         temp_file_mock.name = "test_audio.wav"
         temp_file_mock.close = MagicMock()
+        mock_temp_file = mocker.patch("tempfile.NamedTemporaryFile")
         mock_temp_file.return_value = temp_file_mock
 
         # Setup wave file mock
         wave_file_mock = MagicMock()
+        mock_wave_open = mocker.patch("wave.open")
         mock_wave_open.return_value.__enter__ = MagicMock(return_value=wave_file_mock)
         mock_wave_open.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -155,13 +155,13 @@ class TestAudioRecorder:
 
         logger.info("Stop recording success test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_stop_recording_no_data(self, mock_pyaudio):
+    def test_stop_recording_no_data(self, mocker):
         """Test stopping recording with no audio data"""
         logger.info("Testing stop recording with no audio data")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -175,13 +175,13 @@ class TestAudioRecorder:
         assert result is None
         logger.info("Stop recording no data test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_cleanup(self, mock_pyaudio):
+    def test_cleanup(self, mocker):
         """Test cleanup functionality"""
         logger.info("Testing cleanup functionality")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -200,14 +200,14 @@ class TestAudioRecorder:
 
         logger.info("Cleanup test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_cleanup_with_exception(self, mock_pyaudio):
+    def test_cleanup_with_exception(self, mocker):
         """Test cleanup with exceptions"""
         logger.info("Testing cleanup with exceptions")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
         mock_stream.stop_stream.side_effect = Exception("Stream stop failed")
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -220,14 +220,14 @@ class TestAudioRecorder:
         mock_stream.stop_stream.assert_called_once()
         logger.info("Cleanup with exception test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_record_audio_thread(self, mock_pyaudio):
+    def test_record_audio_thread(self, mocker):
         """Test the recording thread functionality"""
         logger.info("Testing recording thread functionality")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
         mock_stream.read.side_effect = [b"chunk1", b"chunk2", Exception("Stream ended")]
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -243,28 +243,28 @@ class TestAudioRecorder:
 
         logger.info("Record audio thread test passed")
 
-    def test_destructor_cleanup(self):
+    def test_destructor_cleanup(self, mocker):
         """Test that destructor calls cleanup"""
         logger.info("Testing destructor cleanup")
 
         recorder = AudioRecorder()
 
         # Mock the _cleanup method
-        with patch.object(recorder, "_cleanup"):
-            # Trigger destructor
-            del recorder
+        mocker.patch.object(recorder, "_cleanup")
+        # Trigger destructor
+        del recorder
 
-            # Cleanup should be called (note: this might be called during garbage collection)
+        # Cleanup should be called (note: this might be called during garbage collection)
 
         logger.info("Destructor cleanup test passed")
 
-    @patch("pyaudio.PyAudio")
-    def test_sample_width_fallback(self, mock_pyaudio):
+    def test_sample_width_fallback(self, mocker):
         """Test sample width fallback logic"""
         logger.info("Testing sample width fallback logic")
 
         mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
+        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio.return_value = mock_audio_interface
         mock_audio_interface.open.return_value = mock_stream
 
@@ -278,28 +278,24 @@ class TestAudioRecorder:
         self.recorder.audio_data = [b"test_data"]
         # Keep recording flag true so stop_recording doesn't exit early
 
-        with (
-            patch("tempfile.NamedTemporaryFile") as mock_temp_file,
-            patch("wave.open") as mock_wave_open,
-        ):
-            temp_file_mock = MagicMock()
-            temp_file_mock.name = "test_audio.wav"
-            temp_file_mock.close = MagicMock()
-            mock_temp_file.return_value = temp_file_mock
+        temp_file_mock = MagicMock()
+        temp_file_mock.name = "test_audio.wav"
+        temp_file_mock.close = MagicMock()
+        mock_temp_file = mocker.patch("tempfile.NamedTemporaryFile")
+        mock_temp_file.return_value = temp_file_mock
 
-            wave_file_mock = MagicMock()
-            mock_wave_open.return_value.__enter__ = MagicMock(
-                return_value=wave_file_mock
-            )
-            mock_wave_open.return_value.__exit__ = MagicMock(return_value=False)
+        wave_file_mock = MagicMock()
+        mock_wave_open = mocker.patch("wave.open")
+        mock_wave_open.return_value.__enter__ = MagicMock(return_value=wave_file_mock)
+        mock_wave_open.return_value.__exit__ = MagicMock(return_value=False)
 
-            # Mock the recording thread
-            self.recorder.recording_thread = MagicMock()
-            self.recorder.recording_thread.join = MagicMock()
+        # Mock the recording thread
+        self.recorder.recording_thread = MagicMock()
+        self.recorder.recording_thread.join = MagicMock()
 
-            self.recorder.stop_recording()
+        self.recorder.stop_recording()
 
-            # Should use fallback sample width (2 for paInt16)
-            wave_file_mock.setsampwidth.assert_called_with(2)
+        # Should use fallback sample width (2 for paInt16)
+        wave_file_mock.setsampwidth.assert_called_with(2)
 
         logger.info("Sample width fallback test passed")

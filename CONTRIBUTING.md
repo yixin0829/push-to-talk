@@ -289,23 +289,28 @@ tests/
 **Test Guidelines:**
 - Use descriptive test names: `test_audio_recorder_start_success`
 - Include comprehensive logging using loguru for debugging
+- Use `pytest-mock` (mocker fixture) for all mocking - no `unittest.mock` decorators
 - Mock external dependencies (OpenAI API, PyAudio)
 - Test both success and failure scenarios
 - Use real audio fixtures for integration tests
+- See [tests/README.md](tests/README.md) for detailed testing patterns
 
 **Test Template:**
 ```python
 import pytest
 from loguru import logger
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from src.your_module import YourClass
 
 class TestYourClass:
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Setup for each test method"""
         logger.info("Setting up YourClass test")
         self.instance = YourClass()
+        yield
+        # Optional teardown code here
 
     def test_functionality_success(self):
         """Test successful functionality"""
@@ -317,10 +322,9 @@ class TestYourClass:
         assert result is not None
         logger.info("Functionality test passed")
 
-    @patch('external.dependency')
-    def test_functionality_with_mock(self, mock_dependency):
-        """Test with mocked dependencies"""
-        mock_dependency.return_value = "expected_value"
+    def test_functionality_with_mock(self, mocker):
+        """Test with mocked dependencies using pytest-mock"""
+        mock_dependency = mocker.patch('external.dependency', return_value="expected_value")
 
         result = self.instance.method_with_dependency()
 
