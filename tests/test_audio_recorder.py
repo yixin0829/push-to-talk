@@ -8,9 +8,15 @@ from src.audio_recorder import AudioRecorder
 
 class TestAudioRecorder:
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self, mocker):
         """Setup for each test method"""
         logger.info("Setting up AudioRecorder test")
+
+        # Mock PyAudio at class level since it's now initialized in __init__
+        self.mock_audio_interface = MagicMock()
+        self.mock_pyaudio = mocker.patch("pyaudio.PyAudio")
+        self.mock_pyaudio.return_value = self.mock_audio_interface
+
         self.recorder = AudioRecorder(sample_rate=16000, chunk_size=1024, channels=1)
         yield
         # Cleanup after test
@@ -28,7 +34,7 @@ class TestAudioRecorder:
         assert self.recorder.is_recording is False
         assert self.recorder.audio_data == []
         assert self.recorder.recording_thread is None
-        assert self.recorder.audio_interface is None
+        assert self.recorder.audio_interface == self.mock_audio_interface
         assert self.recorder.stream is None
 
         logger.info("AudioRecorder initialization test passed")
@@ -49,32 +55,26 @@ class TestAudioRecorder:
         """Test successful start of recording"""
         logger.info("Testing successful start of recording")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         result = self.recorder.start_recording()
 
         assert result is True
         assert self.recorder.is_recording is True
-        assert self.recorder.audio_interface == mock_audio_interface
+        assert self.recorder.audio_interface == self.mock_audio_interface
         assert self.recorder.stream == mock_stream
         assert isinstance(self.recorder.recording_thread, threading.Thread)
 
-        mock_audio_interface.open.assert_called_once()
+        self.mock_audio_interface.open.assert_called_once()
         logger.info("Start recording success test passed")
 
     def test_start_recording_already_recording(self, mocker):
         """Test starting recording when already recording"""
         logger.info("Testing start recording when already recording")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Start recording first time
         self.recorder.start_recording()
@@ -90,14 +90,14 @@ class TestAudioRecorder:
         """Test recording start failure"""
         logger.info("Testing recording start failure")
 
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.side_effect = Exception("PyAudio initialization failed")
+        # Simulate open failure since PyAudio is already initialized
+        self.mock_audio_interface.open.side_effect = Exception("Stream open failed")
 
         result = self.recorder.start_recording()
 
         assert result is False
         assert self.recorder.is_recording is False
-        assert self.recorder.audio_interface is None
+        assert self.recorder.audio_interface is not None  # Interface stays alive
         assert self.recorder.stream is None
 
         logger.info("Start recording failure test passed")
@@ -116,12 +116,9 @@ class TestAudioRecorder:
         logger.info("Testing successful stop of recording")
 
         # Setup mocks
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
-        mock_audio_interface.get_sample_size.return_value = 2  # 16-bit
+        self.mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.get_sample_size.return_value = 2  # 16-bit
 
         # Setup temp file mock
         temp_file_mock = MagicMock()
@@ -159,11 +156,8 @@ class TestAudioRecorder:
         """Test stopping recording with no audio data"""
         logger.info("Testing stop recording with no audio data")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Start recording
         self.recorder.start_recording()
@@ -179,21 +173,19 @@ class TestAudioRecorder:
         """Test cleanup functionality"""
         logger.info("Testing cleanup functionality")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Start recording
         self.recorder.start_recording()
 
         # Call cleanup
-        self.recorder._cleanup()
+        # Call shutdown (which calls _cleanup_stream)
+        self.recorder.shutdown()
 
         mock_stream.stop_stream.assert_called_once()
         mock_stream.close.assert_called_once()
-        mock_audio_interface.terminate.assert_called_once()
+        self.mock_audio_interface.terminate.assert_called_once()
 
         assert self.recorder.stream is None
         assert self.recorder.audio_interface is None
@@ -204,18 +196,15 @@ class TestAudioRecorder:
         """Test cleanup with exceptions"""
         logger.info("Testing cleanup with exceptions")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
         mock_stream.stop_stream.side_effect = Exception("Stream stop failed")
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Start recording
         self.recorder.start_recording()
 
         # Call cleanup (should handle exceptions gracefully)
-        self.recorder._cleanup()
+        self.recorder._cleanup_stream()
 
         mock_stream.stop_stream.assert_called_once()
         logger.info("Cleanup with exception test passed")
@@ -224,12 +213,9 @@ class TestAudioRecorder:
         """Test the recording thread functionality"""
         logger.info("Testing recording thread functionality")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
         mock_stream.read.side_effect = [b"chunk1", b"chunk2", Exception("Stream ended")]
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Start recording
         self.recorder.start_recording()
@@ -249,8 +235,8 @@ class TestAudioRecorder:
 
         recorder = AudioRecorder()
 
-        # Mock the _cleanup method
-        mocker.patch.object(recorder, "_cleanup")
+        # Mock the shutdown method
+        mocker.patch.object(recorder, "shutdown")
         # Trigger destructor
         del recorder
 
@@ -262,14 +248,11 @@ class TestAudioRecorder:
         """Test sample width fallback logic"""
         logger.info("Testing sample width fallback logic")
 
-        mock_audio_interface = MagicMock()
         mock_stream = MagicMock()
-        mock_pyaudio = mocker.patch("pyaudio.PyAudio")
-        mock_pyaudio.return_value = mock_audio_interface
-        mock_audio_interface.open.return_value = mock_stream
+        self.mock_audio_interface.open.return_value = mock_stream
 
         # Mock get_sample_size to fail
-        mock_audio_interface.get_sample_size.side_effect = Exception(
+        self.mock_audio_interface.get_sample_size.side_effect = Exception(
             "Failed to get sample size"
         )
 

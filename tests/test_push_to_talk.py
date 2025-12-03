@@ -49,6 +49,9 @@ def dependency_stubs(monkeypatch):
             self.stop_calls += 1
             return self.audio_file
 
+        def shutdown(self):
+            pass
+
     class StubTranscriber:
         def __init__(self, api_key, model):
             self.api_key = api_key
@@ -207,6 +210,17 @@ def immediate_thread(monkeypatch):
     monkeypatch.setattr(push_to_talk.threading, "Thread", ImmediateThread)
 
 
+def process_queue(app):
+    """Helper to process commands in the queue synchronously."""
+    while not app.command_queue.empty():
+        cmd = app.command_queue.get()
+        if cmd == "START_RECORDING":
+            app._do_start_recording()
+        elif cmd == "STOP_RECORDING":
+            app._do_stop_recording()
+        app.command_queue.task_done()
+
+
 def test_config_save_and_load_roundtrip(tmp_path):
     config = push_to_talk.PushToTalkConfig(
         openai_api_key="key",
@@ -309,6 +323,7 @@ def test_process_recorded_audio_pipeline(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert recorder.start_calls == 1
     assert recorder.stop_calls == 1
@@ -339,6 +354,7 @@ def test_process_recorded_audio_without_text(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert feedback_spy["start"] == 0
     assert feedback_spy["stop"] == 0
@@ -371,6 +387,7 @@ def test_process_recorded_audio_handles_refiner_failure(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert transcriber.last_path == str(audio_path)
     assert refiner.last_input == "draft"
@@ -409,6 +426,7 @@ def test_debug_mode_saves_audio(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     # Check debug directory was created
     debug_dirs = [d for d in tmp_path.iterdir() if d.name.startswith("debug_audio_")]
@@ -520,6 +538,7 @@ def test_on_start_recording_failure(make_app, dependency_stubs, feedback_spy):
     recorder.should_start = False
 
     app._on_start_recording()
+    process_queue(app)
 
     assert recorder.start_calls == 1
     assert feedback_spy["start"] == 1

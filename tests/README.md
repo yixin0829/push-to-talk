@@ -97,23 +97,42 @@ def test_openai_transcription(mocker):
 #### Available Test Helpers
 
 **Keyboard/GUI Mocks:**
-- `create_keyboard_stub()` - Complete pynput keyboard stub
+- `create_keyboard_stub()` - Complete pynput keyboard stub with common keys
 - `create_pyautogui_stub()` - PyAutoGUI stub for GUI tests
-- `DummyKey`, `DummyKeyCode`, `DummyListener` - Individual keyboard mocks
+- `DummyKey`, `DummyKeyCode`, `DummyListener` - Individual keyboard mock classes
 
 **API Response Builders:**
-- `build_openai_transcription_response(text)` - OpenAI transcription response
+- `build_openai_transcription_response(text)` - OpenAI Whisper transcription response (returns text string)
 - `build_openai_transcription_response_with_text_attr(text)` - OpenAI response with .text attribute
-- `build_deepgram_transcription_response(text)` - Deepgram response structure
-- `build_openai_refinement_response(text)` - OpenAI text refinement response
+- `build_deepgram_transcription_response(text)` - Deepgram response structure (nested with .results.channels[0].alternatives[0].transcript)
+- `build_openai_refinement_response(text)` - OpenAI GPT text refinement response (.output_text attribute)
+
+**Note:** For Cerebras refinement testing, use `build_openai_refinement_response()` as both OpenAI and Cerebras refiners use similar response structures with `.output_text` attribute.
 
 **Fixtures:**
 - `pynput_stub` - Auto-inject pynput keyboard mocks
 - `pyautogui_stub` - Auto-inject pyautogui mocks
 
 **Test Data Factories:**
-- `create_test_config(**overrides)` - Create PushToTalkConfig with test defaults
-- `create_test_audio_file(tmp_path, content, suffix)` - Create temporary audio files
+- `create_test_config(**overrides)` - Create PushToTalkConfig with test defaults (OpenAI STT, GPT-4o-mini refinement)
+- `create_test_audio_file(tmp_path, content, suffix)` - Create temporary audio files for testing
+
+**Example - Testing with Different Providers:**
+```python
+def test_with_deepgram(mocker):
+    config = create_test_config(
+        stt_provider="deepgram",
+        deepgram_api_key="test-deepgram-key",
+        stt_model="nova-3"
+    )
+
+def test_with_cerebras(mocker):
+    config = create_test_config(
+        refinement_provider="cerebras",
+        cerebras_api_key="test-cerebras-key",
+        refinement_model="llama-3.3-70b"
+    )
+```
 
 ### Use pytest-mock for Mocking
 
@@ -341,6 +360,59 @@ def test_feature_b():
 
 ## Common Test Patterns
 
+### Testing Multiple Providers
+
+The application supports multiple STT and refinement providers. Tests should cover all providers:
+
+**Testing STT Providers (OpenAI, Deepgram):**
+```python
+import pytest
+from tests.test_helpers import (
+    build_openai_transcription_response,
+    build_deepgram_transcription_response,
+    create_test_config,
+)
+
+@pytest.mark.parametrize("provider,model", [
+    ("openai", "whisper-1"),
+    ("deepgram", "nova-3"),
+])
+def test_transcribe_with_providers(provider, model, mocker):
+    if provider == "openai":
+        mock_response = build_openai_transcription_response("test text")
+        mocker.patch("openai.Audio.transcribe", return_value=mock_response)
+    else:  # deepgram
+        mock_response = build_deepgram_transcription_response("test text")
+        mocker.patch("deepgram.PrerecordedClient.transcribe_file", return_value=mock_response)
+
+    config = create_test_config(
+        stt_provider=provider,
+        stt_model=model,
+    )
+    # Test transcription logic...
+```
+
+**Testing Refinement Providers (OpenAI, Cerebras):**
+```python
+@pytest.mark.parametrize("provider,model", [
+    ("openai", "gpt-4.1-nano"),
+    ("cerebras", "llama-3.3-70b"),
+])
+def test_refine_with_providers(provider, model, mocker):
+    mock_response = build_openai_refinement_response("refined text")
+
+    if provider == "openai":
+        mocker.patch("openai.ChatCompletion.create", return_value=mock_response)
+    else:  # cerebras
+        mocker.patch("cerebras.CerebrasClient.messages.create", return_value=mock_response)
+
+    config = create_test_config(
+        refinement_provider=provider,
+        refinement_model=model,
+    )
+    # Test refinement logic...
+```
+
 ### Testing Error Handling
 
 ```python
@@ -370,6 +442,35 @@ def test_async_save(tmp_path, mocker):
 
     # Verify result
     assert config_file.exists()
+```
+
+### Testing Custom Glossary
+
+The application has a dual-prompt system for text refinement - one prompt with glossary terms, one without.
+
+```python
+def test_refine_with_glossary(mocker):
+    from src.text_refiner_openai import TextRefinerOpenAI
+
+    refiner = TextRefinerOpenAI(api_key="test-key", model="gpt-4.1-nano")
+    refiner.set_glossary(["OAuth", "API", "microservices"])
+
+    # Mock response
+    mock_response = build_openai_refinement_response("refined text with OAuth")
+    mocker.patch("openai.ChatCompletion.create", return_value=mock_response)
+
+    result = refiner.refine("oauth api microservices")
+    assert result == "refined text with OAuth"
+
+def test_refine_without_glossary(mocker):
+    refiner = TextRefinerOpenAI(api_key="test-key", model="gpt-4.1-nano")
+    # No glossary set
+
+    mock_response = build_openai_refinement_response("refined text")
+    mocker.patch("openai.ChatCompletion.create", return_value=mock_response)
+
+    result = refiner.refine("some text")
+    assert result == "refined text"
 ```
 
 ### Testing with Real Files (Integration)
@@ -424,12 +525,78 @@ keyboard_stub = create_keyboard_stub()
 sys.modules["pynput.keyboard"] = keyboard_stub
 ```
 
+### Testing Factory Patterns
+
+The application uses factory patterns to create provider instances dynamically based on configuration.
+
+```python
+def test_transcriber_factory_creates_openai(mocker):
+    from src.transcriber_factory import TranscriberFactory
+    from src.transcription_openai import OpenAITranscriber
+
+    transcriber = TranscriberFactory.create_transcriber(
+        provider="openai",
+        api_key="test-key",
+        model="whisper-1"
+    )
+    assert isinstance(transcriber, OpenAITranscriber)
+
+def test_transcriber_factory_creates_deepgram(mocker):
+    from src.transcriber_factory import TranscriberFactory
+    from src.transcription_deepgram import DeepgramTranscriber
+
+    transcriber = TranscriberFactory.create_transcriber(
+        provider="deepgram",
+        api_key="test-key",
+        model="nova-3"
+    )
+    assert isinstance(transcriber, DeepgramTranscriber)
+
+def test_text_refiner_factory_creates_cerebras(mocker):
+    from src.text_refiner_factory import TextRefinerFactory
+    from src.text_refiner_cerebras import CerebrasTextRefiner
+
+    refiner = TextRefinerFactory.create_refiner(
+        provider="cerebras",
+        api_key="test-key",
+        model="llama-3.3-70b"
+    )
+    assert isinstance(refiner, CerebrasTextRefiner)
+```
+
+## Configuration and Environment Setup for Tests
+
+**Test Configuration Defaults:**
+- STT Provider: OpenAI
+- STT Model: whisper-1
+- Refinement Model: gpt-4o-mini
+- Sample Rate: 16000 Hz
+- Channels: 1 (mono)
+
+Override any defaults using `create_test_config()`:
+```python
+config = create_test_config(
+    stt_provider="deepgram",
+    deepgram_api_key="your-test-key",
+    refinement_provider="cerebras",
+    cerebras_api_key="your-test-key",
+    custom_glossary=["API", "OAuth"],
+)
+```
+
+**API Key Handling in Tests:**
+- Tests use mocked API calls - no real credentials needed
+- If testing with real APIs, use `os.getenv("PROVIDER_API_KEY")`
+- Mark integration tests with `@pytest.mark.integration`
+- Keep mocked unit tests fast and independent
+
 ## Future Improvements
 
 - [ ] Add performance/load tests with markers
 - [ ] Set up pytest-xdist for parallel test execution
 - [ ] Increase test coverage in edge cases
 - [ ] Add mutation testing with `mutmut`
+- [ ] Add documentation for multi-provider testing patterns
 
 ## Additional Resources
 
