@@ -162,7 +162,10 @@ def make_app(dependency_stubs):
 
     def factory(config=None):
         config = config or push_to_talk.PushToTalkConfig(
-            stt_provider="openai", openai_api_key="test-key"
+            stt_provider="openai",
+            openai_api_key="test-key",
+            enable_text_refinement=True,
+            refinement_provider="openai",
         )
         return push_to_talk.PushToTalkApp(config)
 
@@ -244,6 +247,7 @@ def test_initialization_wires_dependencies(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
         stt_provider="openai",
         openai_api_key="key",
+        refinement_provider="openai",
         custom_glossary=["ChatGPT"],
     )
 
@@ -385,7 +389,10 @@ def test_debug_mode_saves_audio(
     monkeypatch.chdir(tmp_path)
 
     config = push_to_talk.PushToTalkConfig(
-        stt_provider="openai", openai_api_key="test-key", debug_mode=True
+        stt_provider="openai",
+        openai_api_key="test-key",
+        refinement_provider="openai",
+        debug_mode=True,
     )
     app = make_app(config)
 
@@ -485,6 +492,7 @@ def test_toggle_text_refinement_recreates_refiner(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
         stt_provider="openai",
         openai_api_key="key",
+        refinement_provider="openai",
         custom_glossary=["api"],
     )
     app = make_app(config)

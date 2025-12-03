@@ -36,7 +36,7 @@ class TestFormatInstructionIntegration:
         )
 
         # Mock the OpenAI client at module import level
-        mock_openai = mocker.patch("src.text_refiner.OpenAI")
+        mock_openai = mocker.patch("src.text_refiner_openai.OpenAI")
         mock_client = mock_openai.return_value
         mock_response = type("MockResponse", (), {})()
 
@@ -188,7 +188,7 @@ class TestFormatInstructionIntegration:
         for i, test_case in enumerate(test_cases):
             logger.info(f"Testing format case {i + 1}: {test_case['expected_format']}")
 
-            mock_openai = mocker.patch("src.text_refiner.OpenAI")
+            mock_openai = mocker.patch("src.text_refiner_openai.OpenAI")
             mock_client = mock_openai.return_value
             mock_response = type("MockResponse", (), {})()
             mock_response.output_text = test_case["mock_response"]
@@ -219,7 +219,7 @@ class TestFormatInstructionIntegration:
         # Text shorter than 20 characters with format instruction
         short_text = "A, B, C. Bullet list."  # 22 characters - just above threshold
 
-        mock_openai = mocker.patch("src.text_refiner.OpenAI")
+        mock_openai = mocker.patch("src.text_refiner_openai.OpenAI")
         mock_client = mock_openai.return_value
         mock_response = type("MockResponse", (), {})()
         mock_response.output_text = "• A\n• B\n• C"
