@@ -33,7 +33,14 @@ class AudioRecorder:
         self.is_recording = False
         self.audio_data = []
         self.recording_thread: Optional[threading.Thread] = None
-        self.audio_interface = None
+
+        # Initialize PyAudio once at startup
+        try:
+            self.audio_interface = pyaudio.PyAudio()
+        except Exception as e:
+            logger.error(f"Failed to initialize PyAudio: {e}")
+            self.audio_interface = None
+
         self.stream = None
 
     def start_recording(self) -> bool:
@@ -42,8 +49,11 @@ class AudioRecorder:
             logger.warning("Recording is already in progress")
             return False
 
+        if not self.audio_interface:
+            logger.error("Audio interface not initialized")
+            return False
+
         try:
-            self.audio_interface = pyaudio.PyAudio()
             self.stream = self.audio_interface.open(
                 format=self.audio_format,
                 channels=self.channels,
@@ -63,7 +73,7 @@ class AudioRecorder:
 
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
-            self._cleanup()
+            self._cleanup_stream()
             return False
 
     def stop_recording(self) -> Optional[str]:
@@ -100,7 +110,7 @@ class AudioRecorder:
                 else:
                     sample_width = 2  # Default to 16-bit
 
-        self._cleanup()
+        self._cleanup_stream()
 
         if not self.audio_data:
             logger.warning("No audio data recorded")
@@ -145,21 +155,27 @@ class AudioRecorder:
             logger.error(f"Error during recording: {e}")
             self.is_recording = False
 
-    def _cleanup(self):
-        """Clean up audio resources."""
+    def _cleanup_stream(self):
+        """Clean up audio stream resources."""
         try:
             if self.stream:
                 self.stream.stop_stream()
                 self.stream.close()
                 self.stream = None
 
+        except Exception as e:
+            logger.error(f"Error during stream cleanup: {e}")
+
+    def shutdown(self):
+        """Terminate audio interface."""
+        self._cleanup_stream()
+        try:
             if self.audio_interface:
                 self.audio_interface.terminate()
                 self.audio_interface = None
-
         except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
+            logger.error(f"Error during audio interface shutdown: {e}")
 
     def __del__(self):
         """Destructor to ensure cleanup."""
-        self._cleanup()
+        self.shutdown()
