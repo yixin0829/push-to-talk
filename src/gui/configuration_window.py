@@ -231,7 +231,9 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.api_section.stt_provider_var,
                         self.api_section.openai_api_key_var,
                         self.api_section.deepgram_api_key_var,
+                        self.api_section.cerebras_api_key_var,
                         self.api_section.stt_model_var,
+                        self.api_section.refinement_provider_var,
                         self.api_section.refinement_model_var,
                     ]
                 )
