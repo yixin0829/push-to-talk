@@ -72,7 +72,7 @@ class ConfigurationWindow:
         """Create and return the main GUI window."""
         self.root = tk.Tk()
         self.root.title("PushToTalk Configuration")
-        self.root.geometry("600x800")
+        self.root.geometry("950x1200")
         self.root.resizable(True, True)
 
         # Configure icon if available

@@ -398,6 +398,10 @@ class APISection:
         """
         Set the API configuration values.
 
+        This method sets values directly from loaded config without triggering
+        model update logic. The combobox values are updated to match the provider,
+        then the exact model from config is set.
+
         Args:
             stt_provider: STT provider name
             openai_api_key: OpenAI API key
@@ -407,29 +411,70 @@ class APISection:
             refinement_provider: Refinement provider name
             refinement_model: Refinement model name
         """
-        self.stt_provider_var.set(stt_provider)
+        # Set API keys
         self.openai_api_key_var.set(openai_api_key)
         self.deepgram_api_key_var.set(deepgram_api_key)
         self.cerebras_api_key_var.set(cerebras_api_key)
-        self.stt_model_var.set(stt_model)
-        self.refinement_provider_var.set(refinement_provider)
-        self.refinement_model_var.set(refinement_model)
 
-        # Store provider-specific models
+        # Store provider-specific models BEFORE setting providers
+        # This ensures the update methods will use these values
         if stt_provider == "openai":
             self.openai_stt_model = stt_model
         elif stt_provider == "deepgram":
             self.deepgram_stt_model = stt_model
 
-        # Store refinement provider-specific models
         if refinement_provider == "openai":
             self.openai_refinement_model = refinement_model
         elif refinement_provider == "cerebras":
             self.cerebras_refinement_model = refinement_model
 
-        # Update combobox options based on providers
-        self._update_stt_model_options()
-        self._update_refinement_model_options()
+        # Set providers (this triggers combobox value list updates)
+        self.stt_provider_var.set(stt_provider)
+        self.refinement_provider_var.set(refinement_provider)
+
+        # Update combobox options to match the providers
+        self._update_combobox_options_only()
+
+        # Now set the exact model values from config
+        # This must happen AFTER the combobox options are updated
+        self.stt_model_var.set(stt_model)
+        self.refinement_model_var.set(refinement_model)
+
+    def _update_combobox_options_only(self):
+        """Update combobox dropdown options without changing selected values."""
+        # Update STT model options
+        if self.stt_model_combo:
+            provider = self.stt_provider_var.get()
+            if provider == "openai":
+                models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+            elif provider == "deepgram":
+                models = ["nova-3", "nova-2", "base", "enhanced", "whisper-medium"]
+            else:
+                models = []
+            self.stt_model_combo["values"] = models
+
+        # Update refinement model options
+        if self.refinement_model_combo:
+            provider = self.refinement_provider_var.get()
+            if provider == "openai":
+                models = [
+                    "gpt-5",
+                    "gpt-5-mini",
+                    "gpt-5-nano",
+                    "gpt-4.1",
+                    "gpt-4.1-mini",
+                    "gpt-4.1-nano",
+                ]
+            elif provider == "cerebras":
+                models = [
+                    "llama-3.3-70b",
+                    "qwen-3-235b-a22b-instruct-2507",
+                    "qwen-3-32b",
+                    "llama3.1-8b",
+                ]
+            else:
+                models = []
+            self.refinement_model_combo["values"] = models
 
     def test_api_keys(self) -> str:
         """
