@@ -427,7 +427,8 @@ class APISection:
         elif refinement_provider == "cerebras":
             self.cerebras_refinement_model = refinement_model
 
-        # Update visibility based on providers
+        # Update combobox options based on providers
+        self._update_stt_model_options()
         self._update_refinement_model_options()
 
     def test_api_keys(self) -> str:
