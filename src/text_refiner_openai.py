@@ -3,10 +3,6 @@ from loguru import logger
 import time
 from typing import Optional
 from openai import OpenAI
-from src.config.prompts import (
-    text_refiner_prompt_wo_glossary,
-    text_refiner_prompt_w_glossary,
-)
 from src.text_refiner_base import TextRefinerBase
 
 
@@ -51,7 +47,7 @@ class TextRefinerOpenAI(TextRefinerBase):
 
         try:
             if self.custom_refinement_prompt:
-                developer_prompt = self.custom_refinement_prompt
+                developer_prompt = self._format_custom_prompt()
             else:
                 developer_prompt = self._get_default_developer_prompt()
 
@@ -91,21 +87,3 @@ class TextRefinerOpenAI(TextRefinerBase):
             logger.error(f"Text refinement failed: {e}")
             logger.info("Falling back to original text")
             return raw_text.strip()
-
-    def _get_default_developer_prompt(self) -> str:
-        """
-        Get the default developer prompt based on glossary availability.
-
-        Returns:
-            Formatted developer prompt string
-        """
-        if self.glossary:
-            # Format glossary terms into a bullet list
-            formatted_glossary = "\n".join(
-                f"- {term}" for term in sorted(self.glossary, key=str.lower)
-            )
-            return text_refiner_prompt_w_glossary.format(
-                custom_glossary=formatted_glossary
-            )
-        else:
-            return text_refiner_prompt_wo_glossary

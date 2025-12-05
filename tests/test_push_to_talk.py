@@ -37,6 +37,7 @@ def dependency_stubs(monkeypatch):
             self.channels = channels
             self.start_calls = 0
             self.stop_calls = 0
+            self.shutdown_calls = 0
             self.should_start = True
             self.audio_file = None
             tracker["audio_recorder"].append(self)
@@ -50,7 +51,7 @@ def dependency_stubs(monkeypatch):
             return self.audio_file
 
         def shutdown(self):
-            pass
+            self.shutdown_calls += 1
 
     class StubTranscriber:
         def __init__(self, api_key, model):
@@ -462,6 +463,8 @@ def test_update_configuration_reinitializes(make_app, dependency_stubs):
 
     assert dependency_stubs.last("audio_recorder") is not initial_recorder
     assert initial_service.stop_service_calls == 1
+    # Verify old audio recorder was properly shut down before creating new one
+    assert initial_recorder.shutdown_calls == 1
     assert app.config == new_config
 
 

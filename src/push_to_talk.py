@@ -86,6 +86,12 @@ class PushToTalkConfig(BaseModel):
         default_factory=list, description="Custom glossary terms"
     )
 
+    # Custom refinement prompt
+    custom_refinement_prompt: str = Field(
+        default="",
+        description="Custom text refinement prompt. Use {custom_glossary} placeholder for glossary terms.",
+    )
+
     @field_validator("stt_provider")
     @classmethod
     def validate_stt_provider(cls, v: str) -> str:
@@ -262,6 +268,10 @@ class PushToTalkApp:
         if self.hotkey_service:
             self.hotkey_service.stop_service()
 
+        # Clean up audio recorder before recreating (PyAudio resources must be explicitly released)
+        if self.audio_recorder and not self._injected_audio_recorder and force_recreate:
+            self.audio_recorder.shutdown()
+
         # Determine which components to recreate
         # Never recreate injected components (preserves mocks for testing)
         # For non-injected components: recreate if force_recreate=True or if None
@@ -293,9 +303,14 @@ class PushToTalkApp:
         if recreate_text_refiner:
             self.text_refiner = self._create_default_text_refiner()
 
-        # Set glossary if text refiner is enabled
-        if self.text_refiner and self.config.custom_glossary:
-            self.text_refiner.set_glossary(self.config.custom_glossary)
+        # Set glossary and custom prompt if text refiner is enabled
+        if self.text_refiner:
+            if self.config.custom_glossary:
+                self.text_refiner.set_glossary(self.config.custom_glossary)
+            if self.config.custom_refinement_prompt:
+                self.text_refiner.set_custom_prompt(
+                    self.config.custom_refinement_prompt
+                )
 
         # Set glossary for transcriber if enabled
         if self.transcriber:

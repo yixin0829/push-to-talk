@@ -74,6 +74,7 @@ def mock_gui_sections(mocker):
     from src.gui.hotkey_section import HotkeySection
     from src.gui.settings_section import TextInsertionSection, FeatureFlagsSection
     from src.gui.glossary_section import GlossarySection
+    from src.gui.prompt_section import PromptSection
     from src.gui.status_section import StatusSection
 
     mocker.patch("tkinter.ttk.LabelFrame")
@@ -84,6 +85,7 @@ def mock_gui_sections(mocker):
         "text_insertion": TextInsertionSection,
         "feature_flags": FeatureFlagsSection,
         "glossary": GlossarySection,
+        "prompt": PromptSection,
         "status": StatusSection,
     }
     yield sections
@@ -152,6 +154,18 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
 
     gui.glossary_section = mock_gui_sections["glossary"](
         Mock(), mock_tk_root, config.custom_glossary
+    )
+
+    # For prompt_section, we need to mock the tk.Text widget behavior
+    # since it doesn't use StringVar like other sections
+    gui.prompt_section = mock_gui_sections["prompt"](
+        Mock(), mock_tk_root, config.custom_refinement_prompt
+    )
+    # Store the prompt value and mock get_prompt/set_prompt to use it
+    gui.prompt_section._stored_prompt = config.custom_refinement_prompt
+    gui.prompt_section.get_prompt = lambda: gui.prompt_section._stored_prompt
+    gui.prompt_section.set_prompt = lambda p: setattr(
+        gui.prompt_section, "_stored_prompt", p
     )
 
     gui.status_section = mock_gui_sections["status"](Mock())
