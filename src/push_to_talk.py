@@ -66,11 +66,6 @@ class PushToTalkConfig(BaseModel):
         default_factory=_get_default_toggle_hotkey, description="Toggle hotkey"
     )
 
-    # Text insertion settings
-    insertion_delay: float = Field(
-        default=0.005, gt=0, description="Delay between text insertions"
-    )
-
     # Feature flags
     enable_text_refinement: bool = Field(
         default=True, description="Enable text refinement"
@@ -389,7 +384,7 @@ class PushToTalkApp:
 
     def _create_default_text_inserter(self) -> TextInserter:
         """Create default TextInserter instance from configuration."""
-        return TextInserter(insertion_delay=self.config.insertion_delay)
+        return TextInserter()
 
     def _create_default_hotkey_service(self) -> HotkeyService:
         """Create default HotkeyService instance from configuration."""

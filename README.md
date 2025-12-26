@@ -146,9 +146,6 @@ The application features a sophisticated real-time configuration system that app
 - **Record Button**: Click "Record" and press keys one at a time to capture hotkey combinations
 - **Validation**: Prevents duplicate hotkey assignments and ensures hotkeys are different
 
-### Text Insertion Settings
-- **Insertion Delay**: Fine-tune timing for clipboard paste operation
-
 ### Custom Glossary
 - **Domain-Specific Terms**: Add specialized vocabulary, acronyms, and proper names
 - **Easy Management**: Add, edit, and delete glossary terms through the GUI
@@ -221,7 +218,6 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "channels": 1,
   "hotkey": "ctrl+shift+^",
   "toggle_hotkey": "ctrl+shift+space",
-  "insertion_delay": 0.005,
   "enable_text_refinement": true,
   "enable_logging": true,
   "enable_audio_feedback": true,
@@ -247,7 +243,6 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
 | `hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+shift+^`, macOS `cmd+shift+space`. See [Hotkey Options](#hotkey-options) for examples. |
 | `toggle_hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+shift+space`, macOS `cmd+shift+^`. |
-| `insertion_delay` | float | `0.005` | Delay in seconds before text insertion via clipboard. Helps ensure target window is ready. |
 | `enable_text_refinement` | boolean | `true` | Whether to refine transcribed text using AI. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
@@ -424,7 +419,6 @@ See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 5. **Text not inserting**:
    - Make sure the target window is active and has a text input field
    - Check Windows permissions for clipboard access
-   - Increase insertion delay if text appears truncated
 
 6. **GUI appearance issues**:
    - Try restarting the application

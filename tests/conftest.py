@@ -72,7 +72,7 @@ def mock_gui_sections(mocker):
     from src.gui.api_section import APISection
     from src.gui.audio_section import AudioSection
     from src.gui.hotkey_section import HotkeySection
-    from src.gui.settings_section import TextInsertionSection, FeatureFlagsSection
+    from src.gui.settings_section import FeatureFlagsSection
     from src.gui.glossary_section import GlossarySection
     from src.gui.prompt_section import PromptSection
     from src.gui.status_section import StatusSection
@@ -82,7 +82,6 @@ def mock_gui_sections(mocker):
         "api": APISection,
         "audio": AudioSection,
         "hotkey": HotkeySection,
-        "text_insertion": TextInsertionSection,
         "feature_flags": FeatureFlagsSection,
         "glossary": GlossarySection,
         "prompt": PromptSection,
@@ -140,9 +139,6 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         config.hotkey,
         config.toggle_hotkey,
     )
-
-    gui.text_insertion_section = mock_gui_sections["text_insertion"](MagicMock())
-    gui.text_insertion_section.set_value(config.insertion_delay)
 
     gui.feature_flags_section = mock_gui_sections["feature_flags"](MagicMock())
     gui.feature_flags_section.set_values(

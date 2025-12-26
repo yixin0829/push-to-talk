@@ -12,7 +12,7 @@ from src.config.constants import CONFIG_CHANGE_DEBOUNCE_DELAY_MS
 from src.gui.api_section import APISection
 from src.gui.audio_section import AudioSection
 from src.gui.hotkey_section import HotkeySection
-from src.gui.settings_section import TextInsertionSection, FeatureFlagsSection
+from src.gui.settings_section import FeatureFlagsSection
 from src.gui.glossary_section import GlossarySection
 from src.gui.prompt_section import PromptSection
 from src.gui.status_section import StatusSection
@@ -52,7 +52,6 @@ class ConfigurationWindow:
         self.api_section = None
         self.audio_section = None
         self.hotkey_section = None
-        self.text_insertion_section = None
         self.feature_flags_section = None
         self.glossary_section = None
         self.prompt_section = None
@@ -117,7 +116,6 @@ class ConfigurationWindow:
         )
         self.audio_section = AudioSection(scrollable_frame)
         self.hotkey_section = HotkeySection(scrollable_frame)
-        self.text_insertion_section = TextInsertionSection(scrollable_frame)
         self.glossary_section = GlossarySection(
             scrollable_frame,
             self.root,
@@ -260,8 +258,6 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.hotkey_section.toggle_hotkey_var,
                     ]
                 )
-            if self.text_insertion_section:
-                all_vars.append(self.text_insertion_section.insertion_delay_var)
             if self.feature_flags_section:
                 all_vars.extend(
                     [
@@ -361,7 +357,6 @@ Configure your settings below, then click "Start Application" to begin:"""
             channels=audio_values["channels"],
             hotkey=hotkey_values["hotkey"],
             toggle_hotkey=hotkey_values["toggle_hotkey"],
-            insertion_delay=self.text_insertion_section.get_value(),
             enable_text_refinement=feature_values["enable_text_refinement"],
             enable_logging=feature_values["enable_logging"],
             enable_audio_feedback=feature_values["enable_audio_feedback"],
@@ -387,7 +382,6 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.sample_rate, config.chunk_size, config.channels
             )
             self.hotkey_section.set_values(config.hotkey, config.toggle_hotkey)
-            self.text_insertion_section.set_value(config.insertion_delay)
             self.feature_flags_section.set_values(
                 config.enable_text_refinement,
                 config.enable_logging,

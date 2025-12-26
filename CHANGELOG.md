@@ -81,6 +81,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replaced `keyboard` library with `pynput` for more reliable hotkey detection
 
 ### Removed
+- Removed Text Insertion Settings section from GUI (insertion delay is now fixed at 0.005 seconds)
+- Removed `insertion_delay` configuration parameter from config file and PushToTalkConfig
 - Audio processing layer (`audio_processor.py`) for architectural simplification (no silence removal or pitch-preserving speed adjustment)
 - Dependencies: numpy, soundfile, psola, pydub, keyboard
 - CLAUDE.md and GEMINI.md (consolidated into AGENTS.md using symbolic links)
