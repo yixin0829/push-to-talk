@@ -4,9 +4,17 @@
 
 
 # PushToTalk - AI Refined Speech-to-Text Dictation
-[![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (to be built), and Linux (to be built). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
+![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)
+![License](https://img.shields.io/github/license/yixin0829/push-to-talk)
+![Version](https://img.shields.io/github/v/release/yixin0829/push-to-talk)
+![Platform](https://img.shields.io/badge/platform-windows-lightgrey)
+[![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
+![GitHub Issues](https://img.shields.io/github/issues/yixin0829/push-to-talk)
+![GitHub Stars](https://img.shields.io/github/stars/yixin0829/push-to-talk)
+![GitHub Downloads](https://img.shields.io/github/downloads/yixin0829/push-to-talk/total)
+
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
@@ -136,8 +144,8 @@ The application features a sophisticated real-time configuration system that app
 ### Hotkey Configuration
 - **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+^ on Windows/Linux, Cmd+Shift+Space on macOS)
 - **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+Space on Windows/Linux, Cmd+Shift+^ on macOS)
+- **Record Button**: Click "Record" and press keys one at a time to capture hotkey combinations
 - **Validation**: Prevents duplicate hotkey assignments and ensures hotkeys are different
-- **Examples**: Common hotkey combinations provided
 
 ### Text Insertion Settings
 - **Insertion Delay**: Fine-tune timing for clipboard paste operation

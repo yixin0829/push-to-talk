@@ -483,7 +483,8 @@ push-to-talk/
 │   │   ├── settings_section.py        # Feature flags (151 lines)
 │   │   ├── status_section.py          # Status display (123 lines)
 │   │   ├── audio_section.py           # Audio settings (100 lines)
-│   │   ├── hotkey_section.py          # Hotkey configuration (71 lines)
+│   │   ├── hotkey_section.py          # Hotkey configuration with Record button
+│   │   ├── hotkey_recorder.py         # Hotkey recording via key capture
 │   │   ├── validators.py              # Input validation (153 lines)
 │   │   ├── config_persistence.py      # Config file I/O (86 lines)
 │   │   └── __init__.py                # Module exports
@@ -511,7 +512,8 @@ push-to-talk/
 │   ├── test_transcription_openai.py    # OpenAI tests
 │   ├── test_transcription_deepgram.py  # Deepgram tests
 │   ├── test_text_refiner.py            # Text refinement tests
-│   ├── test_hotkey_service.py          # Hotkey tests
+│   ├── test_hotkey_service.py          # Hotkey service tests
+│   ├── test_hotkey_recorder.py         # Hotkey recorder tests
 │   ├── test_integration.py             # End-to-end tests
 │   ├── test_format_instruction.py      # Format tests
 │   ├── test_helpers.py                 # Helper tests
