@@ -5,6 +5,8 @@ import tempfile
 from typing import Optional
 from loguru import logger
 
+from src.config.constants import AUDIO_RECORDING_THREAD_TIMEOUT_SECONDS
+
 
 class AudioRecorder:
     def __init__(
@@ -79,7 +81,7 @@ class AudioRecorder:
 
         # Wait for recording thread to finish
         if self.recording_thread:
-            self.recording_thread.join(timeout=5.0)
+            self.recording_thread.join(timeout=AUDIO_RECORDING_THREAD_TIMEOUT_SECONDS)
 
         # Get sample width before cleanup
         sample_width = None

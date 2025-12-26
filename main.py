@@ -20,7 +20,7 @@ from tkinter import messagebox
 from loguru import logger
 
 from src.push_to_talk import PushToTalkConfig
-from src.config_gui import show_configuration_gui
+from src.gui import show_configuration_gui
 
 # Configure loguru for GUI mode - only log to file
 logger.remove()  # Remove default handler

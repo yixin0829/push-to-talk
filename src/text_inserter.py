@@ -6,6 +6,11 @@ from typing import Optional
 import pyautogui
 import pyperclip
 
+from src.config.constants import (
+    TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS,
+    TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS,
+)
+
 
 class TextInserter:
     def __init__(self, insertion_delay: float = 0.1):
@@ -44,12 +49,12 @@ class TextInserter:
             original_clipboard = pyperclip.paste()
             pyperclip.copy(text)
 
-            time.sleep(0.05)
+            time.sleep(TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS)
 
             paste_keys = ["command", "v"] if sys.platform == "darwin" else ["ctrl", "v"]
             pyautogui.hotkey(*paste_keys)
 
-            time.sleep(0.1)
+            time.sleep(TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS)
 
             if original_clipboard:
                 pyperclip.copy(original_clipboard)

@@ -384,50 +384,10 @@ We follow PEP 8 with some project-specific conventions:
 **Code Organization:**
 - **Docstrings**: Use Google-style docstrings for all public methods
 - **Type hints**: Include type annotations for function parameters and returns
-- **Error handling**: Use specific exception types, log errors appropriately
+- **Error handling**: Use specific exception types, log errors with loguru
 - **Comments**: Explain complex logic, not obvious code
 
-**Example:**
-```python
-from typing import Optional, List
-from loguru import logger
-
-class AudioProcessor:
-    """Processes audio files with silence removal and speed adjustment.
-
-    This class handles audio preprocessing to optimize transcription
-    quality and reduce API costs through smart audio manipulation.
-    """
-
-    def __init__(self, silence_threshold: float = -16.0) -> None:
-        """Initialize the audio processor.
-
-        Args:
-            silence_threshold: dBFS threshold for silence detection.
-        """
-        self.silence_threshold = silence_threshold
-        logger.info(f"AudioProcessor initialized with threshold {silence_threshold}")
-
-    def process_audio(self, audio_file_path: str) -> Optional[str]:
-        """Process audio file with silence removal and speed adjustment.
-
-        Args:
-            audio_file_path: Path to the input audio file.
-
-        Returns:
-            Path to processed audio file, or None if processing failed.
-
-        Raises:
-            AudioProcessingError: If audio processing fails.
-        """
-        try:
-            # Implementation here
-            logger.info(f"Successfully processed audio: {audio_file_path}")
-            return processed_path
-        except Exception as e:
-            logger.error(f"Audio processing failed: {e}")
-            raise AudioProcessingError(f"Failed to process {audio_file_path}") from e
-```
+See existing code in [src/](../src/) for examples of project style.
 
 ### Commit Message Format
 
@@ -481,37 +441,25 @@ refactor(transcription): extract API client configuration to separate method
 
 ## Project Structure
 
-Understanding the codebase organization:
+For detailed component information, see [CLAUDE.md](CLAUDE.md).
 
 ```
 push-to-talk/
-├── main.py                  # Application entry point
-├── src/                     # Source code
-│   ├── push_to_talk.py     # Main application orchestrator
-│   ├── config_gui.py       # Configuration GUI interface
-│   ├── audio_recorder.py   # Audio recording functionality
-│   ├── audio_processor.py  # Smart audio processing pipeline
-│   ├── transcription.py    # OpenAI Whisper integration
-│   ├── text_refiner.py     # AI text refinement
-│   ├── text_inserter.py    # Cross-platform text insertion
-│   ├── hotkey_service.py   # Global hotkey management
-│   ├── utils.py            # Utility functions
-│   ├── config/             # Configuration management
-│   │   └── prompts.py      # AI prompt templates
-│   └── assets/             # Application assets
-│       └── audio/          # Audio feedback files
-├── tests/                   # Test suite
-├── build_script/           # Build and packaging scripts
-├── dist/                   # Built executables
-└── docs/                   # Additional documentation
+├── main.py                     # Application entry point
+├── src/                        # Source code
+│   ├── push_to_talk.py        # Main orchestrator (Pydantic config + DI)
+│   ├── gui/                   # Modular GUI (8 focused modules)
+│   ├── audio_recorder.py      # PyAudio recording
+│   ├── transcription_*.py     # Multi-provider STT
+│   ├── transcriber_factory.py # Provider factory
+│   ├── text_refiner.py        # GPT refinement
+│   ├── text_inserter.py       # Clipboard insertion
+│   ├── hotkey_service.py      # Global hotkeys
+│   ├── utils.py               # Audio feedback
+│   └── config/                # Config files (prompts, aliases)
+├── tests/                      # Test suite
+└── build_script/              # Build scripts
 ```
-
-**Core Components:**
-- **GUI Layer**: `main.py`, `config_gui.py` - User interface
-- **Audio Pipeline**: `audio_recorder.py`, `audio_processor.py` - Audio handling
-- **AI Integration**: `transcription.py`, `text_refiner.py` - OpenAI services
-- **System Integration**: `hotkey_service.py`, `text_inserter.py` - OS interaction
-- **Configuration**: `config/` - Settings and prompts management
 
 ## Release Process
 

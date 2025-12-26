@@ -5,63 +5,99 @@ from loguru import logger
 import threading
 import signal
 from typing import Optional, Dict, Any
-from dataclasses import dataclass, asdict, field, fields
 import json
+
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 from src.audio_recorder import AudioRecorder
 from src.transcriber_factory import TranscriberFactory
+from src.transcription_base import TranscriberBase
 from src.text_refiner import TextRefiner
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
 
 
-@dataclass
-class PushToTalkConfig:
-    """Configuration class for PushToTalk application."""
+def _get_default_hotkey() -> str:
+    """Get platform-specific default hotkey."""
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
+
+
+def _get_default_toggle_hotkey() -> str:
+    """Get platform-specific default toggle hotkey."""
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
+
+
+class PushToTalkConfig(BaseModel):
+    """Configuration class for PushToTalk application with Pydantic validation."""
+
+    model_config = ConfigDict(validate_assignment=True)
 
     # Transcription provider settings
-    stt_provider: str = "deepgram"  # "openai" or "deepgram"
-    openai_api_key: str = ""
-    deepgram_api_key: str = ""
-    stt_model: str = "nova-3"
+    stt_provider: str = Field(
+        default="deepgram", description="STT provider: 'openai' or 'deepgram'"
+    )
+    openai_api_key: str = Field(default="", description="OpenAI API key")
+    deepgram_api_key: str = Field(default="", description="Deepgram API key")
+    stt_model: str = Field(default="nova-3", description="STT model name")
 
     # Text refinement settings (OpenAI)
-    refinement_model: str = "gpt-5-nano"
+    refinement_model: str = Field(
+        default="gpt-5-nano", description="OpenAI model for text refinement"
+    )
 
     # Audio settings
-    sample_rate: int = 16000
-    chunk_size: int = 1024
-    channels: int = 1
+    sample_rate: int = Field(default=16000, gt=0, description="Audio sample rate in Hz")
+    chunk_size: int = Field(default=1024, gt=0, description="Audio chunk size")
+    channels: int = Field(default=1, gt=0, le=2, description="Audio channels (1 or 2)")
 
-    # Hotkey settings - will use platform-specific defaults if empty
-    hotkey: str = field(
-        default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
-        )
+    # Hotkey settings - will use platform-specific defaults
+    hotkey: str = Field(
+        default_factory=_get_default_hotkey, description="Push-to-talk hotkey"
     )
-    toggle_hotkey: str = field(
-        default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
-        )
+    toggle_hotkey: str = Field(
+        default_factory=_get_default_toggle_hotkey, description="Toggle hotkey"
     )
 
     # Text insertion settings
-    insertion_delay: float = 0.005
+    insertion_delay: float = Field(
+        default=0.005, gt=0, description="Delay between text insertions"
+    )
 
     # Feature flags
-    enable_text_refinement: bool = True
-    enable_logging: bool = True
-    enable_audio_feedback: bool = True
-    debug_mode: bool = False
+    enable_text_refinement: bool = Field(
+        default=True, description="Enable text refinement"
+    )
+    enable_logging: bool = Field(default=True, description="Enable logging")
+    enable_audio_feedback: bool = Field(
+        default=True, description="Enable audio feedback"
+    )
+    debug_mode: bool = Field(default=False, description="Enable debug mode")
 
     # Custom glossary for transcription refinement
-    custom_glossary: list[str] = field(default_factory=list)
+    custom_glossary: list[str] = Field(
+        default_factory=list, description="Custom glossary terms"
+    )
+
+    @field_validator("stt_provider")
+    @classmethod
+    def validate_stt_provider(cls, v: str) -> str:
+        """Validate STT provider is either 'openai' or 'deepgram'."""
+        if v not in ["openai", "deepgram"]:
+            raise ValueError(f"stt_provider must be 'openai' or 'deepgram', got '{v}'")
+        return v
+
+    @model_validator(mode="after")
+    def validate_hotkeys_different(self) -> "PushToTalkConfig":
+        """Validate that push-to-talk and toggle hotkeys are different."""
+        if self.hotkey == self.toggle_hotkey:
+            raise ValueError("Push-to-talk and toggle hotkeys must be different")
+        return self
 
     def save_to_file(self, filepath: str):
         """Save configuration to JSON file."""
         with open(filepath, "w") as f:
-            json.dump(asdict(self), f, indent=2)
+            f.write(self.model_dump_json(indent=2))
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "PushToTalkConfig":
@@ -106,8 +142,8 @@ class PushToTalkConfig:
             "enable_audio_feedback",  # Audio feedback toggle (runtime setting)
         }
 
-        # Get all fields from the dataclass
-        all_fields = {f.name for f in fields(self)}
+        # Get all fields from the Pydantic model
+        all_fields = set(self.__class__.model_fields.keys())
 
         # Compare all fields except the non-critical ones
         critical_fields = all_fields - non_critical_fields
@@ -120,12 +156,28 @@ class PushToTalkConfig:
 
 
 class PushToTalkApp:
-    def __init__(self, config: Optional[PushToTalkConfig] = None):
+    def __init__(
+        self,
+        config: Optional[PushToTalkConfig] = None,
+        audio_recorder: Optional[AudioRecorder] = None,
+        transcriber: Optional["TranscriberBase"] = None,
+        text_refiner: Optional[TextRefiner] = None,
+        text_inserter: Optional[TextInserter] = None,
+        hotkey_service: Optional[HotkeyService] = None,
+    ):
         """
         Initialize the PushToTalk application.
 
+        Supports dependency injection for testing and customization. If dependencies
+        are not provided, default instances will be created based on configuration.
+
         Args:
             config: Configuration object. If None, default config is used.
+            audio_recorder: Optional AudioRecorder instance. If None, created from config.
+            transcriber: Optional TranscriberBase instance. If None, created from config.
+            text_refiner: Optional TextRefiner instance. If None, created from config.
+            text_inserter: Optional TextInserter instance. If None, created from config.
+            hotkey_service: Optional HotkeyService instance. If None, created from config.
         """
         self.config = config or PushToTalkConfig()
 
@@ -147,24 +199,39 @@ class PushToTalkApp:
         else:
             raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
-        # Initialize components - this will be called by _initialize_components
-        self.audio_recorder = None
-        self.transcriber = None
-        self.text_refiner = None
-        self.text_inserter = None
-        self.hotkey_service = None
+        # Use injected dependencies or initialize to None (will be created in _initialize_components)
+        self.audio_recorder = audio_recorder
+        self.transcriber = transcriber
+        self.text_refiner = text_refiner
+        self.text_inserter = text_inserter
+        self.hotkey_service = hotkey_service
+
+        # Track which components were injected (to preserve them during reinitialization)
+        self._injected_audio_recorder = audio_recorder is not None
+        self._injected_transcriber = transcriber is not None
+        self._injected_text_refiner = text_refiner is not None
+        self._injected_text_inserter = text_inserter is not None
+        self._injected_hotkey_service = hotkey_service is not None
 
         # State management
         self.is_running = False
         self.processing_lock = threading.Lock()
 
-        # Initialize all components
+        # Initialize all components (only creates components that are None)
         self._initialize_components()
 
         logger.info("PushToTalk application initialized")
 
-    def _initialize_components(self):
-        """Initialize or reinitialize all components with current configuration."""
+    def _initialize_components(self, force_recreate: bool = False):
+        """Initialize or reinitialize all components with current configuration.
+
+        Args:
+            force_recreate: If True, recreate all components even if they exist.
+                           If False, only create components that are None (injected dependencies).
+
+        When force_recreate=False, injected dependencies are preserved (for testing).
+        When force_recreate=True, all components are recreated (for configuration updates).
+        """
         # Store whether hotkey service was running before cleanup
         hotkey_service_was_running = (
             self.hotkey_service and self.hotkey_service.is_service_running()
@@ -174,46 +241,48 @@ class PushToTalkApp:
         if self.hotkey_service:
             self.hotkey_service.stop_service()
 
-        # Initialize components
-        self.audio_recorder = AudioRecorder(
-            sample_rate=self.config.sample_rate,
-            chunk_size=self.config.chunk_size,
-            channels=self.config.channels,
+        # Determine which components to recreate
+        # Never recreate injected components (preserves mocks for testing)
+        # For non-injected components: recreate if force_recreate=True or if None
+        recreate_audio_recorder = not self._injected_audio_recorder and (
+            force_recreate or self.audio_recorder is None
+        )
+        recreate_transcriber = not self._injected_transcriber and (
+            force_recreate or self.transcriber is None
+        )
+        recreate_text_refiner = not self._injected_text_refiner and (
+            force_recreate or self.text_refiner is None
+        )
+        recreate_text_inserter = not self._injected_text_inserter and (
+            force_recreate or self.text_inserter is None
+        )
+        recreate_hotkey_service = not self._injected_hotkey_service and (
+            force_recreate or self.hotkey_service is None
         )
 
-        # Get the appropriate API key based on provider
-        if self.config.stt_provider == "openai":
-            api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
-        elif self.config.stt_provider == "deepgram":
-            api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
-        else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+        # Initialize audio recorder
+        if recreate_audio_recorder:
+            self.audio_recorder = self._create_default_audio_recorder()
 
-        # Create transcriber using factory
-        self.transcriber = TranscriberFactory.create_transcriber(
-            provider=self.config.stt_provider,
-            api_key=api_key,
-            model=self.config.stt_model,
-        )
+        # Initialize transcriber
+        if recreate_transcriber:
+            self.transcriber = self._create_default_transcriber()
 
-        self.text_refiner = (
-            TextRefiner(
-                api_key=self.config.openai_api_key, model=self.config.refinement_model
-            )
-            if self.config.enable_text_refinement
-            else None
-        )
+        # Initialize text refiner
+        if recreate_text_refiner:
+            self.text_refiner = self._create_default_text_refiner()
 
         # Set glossary if text refiner is enabled
         if self.text_refiner and self.config.custom_glossary:
             self.text_refiner.set_glossary(self.config.custom_glossary)
 
-        self.text_inserter = TextInserter(insertion_delay=self.config.insertion_delay)
+        # Initialize text inserter
+        if recreate_text_inserter:
+            self.text_inserter = self._create_default_text_inserter()
 
-        self.hotkey_service = HotkeyService(
-            hotkey=self.config.hotkey or None,
-            toggle_hotkey=self.config.toggle_hotkey or None,
-        )
+        # Initialize hotkey service
+        if recreate_hotkey_service:
+            self.hotkey_service = self._create_default_hotkey_service()
 
         # Setup hotkey callbacks
         self.hotkey_service.set_callbacks(
@@ -224,6 +293,51 @@ class PushToTalkApp:
         # Restart hotkey service if it was running before and application is still running
         if hotkey_service_was_running and self.is_running:
             self.hotkey_service.start_service()
+
+    def _create_default_audio_recorder(self) -> AudioRecorder:
+        """Create default AudioRecorder instance from configuration."""
+        return AudioRecorder(
+            sample_rate=self.config.sample_rate,
+            chunk_size=self.config.chunk_size,
+            channels=self.config.channels,
+        )
+
+    def _create_default_transcriber(self) -> TranscriberBase:
+        """Create default TranscriberBase instance from configuration."""
+        # Get the appropriate API key based on provider
+        if self.config.stt_provider == "openai":
+            api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+        elif self.config.stt_provider == "deepgram":
+            api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+
+        # Create transcriber using factory
+        return TranscriberFactory.create_transcriber(
+            provider=self.config.stt_provider,
+            api_key=api_key,
+            model=self.config.stt_model,
+        )
+
+    def _create_default_text_refiner(self) -> Optional[TextRefiner]:
+        """Create default TextRefiner instance from configuration."""
+        if self.config.enable_text_refinement:
+            return TextRefiner(
+                api_key=self.config.openai_api_key,
+                model=self.config.refinement_model,
+            )
+        return None
+
+    def _create_default_text_inserter(self) -> TextInserter:
+        """Create default TextInserter instance from configuration."""
+        return TextInserter(insertion_delay=self.config.insertion_delay)
+
+    def _create_default_hotkey_service(self) -> HotkeyService:
+        """Create default HotkeyService instance from configuration."""
+        return HotkeyService(
+            hotkey=self.config.hotkey or None,
+            toggle_hotkey=self.config.toggle_hotkey or None,
+        )
 
     def update_configuration(self, new_config: PushToTalkConfig):
         """
@@ -241,7 +355,7 @@ class PushToTalkApp:
         # Check if we need to reinitialize components
         if new_config.requires_component_reinitialization(old_config):
             logger.info("Configuration changes require component reinitialization")
-            self._initialize_components()
+            self._initialize_components(force_recreate=True)
         else:
             logger.info("Configuration updated without requiring component changes")
 
