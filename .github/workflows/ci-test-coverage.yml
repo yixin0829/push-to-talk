@@ -1,4 +1,4 @@
-name: test-cov
+name: CI Test Coverage
 
 on:
   push:
