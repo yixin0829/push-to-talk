@@ -1,7 +1,7 @@
 import os
 from loguru import logger
 import time
-from typing import Optional
+from typing import Optional, List
 from deepgram import DeepgramClient
 
 from src.transcription_base import TranscriberBase
@@ -10,6 +10,10 @@ from src.utils import validate_audio_file_exists, validate_audio_duration
 
 class DeepgramTranscriber(TranscriberBase):
     """Deepgram transcription implementation."""
+
+    # Approximate token limit for keyterms (Deepgram's limit is 500 tokens)
+    # We use a conservative estimate of ~100 characters per 20 tokens
+    MAX_KEYTERM_CHARS = 2000  # Conservative limit to stay under 500 tokens
 
     def __init__(self, api_key: Optional[str] = None, model: str = "nova-3"):
         """
@@ -64,6 +68,18 @@ class DeepgramTranscriber(TranscriberBase):
             if language:
                 options["language"] = language
 
+            # Add keyterm prompting if glossary is provided and model supports it
+            if self.glossary and self.model in ["nova-3"]:
+                # Prepare keyterms, limiting total character count to stay under token limit
+                keyterms = self._prepare_keyterms(self.glossary)
+                if keyterms:
+                    options["keyterm"] = keyterms
+                    logger.debug(f"Using {len(keyterms)} keyterms for transcription")
+            else:
+                logger.debug(
+                    "No keyterms provided or model not supported. Only support nova-3 model for keyterms."
+                )
+
             # Call Deepgram API
             response = self.client.listen.v1.media.transcribe_file(
                 request=audio_data, **options
@@ -97,3 +113,32 @@ class DeepgramTranscriber(TranscriberBase):
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
             return None
+
+    def _prepare_keyterms(self, glossary: List[str]) -> List[str]:
+        """
+        Prepare keyterms from glossary, limiting to stay under token limit.
+
+        Args:
+            glossary: List of custom terms/phrases
+
+        Returns:
+            List of keyterms to use, limited by token count
+        """
+        if not glossary:
+            return []
+
+        keyterms = []
+        total_chars = 0
+
+        for term in glossary:
+            term_length = len(term)
+            if total_chars + term_length + 1 > self.MAX_KEYTERM_CHARS:
+                logger.warning(
+                    f"Keyterm limit reached. Using first {len(keyterms)} of {len(glossary)} glossary terms"
+                )
+                break
+
+            keyterms.append(term)
+            total_chars += term_length + 1  # +1 for separator
+
+        return keyterms

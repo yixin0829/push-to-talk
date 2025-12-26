@@ -4,12 +4,10 @@ import types
 
 import pytest
 
-pyautogui_stub = types.SimpleNamespace(
-    hotkey=lambda *_, **__: None,
-    write=lambda *_, **__: None,
-    getActiveWindow=lambda: None,
-)
+from tests.test_helpers import create_pyautogui_stub
 
+# Setup pyautogui stub for imports
+pyautogui_stub = create_pyautogui_stub()
 sys.modules.setdefault("mouseinfo", types.SimpleNamespace())
 sys.modules.setdefault("pyautogui", pyautogui_stub)
 
@@ -39,6 +37,7 @@ def dependency_stubs(monkeypatch):
             self.channels = channels
             self.start_calls = 0
             self.stop_calls = 0
+            self.shutdown_calls = 0
             self.should_start = True
             self.audio_file = None
             tracker["audio_recorder"].append(self)
@@ -51,17 +50,24 @@ def dependency_stubs(monkeypatch):
             self.stop_calls += 1
             return self.audio_file
 
+        def shutdown(self):
+            self.shutdown_calls += 1
+
     class StubTranscriber:
         def __init__(self, api_key, model):
             self.api_key = api_key
             self.model = model
             self.last_path = None
             self.result = "transcribed text"
+            self.glossary = []
             tracker["transcriber"].append(self)
 
         def transcribe_audio(self, audio_path):
             self.last_path = audio_path
             return self.result
+
+        def set_glossary(self, glossary):
+            self.glossary = glossary if glossary else []
 
     class StubTextRefiner:
         def __init__(self, api_key, model):
@@ -131,12 +137,23 @@ def dependency_stubs(monkeypatch):
 
     class StubTranscriberFactory:
         @staticmethod
-        def create_transcriber(provider, api_key, model):
-            return StubTranscriber(api_key, model)
+        def create_transcriber(provider, api_key, model, glossary=None):
+            transcriber = StubTranscriber(api_key, model)
+            if glossary:
+                transcriber.set_glossary(glossary)
+            return transcriber
+
+    class StubTextRefinerFactory:
+        @staticmethod
+        def create_refiner(provider, api_key, model, glossary=None):
+            refiner = StubTextRefiner(api_key, model)
+            if glossary:
+                refiner.set_glossary(glossary)
+            return refiner
 
     monkeypatch.setattr(push_to_talk, "AudioRecorder", StubAudioRecorder)
     monkeypatch.setattr(push_to_talk, "TranscriberFactory", StubTranscriberFactory)
-    monkeypatch.setattr(push_to_talk, "TextRefiner", StubTextRefiner)
+    monkeypatch.setattr(push_to_talk, "TextRefinerFactory", StubTextRefinerFactory)
     monkeypatch.setattr(push_to_talk, "TextInserter", StubTextInserter)
     monkeypatch.setattr(push_to_talk, "HotkeyService", StubHotkeyService)
 
@@ -149,7 +166,10 @@ def make_app(dependency_stubs):
 
     def factory(config=None):
         config = config or push_to_talk.PushToTalkConfig(
-            stt_provider="openai", openai_api_key="test-key"
+            stt_provider="openai",
+            openai_api_key="test-key",
+            enable_text_refinement=True,
+            refinement_provider="openai",
         )
         return push_to_talk.PushToTalkApp(config)
 
@@ -189,6 +209,17 @@ def immediate_thread(monkeypatch):
             self.target()
 
     monkeypatch.setattr(push_to_talk.threading, "Thread", ImmediateThread)
+
+
+def process_queue(app):
+    """Helper to process commands in the queue synchronously."""
+    while not app.command_queue.empty():
+        cmd = app.command_queue.get()
+        if cmd == "START_RECORDING":
+            app._do_start_recording()
+        elif cmd == "STOP_RECORDING":
+            app._do_stop_recording()
+        app.command_queue.task_done()
 
 
 def test_config_save_and_load_roundtrip(tmp_path):
@@ -231,6 +262,7 @@ def test_initialization_wires_dependencies(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
         stt_provider="openai",
         openai_api_key="key",
+        refinement_provider="openai",
         custom_glossary=["ChatGPT"],
     )
 
@@ -292,6 +324,7 @@ def test_process_recorded_audio_pipeline(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert recorder.start_calls == 1
     assert recorder.stop_calls == 1
@@ -322,6 +355,7 @@ def test_process_recorded_audio_without_text(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert feedback_spy["start"] == 0
     assert feedback_spy["stop"] == 0
@@ -354,6 +388,7 @@ def test_process_recorded_audio_handles_refiner_failure(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     assert transcriber.last_path == str(audio_path)
     assert refiner.last_input == "draft"
@@ -372,7 +407,10 @@ def test_debug_mode_saves_audio(
     monkeypatch.chdir(tmp_path)
 
     config = push_to_talk.PushToTalkConfig(
-        stt_provider="openai", openai_api_key="test-key", debug_mode=True
+        stt_provider="openai",
+        openai_api_key="test-key",
+        refinement_provider="openai",
+        debug_mode=True,
     )
     app = make_app(config)
 
@@ -389,6 +427,7 @@ def test_debug_mode_saves_audio(
 
     app._on_start_recording()
     app._on_stop_recording()
+    process_queue(app)
 
     # Check debug directory was created
     debug_dirs = [d for d in tmp_path.iterdir() if d.name.startswith("debug_audio_")]
@@ -424,6 +463,8 @@ def test_update_configuration_reinitializes(make_app, dependency_stubs):
 
     assert dependency_stubs.last("audio_recorder") is not initial_recorder
     assert initial_service.stop_service_calls == 1
+    # Verify old audio recorder was properly shut down before creating new one
+    assert initial_recorder.shutdown_calls == 1
     assert app.config == new_config
 
 
@@ -472,6 +513,7 @@ def test_toggle_text_refinement_recreates_refiner(make_app, dependency_stubs):
     config = push_to_talk.PushToTalkConfig(
         stt_provider="openai",
         openai_api_key="key",
+        refinement_provider="openai",
         custom_glossary=["api"],
     )
     app = make_app(config)
@@ -499,6 +541,7 @@ def test_on_start_recording_failure(make_app, dependency_stubs, feedback_spy):
     recorder.should_start = False
 
     app._on_start_recording()
+    process_queue(app)
 
     assert recorder.start_calls == 1
     assert feedback_spy["start"] == 1

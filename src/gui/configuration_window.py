@@ -14,6 +14,7 @@ from src.gui.audio_section import AudioSection
 from src.gui.hotkey_section import HotkeySection
 from src.gui.settings_section import TextInsertionSection, FeatureFlagsSection
 from src.gui.glossary_section import GlossarySection
+from src.gui.prompt_section import PromptSection
 from src.gui.status_section import StatusSection
 from src.gui.validators import validate_configuration
 from src.gui.config_persistence import ConfigurationPersistence
@@ -26,6 +27,7 @@ class ConfigurationWindow:
         self,
         config: PushToTalkConfig,
         on_config_changed: Callable[[PushToTalkConfig], None] | None = None,
+        config_file_path: str = "push_to_talk_config.json",
     ):
         """
         Initialize the configuration window.
@@ -33,9 +35,11 @@ class ConfigurationWindow:
         Args:
             config: Current configuration object
             on_config_changed: Callback function called when configuration is updated
+            config_file_path: Path to the configuration file for persistence
         """
         self.config = config
         self.on_config_changed = on_config_changed
+        self.config_file_path = config_file_path
         self.root = None
         self.result = None  # To store user's choice
 
@@ -51,6 +55,7 @@ class ConfigurationWindow:
         self.text_insertion_section = None
         self.feature_flags_section = None
         self.glossary_section = None
+        self.prompt_section = None
         self.status_section = None
 
         # Main action button
@@ -60,6 +65,7 @@ class ConfigurationWindow:
         self._variable_traces: list[tuple[tk.Variable, str]] = []
         self._suspend_change_events = False
         self._pending_update_job: str | None = None
+        self._initialization_complete = False  # Track if initial setup is done
 
         # Configuration persistence
         self._config_persistence = ConfigurationPersistence()
@@ -68,7 +74,7 @@ class ConfigurationWindow:
         """Create and return the main GUI window."""
         self.root = tk.Tk()
         self.root.title("PushToTalk Configuration")
-        self.root.geometry("600x800")
+        self.root.geometry("950x1200")
         self.root.resizable(True, True)
 
         # Configure icon if available
@@ -118,6 +124,12 @@ class ConfigurationWindow:
             self.config.custom_glossary,
             on_change=self._on_config_changed,
         )
+        self.prompt_section = PromptSection(
+            scrollable_frame,
+            self.root,
+            self.config.custom_refinement_prompt,
+            on_change=self._on_config_changed,
+        )
         self.feature_flags_section = FeatureFlagsSection(scrollable_frame)
         self.status_section = StatusSection(scrollable_frame)
         self._create_buttons_section(scrollable_frame)
@@ -127,6 +139,9 @@ class ConfigurationWindow:
 
         # Monitor configuration variables for live updates
         self._setup_variable_traces()
+
+        # Mark initialization as complete - now changes should trigger saves
+        self._initialization_complete = True
 
         # Center the window
         self.root.update_idletasks()
@@ -224,7 +239,9 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.api_section.stt_provider_var,
                         self.api_section.openai_api_key_var,
                         self.api_section.deepgram_api_key_var,
+                        self.api_section.cerebras_api_key_var,
                         self.api_section.stt_model_var,
+                        self.api_section.refinement_provider_var,
                         self.api_section.refinement_model_var,
                     ]
                 )
@@ -320,7 +337,9 @@ Configure your settings below, then click "Start Application" to begin:"""
             self.status_section.update_display(True, new_config)
 
         # Save configuration to JSON file for persistence
-        self._config_persistence.save_async(new_config)
+        # Only save if initialization is complete to avoid overwriting loaded config
+        if self._initialization_complete:
+            self._config_persistence.save_async(new_config, self.config_file_path)
 
     def _get_config_from_sections(self) -> PushToTalkConfig:
         """Create a configuration object from current section values."""
@@ -333,7 +352,9 @@ Configure your settings below, then click "Start Application" to begin:"""
             stt_provider=api_values["stt_provider"],
             openai_api_key=api_values["openai_api_key"],
             deepgram_api_key=api_values["deepgram_api_key"],
+            cerebras_api_key=api_values["cerebras_api_key"],
             stt_model=api_values["stt_model"],
+            refinement_provider=api_values["refinement_provider"],
             refinement_model=api_values["refinement_model"],
             sample_rate=audio_values["sample_rate"],
             chunk_size=audio_values["chunk_size"],
@@ -346,6 +367,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             enable_audio_feedback=feature_values["enable_audio_feedback"],
             debug_mode=feature_values["debug_mode"],
             custom_glossary=self.glossary_section.get_terms(),
+            custom_refinement_prompt=self.prompt_section.get_prompt(),
         )
 
     def _update_sections_from_config(self, config: PushToTalkConfig):
@@ -356,7 +378,9 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.stt_provider,
                 config.openai_api_key,
                 config.deepgram_api_key,
+                config.cerebras_api_key,
                 config.stt_model,
+                config.refinement_provider,
                 config.refinement_model,
             )
             self.audio_section.set_values(
@@ -371,6 +395,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.debug_mode,
             )
             self.glossary_section.set_terms(config.custom_glossary)
+            self.prompt_section.set_prompt(config.custom_refinement_prompt)
         finally:
             self._suspend_change_events = False
 
@@ -409,8 +434,8 @@ Configure your settings below, then click "Start Application" to begin:"""
             # Update config object
             self.config = config
 
-            # Save to default file
-            self._config_persistence.save_sync(config, "push_to_talk_config.json")
+            # Save to config file
+            self._config_persistence.save_sync(config, self.config_file_path)
 
             # Import here to avoid circular imports
             from src.push_to_talk import PushToTalkApp

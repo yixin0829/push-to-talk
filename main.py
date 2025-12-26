@@ -3,18 +3,11 @@
 PushToTalk GUI Application Entry Point
 
 Run this script to start the push-to-talk speech-to-text application with GUI configuration.
-
-Requirements:
-- Set OPENAI_API_KEY environment variable or configure in GUI
-- Ensure microphone permissions are granted
-- Run with administrator privileges on Windows for hotkey detection
-
-Usage:
-    python main.py
 """
 
 import sys
 import os
+import argparse
 import tkinter as tk
 from tkinter import messagebox
 from loguru import logger
@@ -22,13 +15,46 @@ from loguru import logger
 from src.push_to_talk import PushToTalkConfig
 from src.gui import show_configuration_gui
 
-# Configure loguru for GUI mode - only log to file
-logger.remove()  # Remove default handler
-logger.add("push_to_talk.log", level="INFO")
+
+def setup_logging(debug_mode: bool = False):
+    """
+    Configure logging based on debug mode.
+
+    Args:
+        debug_mode: If True, logs to both console and file. If False, logs to file only.
+    """
+    # Remove default handler
+    logger.remove()
+
+    if debug_mode:
+        # Add console handler with detailed format for debugging
+        logger.add(
+            sys.stderr,
+            level="DEBUG",
+            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        )
+        # Also add file handler
+        logger.add("push_to_talk.log", level="DEBUG")
+        logger.info("Debug mode enabled - logging to console and file")
+    else:
+        # Configure loguru for GUI mode - only log to file
+        logger.add("push_to_talk.log", level="INFO")
 
 
 def main():
     """Main entry point for the GUI application."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="PushToTalk - Speech to Text Application"
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Enable debug mode with console logging"
+    )
+    args = parser.parse_args()
+
+    # Setup logging based on debug flag
+    setup_logging(debug_mode=args.debug)
+
     try:
         # Load existing config if it exists
         config_file = "push_to_talk_config.json"
