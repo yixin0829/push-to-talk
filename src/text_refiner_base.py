@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 from loguru import logger
+from src.config.prompts import (
+    text_refiner_prompt_wo_glossary,
+    text_refiner_prompt_w_glossary,
+)
 
 
 class TextRefinerBase(ABC):
@@ -73,11 +77,35 @@ class TextRefinerBase(ABC):
     def _get_default_developer_prompt(self) -> str:
         """
         Get the default developer prompt based on glossary availability.
-        Should be implemented by subclasses if they use prompts.
 
         Returns:
             Formatted developer prompt string
         """
-        raise NotImplementedError(
-            "Subclass must implement _get_default_developer_prompt"
-        )
+        if self.glossary:
+            # Format glossary terms into a bullet list
+            formatted_glossary = "\n".join(
+                f"- {term}" for term in sorted(self.glossary, key=str.lower)
+            )
+            return text_refiner_prompt_w_glossary.format(
+                custom_glossary=formatted_glossary
+            )
+        else:
+            return text_refiner_prompt_wo_glossary
+
+    def _format_custom_prompt(self) -> str:
+        """
+        Format the custom prompt, substituting the glossary placeholder if present.
+
+        Returns:
+            Formatted custom prompt string with glossary substituted
+        """
+        prompt = self.custom_refinement_prompt
+        if "{custom_glossary}" in prompt:
+            if self.glossary:
+                formatted_glossary = "\n".join(
+                    f"- {term}" for term in sorted(self.glossary, key=str.lower)
+                )
+            else:
+                formatted_glossary = "(No glossary terms configured)"
+            prompt = prompt.replace("{custom_glossary}", formatted_glossary)
+        return prompt

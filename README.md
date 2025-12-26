@@ -148,6 +148,13 @@ The application features a sophisticated real-time configuration system that app
 - **Search Functionality**: Quickly find and manage existing terms
 - **Automatic Integration**: Glossary terms are automatically included in transcription refinement
 
+### Custom Refinement Prompt
+- **Customizable System Prompt**: Create your own text refinement instructions
+- **Glossary Placeholder**: Use `{custom_glossary}` placeholder to include glossary terms in your prompt
+- **Copy Default Buttons**: Start from default prompts (with or without glossary) as templates
+- **Reference Section**: View default prompts in collapsible reference panel
+- **Live Updates**: Changes apply immediately to running application
+
 
 ## How to Use
 
@@ -212,7 +219,8 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "enable_logging": true,
   "enable_audio_feedback": true,
   "debug_mode": false,
-  "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"]
+  "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"],
+  "custom_refinement_prompt": ""
 }
 ```
 
@@ -238,6 +246,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `enable_audio_feedback` | boolean | `true` | Whether to play audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
 | `debug_mode` | boolean | `false` | Whether to enable debug mode. When enabled, recorded audio files are saved to timestamped debug directories (e.g., `debug_audio_20231215_143022_456/`) with recording metadata for troubleshooting. |
 | `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
+| `custom_refinement_prompt` | string | `""` | Custom system prompt for text refinement. Leave empty to use default prompts. Use `{custom_glossary}` placeholder to include glossary terms dynamically. |
 
 #### Audio Quality Settings
 

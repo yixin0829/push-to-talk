@@ -52,7 +52,7 @@ class APISection:
         self.deepgram_stt_model = "nova-3"
 
         # Provider-specific refinement model selections
-        self.openai_refinement_model = "gpt-5-nano"
+        self.openai_refinement_model = "gpt-4.1-nano"
         self.cerebras_refinement_model = "llama-3.3-70b"
 
         self._create_widgets()
@@ -232,6 +232,8 @@ class APISection:
                 "gpt-4.1",
                 "gpt-4.1-mini",
                 "gpt-4.1-nano",
+                "gpt-4o-mini",
+                "gpt-4o",
             ],
             state="readonly",
             width=20,
@@ -334,6 +336,8 @@ class APISection:
             "gpt-4.1",
             "gpt-4.1-mini",
             "gpt-4.1-nano",
+            "gpt-4o-mini",
+            "gpt-4o",
         ]
         cerebras_models = [
             "llama-3.3-70b",
@@ -464,6 +468,8 @@ class APISection:
                     "gpt-4.1",
                     "gpt-4.1-mini",
                     "gpt-4.1-nano",
+                    "gpt-4o-mini",
+                    "gpt-4o",
                 ]
             elif provider == "cerebras":
                 models = [

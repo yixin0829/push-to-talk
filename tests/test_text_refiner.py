@@ -366,3 +366,102 @@ class TestTextRefinerOpenAI:
         assert result == text_19_chars  # Should return original
 
         logger.info("Refine text length boundary test passed")
+
+    def test_format_custom_prompt_with_glossary_placeholder(self):
+        """Test _format_custom_prompt substitutes glossary placeholder correctly"""
+        logger.info("Testing custom prompt with glossary placeholder")
+
+        # Set a custom prompt with placeholder
+        custom_prompt = "Refine text.\n\nGlossary:\n{custom_glossary}\n\nInstructions: Follow the glossary."
+        self.refiner.set_custom_prompt(custom_prompt)
+
+        # Set glossary terms
+        self.refiner.set_glossary(["API", "OAuth", "Pydantic"])
+
+        # Call _format_custom_prompt
+        formatted = self.refiner._format_custom_prompt()
+
+        # Verify the placeholder was substituted
+        assert "{custom_glossary}" not in formatted
+        assert "- API" in formatted
+        assert "- OAuth" in formatted
+        assert "- Pydantic" in formatted
+        # Verify alphabetical order
+        assert (
+            formatted.index("- API")
+            < formatted.index("- OAuth")
+            < formatted.index("- Pydantic")
+        )
+
+        logger.info("Custom prompt with glossary placeholder test passed")
+
+    def test_format_custom_prompt_without_placeholder(self):
+        """Test _format_custom_prompt leaves prompt unchanged without placeholder"""
+        logger.info("Testing custom prompt without glossary placeholder")
+
+        # Set a custom prompt without placeholder
+        custom_prompt = "Just refine the text. No glossary needed."
+        self.refiner.set_custom_prompt(custom_prompt)
+
+        # Set glossary terms (should be ignored)
+        self.refiner.set_glossary(["API", "OAuth"])
+
+        # Call _format_custom_prompt
+        formatted = self.refiner._format_custom_prompt()
+
+        # Verify the prompt is unchanged
+        assert formatted == custom_prompt
+        assert "API" not in formatted
+        assert "OAuth" not in formatted
+
+        logger.info("Custom prompt without glossary placeholder test passed")
+
+    def test_format_custom_prompt_empty_glossary(self):
+        """Test _format_custom_prompt with empty glossary substitutes message"""
+        logger.info("Testing custom prompt with empty glossary")
+
+        # Set a custom prompt with placeholder
+        custom_prompt = "Refine text.\n\nGlossary:\n{custom_glossary}"
+        self.refiner.set_custom_prompt(custom_prompt)
+
+        # Don't set any glossary terms
+        self.refiner.set_glossary([])
+
+        # Call _format_custom_prompt
+        formatted = self.refiner._format_custom_prompt()
+
+        # Verify placeholder was replaced with message
+        assert "{custom_glossary}" not in formatted
+        assert "(No glossary terms configured)" in formatted
+
+        logger.info("Custom prompt with empty glossary test passed")
+
+    def test_custom_prompt_with_glossary_in_refine_text(self, mocker):
+        """Test that custom prompt with glossary is correctly used in refine_text"""
+        logger.info("Testing custom prompt with glossary in refine_text")
+
+        # Set custom prompt with placeholder
+        custom_prompt = (
+            "Custom prompt.\n\nGlossary:\n{custom_glossary}\n\nRefine the text."
+        )
+        self.refiner.set_custom_prompt(custom_prompt)
+        self.refiner.set_glossary(["TestTerm"])
+
+        mock_response = MagicMock()
+        mock_response.output_text = "Refined with custom prompt and glossary"
+        mock_create = mocker.patch.object(
+            self.refiner.client.responses, "create", return_value=mock_response
+        )
+
+        raw_text = "text to refine with custom prompt and glossary"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "Refined with custom prompt and glossary"
+
+        # Verify the formatted prompt (with substituted glossary) was used
+        call_args = mock_create.call_args
+        used_prompt = call_args[1]["instructions"]
+        assert "{custom_glossary}" not in used_prompt
+        assert "- TestTerm" in used_prompt
+
+        logger.info("Custom prompt with glossary in refine_text test passed")

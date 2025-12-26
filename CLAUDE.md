@@ -62,6 +62,7 @@ build_script/build_linux.sh     # Linux
 
 ### GUI Modular Structure
 See [src/gui/](src/gui/) for all modules. Each module under 350 lines for maintainability.
+- [src/gui/prompt_section.py](src/gui/prompt_section.py) - Custom refinement prompt editor
 
 ### Key Patterns
 
@@ -157,8 +158,21 @@ The application uses loguru instead of Python's standard logging:
 - No need to create logger instances with `getLogger(__name__)` in individual files
 
 ### Text Refinement Prompt System
-The application uses a dual-prompt system in `src/config/prompts.py`:
+The application uses a flexible prompt system with default and custom prompt support:
+
+**Default Prompts** (`src/config/prompts.py`):
 - `text_refiner_prompt_w_glossary`: Used when custom glossary terms are configured
 - `text_refiner_prompt_wo_glossary`: Used when no glossary terms are present
-- TextRefiner automatically switches between prompts via `_get_appropriate_prompt()` method
-- Custom glossary terms are formatted into the prompt dynamically using `{custom_glossary}` placeholder
+- TextRefiner automatically switches between prompts via `_get_default_developer_prompt()` method
+
+**Custom Prompts**:
+- Users can configure `custom_refinement_prompt` in `PushToTalkConfig`
+- When set, custom prompt overrides the default prompt selection
+- The `{custom_glossary}` placeholder can be used in custom prompts
+- Placeholder is substituted with formatted glossary terms via `_format_custom_prompt()` method
+- If placeholder is absent, glossary is simply not included (user's choice)
+
+**Implementation**:
+- Base class: `set_custom_prompt()`, `get_current_prompt()` in [src/text_refiner_base.py](src/text_refiner_base.py)
+- Custom prompt formatting: `_format_custom_prompt()` in each refiner implementation
+- GUI: [src/gui/prompt_section.py](src/gui/prompt_section.py) - multiline text editor with copy default buttons
