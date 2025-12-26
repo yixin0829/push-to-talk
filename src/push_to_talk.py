@@ -4,68 +4,118 @@ import time
 from loguru import logger
 import threading
 import signal
+import queue
 from typing import Optional, Dict, Any
-from dataclasses import dataclass, asdict, field
 import json
 
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+
 from src.audio_recorder import AudioRecorder
-from src.audio_processor import AudioProcessor
-from src.transcription import Transcriber
-from src.text_refiner import TextRefiner
+from src.transcriber_factory import TranscriberFactory
+from src.transcription_base import TranscriberBase
+from src.text_refiner_base import TextRefinerBase
+from src.text_refiner_factory import TextRefinerFactory
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
 
 
-@dataclass
-class PushToTalkConfig:
-    """Configuration class for PushToTalk application."""
+def _get_default_hotkey() -> str:
+    """Get platform-specific default hotkey."""
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
 
-    # OpenAI settings
-    openai_api_key: str = ""
-    stt_model: str = "gpt-4o-mini-transcribe"
-    refinement_model: str = "gpt-4.1-nano"
+
+def _get_default_toggle_hotkey() -> str:
+    """Get platform-specific default toggle hotkey."""
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
+
+
+class PushToTalkConfig(BaseModel):
+    """Configuration class for PushToTalk application with Pydantic validation."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    # Transcription provider settings
+    stt_provider: str = Field(
+        default="deepgram", description="STT provider: 'openai' or 'deepgram'"
+    )
+    openai_api_key: str = Field(default="", description="OpenAI API key")
+    deepgram_api_key: str = Field(default="", description="Deepgram API key")
+    stt_model: str = Field(default="nova-3", description="STT model name")
+
+    # Text refinement settings
+    refinement_provider: str = Field(
+        default="cerebras",
+        description="Text refinement provider: 'openai' or 'cerebras'",
+    )
+    refinement_model: str = Field(
+        default="llama-3.3-70b", description="Model for text refinement"
+    )
+    cerebras_api_key: str = Field(default="", description="Cerebras API key")
 
     # Audio settings
-    sample_rate: int = 16000
-    chunk_size: int = 1024
-    channels: int = 1
+    sample_rate: int = Field(default=16000, gt=0, description="Audio sample rate in Hz")
+    chunk_size: int = Field(default=1024, gt=0, description="Audio chunk size")
+    channels: int = Field(default=1, gt=0, le=2, description="Audio channels (1 or 2)")
 
-    # Hotkey settings - will use platform-specific defaults if empty
-    hotkey: str = field(
-        default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
-        )
+    # Hotkey settings - will use platform-specific defaults
+    hotkey: str = Field(
+        default_factory=_get_default_hotkey, description="Push-to-talk hotkey"
     )
-    toggle_hotkey: str = field(
-        default_factory=lambda: (
-            f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
-        )
+    toggle_hotkey: str = Field(
+        default_factory=_get_default_toggle_hotkey, description="Toggle hotkey"
     )
-
-    # Text insertion settings
-    insertion_method: str = "clipboard"  # "clipboard" or "sendkeys"
-    insertion_delay: float = 0.005
 
     # Feature flags
-    enable_text_refinement: bool = True
-    enable_logging: bool = True
-    enable_audio_feedback: bool = True
-    enable_audio_processing: bool = True
-    debug_mode: bool = False
-
-    # Audio processing settings (pydub-compatible)
-    silence_threshold: float = -16.0  # dBFS threshold for pydub (negative value)
-    min_silence_duration: float = 400.0  # milliseconds for pydub
-    speed_factor: float = 1.5
+    enable_text_refinement: bool = Field(
+        default=True, description="Enable text refinement"
+    )
+    enable_logging: bool = Field(default=True, description="Enable logging")
+    enable_audio_feedback: bool = Field(
+        default=True, description="Enable audio feedback"
+    )
+    debug_mode: bool = Field(default=False, description="Enable debug mode")
 
     # Custom glossary for transcription refinement
-    custom_glossary: list[str] = field(default_factory=list)
+    custom_glossary: list[str] = Field(
+        default_factory=list, description="Custom glossary terms"
+    )
+
+    # Custom refinement prompt
+    custom_refinement_prompt: str = Field(
+        default="",
+        description="Custom text refinement prompt. Use {custom_glossary} placeholder for glossary terms.",
+    )
+
+    @field_validator("stt_provider")
+    @classmethod
+    def validate_stt_provider(cls, v: str) -> str:
+        """Validate STT provider is either 'openai' or 'deepgram'."""
+        if v not in ["openai", "deepgram"]:
+            raise ValueError(f"stt_provider must be 'openai' or 'deepgram', got '{v}'")
+        return v
+
+    @field_validator("refinement_provider")
+    @classmethod
+    def validate_refinement_provider(cls, v: str) -> str:
+        """Validate refinement provider is either 'openai' or 'cerebras'."""
+        if v not in ["openai", "cerebras"]:
+            raise ValueError(
+                f"refinement_provider must be 'openai' or 'cerebras', got '{v}'"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_hotkeys_different(self) -> "PushToTalkConfig":
+        """Validate that push-to-talk and toggle hotkeys are different."""
+        if self.hotkey == self.toggle_hotkey:
+            raise ValueError("Push-to-talk and toggle hotkeys must be different")
+        return self
 
     def save_to_file(self, filepath: str):
         """Save configuration to JSON file."""
         with open(filepath, "w") as f:
-            json.dump(asdict(self), f, indent=2)
+            f.write(self.model_dump_json(indent=2))
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "PushToTalkConfig":
@@ -78,94 +128,269 @@ class PushToTalkConfig:
             logger.warning(f"Failed to load config from {filepath}: {e}")
             return cls()
 
+    def requires_component_reinitialization(self, other: "PushToTalkConfig") -> bool:
+        """
+        Check if component reinitialization is required when comparing with another config.
+
+        This method implements smart component reinitialization by categorizing fields
+        as either "critical" (requiring expensive component recreation) or "non-critical"
+        (runtime-only settings that can be updated without reinitialization).
+
+        Critical Fields (require reinitialization):
+        - API keys, model settings (transcriber/refiner must be recreated)
+        - Audio parameters (audio recorder must be recreated)
+        - Hotkeys (hotkey service must be recreated)
+        - Processing settings (audio processor must be recreated)
+        - Custom glossary (text refiner must be updated)
+
+        Non-Critical Fields (runtime-only changes):
+        - enable_logging: Runtime logging toggle
+        - enable_audio_feedback: Runtime audio feedback toggle
+
+        Args:
+            other: The other configuration to compare against
+
+        Returns:
+            True if component reinitialization is needed, False otherwise
+        """
+        # Fields that do NOT require component reinitialization when changed
+        # These are UI-only or runtime-only settings that don't affect core components
+        non_critical_fields = {
+            "enable_logging",  # Logging toggle (runtime setting)
+            "enable_audio_feedback",  # Audio feedback toggle (runtime setting)
+        }
+
+        # Get all fields from the Pydantic model
+        all_fields = set(self.__class__.model_fields.keys())
+
+        # Compare all fields except the non-critical ones
+        critical_fields = all_fields - non_critical_fields
+
+        for field_name in critical_fields:
+            if getattr(self, field_name) != getattr(other, field_name):
+                return True
+
+        return False
+
 
 class PushToTalkApp:
-    def __init__(self, config: Optional[PushToTalkConfig] = None):
+    def __init__(
+        self,
+        config: Optional[PushToTalkConfig] = None,
+        audio_recorder: Optional[AudioRecorder] = None,
+        transcriber: Optional["TranscriberBase"] = None,
+        text_refiner: Optional[TextRefinerBase] = None,
+        text_inserter: Optional[TextInserter] = None,
+        hotkey_service: Optional[HotkeyService] = None,
+    ):
         """
         Initialize the PushToTalk application.
 
+        Supports dependency injection for testing and customization. If dependencies
+        are not provided, default instances will be created based on configuration.
+
         Args:
             config: Configuration object. If None, default config is used.
+            audio_recorder: Optional AudioRecorder instance. If None, created from config.
+            transcriber: Optional TranscriberBase instance. If None, created from config.
+            text_refiner: Optional TextRefiner instance. If None, created from config.
+            text_inserter: Optional TextInserter instance. If None, created from config.
+            hotkey_service: Optional HotkeyService instance. If None, created from config.
         """
         self.config = config or PushToTalkConfig()
 
-        # Validate OpenAI API key
-        if not self.config.openai_api_key:
-            self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+        # Validate API key based on selected provider
+        if self.config.stt_provider == "openai":
             if not self.config.openai_api_key:
-                raise ValueError(
-                    "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
-                )
+                self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
+                if not self.config.openai_api_key:
+                    raise ValueError(
+                        "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
+                    )
+        elif self.config.stt_provider == "deepgram":
+            if not self.config.deepgram_api_key:
+                self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
+                if not self.config.deepgram_api_key:
+                    raise ValueError(
+                        "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
+                    )
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
 
-        # Initialize components - this will be called by _initialize_components
-        self.audio_recorder = None
-        self.audio_processor = None
-        self.transcriber = None
-        self.text_refiner = None
-        self.text_inserter = None
-        self.hotkey_service = None
+        # Use injected dependencies or initialize to None (will be created in _initialize_components)
+        self.audio_recorder = audio_recorder
+        self.transcriber = transcriber
+        self.text_refiner = text_refiner
+        self.text_inserter = text_inserter
+        self.hotkey_service = hotkey_service
+
+        # Track which components were injected (to preserve them during reinitialization)
+        self._injected_audio_recorder = audio_recorder is not None
+        self._injected_transcriber = transcriber is not None
+        self._injected_text_refiner = text_refiner is not None
+        self._injected_text_inserter = text_inserter is not None
+        self._injected_hotkey_service = hotkey_service is not None
 
         # State management
         self.is_running = False
         self.processing_lock = threading.Lock()
 
-        # Initialize all components
+        # Command queue for handling hotkey events
+        self.command_queue = queue.Queue()
+        self.worker_thread = None
+
+        # Initialize all components (only creates components that are None)
         self._initialize_components()
 
         logger.info("PushToTalk application initialized")
 
-    def _initialize_components(self):
-        """Initialize or reinitialize all components with current configuration."""
+    def _initialize_components(self, force_recreate: bool = False):
+        """Initialize or reinitialize all components with current configuration.
+
+        Args:
+            force_recreate: If True, recreate all components even if they exist.
+                           If False, only create components that are None (injected dependencies).
+
+        When force_recreate=False, injected dependencies are preserved (for testing).
+        When force_recreate=True, all components are recreated (for configuration updates).
+        """
+        # Store whether hotkey service was running before cleanup
+        hotkey_service_was_running = (
+            self.hotkey_service and self.hotkey_service.is_service_running()
+        )
+
         # Clean up existing components if they exist
         if self.hotkey_service:
-            self.hotkey_service.stop()
+            self.hotkey_service.stop_service()
 
-        # Initialize components
-        self.audio_recorder = AudioRecorder(
-            sample_rate=self.config.sample_rate,
-            chunk_size=self.config.chunk_size,
-            channels=self.config.channels,
+        # Clean up audio recorder before recreating (PyAudio resources must be explicitly released)
+        if self.audio_recorder and not self._injected_audio_recorder and force_recreate:
+            self.audio_recorder.shutdown()
+
+        # Determine which components to recreate
+        # Never recreate injected components (preserves mocks for testing)
+        # For non-injected components: recreate if force_recreate=True or if None
+        recreate_audio_recorder = not self._injected_audio_recorder and (
+            force_recreate or self.audio_recorder is None
+        )
+        recreate_transcriber = not self._injected_transcriber and (
+            force_recreate or self.transcriber is None
+        )
+        recreate_text_refiner = not self._injected_text_refiner and (
+            force_recreate or self.text_refiner is None
+        )
+        recreate_text_inserter = not self._injected_text_inserter and (
+            force_recreate or self.text_inserter is None
+        )
+        recreate_hotkey_service = not self._injected_hotkey_service and (
+            force_recreate or self.hotkey_service is None
         )
 
-        self.audio_processor = (
-            AudioProcessor(
-                silence_threshold=self.config.silence_threshold,  # dBFS threshold for pydub
-                min_silence_duration=self.config.min_silence_duration,  # milliseconds for pydub
-                speed_factor=self.config.speed_factor,
-                keep_silence=80,  # Keep 80ms of silence at chunk boundaries
-                debug_mode=self.config.debug_mode,
-            )
-            if self.config.enable_audio_processing
-            else None
-        )
+        # Initialize audio recorder
+        if recreate_audio_recorder:
+            self.audio_recorder = self._create_default_audio_recorder()
 
-        self.transcriber = Transcriber(
-            api_key=self.config.openai_api_key, model=self.config.stt_model
-        )
+        # Initialize transcriber
+        if recreate_transcriber:
+            self.transcriber = self._create_default_transcriber()
 
-        self.text_refiner = (
-            TextRefiner(
-                api_key=self.config.openai_api_key, model=self.config.refinement_model
-            )
-            if self.config.enable_text_refinement
-            else None
-        )
+        # Initialize text refiner
+        if recreate_text_refiner:
+            self.text_refiner = self._create_default_text_refiner()
 
-        # Set glossary if text refiner is enabled
-        if self.text_refiner and self.config.custom_glossary:
-            self.text_refiner.set_glossary(self.config.custom_glossary)
+        # Set glossary and custom prompt if text refiner is enabled
+        if self.text_refiner:
+            if self.config.custom_glossary:
+                self.text_refiner.set_glossary(self.config.custom_glossary)
+            if self.config.custom_refinement_prompt:
+                self.text_refiner.set_custom_prompt(
+                    self.config.custom_refinement_prompt
+                )
 
-        self.text_inserter = TextInserter(insertion_delay=self.config.insertion_delay)
+        # Set glossary for transcriber if enabled
+        if self.transcriber:
+            self.transcriber.set_glossary(self.config.custom_glossary)
 
-        self.hotkey_service = HotkeyService(
-            hotkey=self.config.hotkey or None,
-            toggle_hotkey=self.config.toggle_hotkey or None,
-        )
+        # Initialize text inserter
+        if recreate_text_inserter:
+            self.text_inserter = self._create_default_text_inserter()
+
+        # Initialize hotkey service
+        if recreate_hotkey_service:
+            self.hotkey_service = self._create_default_hotkey_service()
 
         # Setup hotkey callbacks
         self.hotkey_service.set_callbacks(
             on_start_recording=self._on_start_recording,
             on_stop_recording=self._on_stop_recording,
+        )
+
+        # Restart hotkey service if it was running before and application is still running
+        if hotkey_service_was_running and self.is_running:
+            self.hotkey_service.start_service()
+
+    def _create_default_audio_recorder(self) -> AudioRecorder:
+        """Create default AudioRecorder instance from configuration."""
+        return AudioRecorder(
+            sample_rate=self.config.sample_rate,
+            chunk_size=self.config.chunk_size,
+            channels=self.config.channels,
+        )
+
+    def _create_default_transcriber(self) -> TranscriberBase:
+        """Create default TranscriberBase instance from configuration."""
+        # Get the appropriate API key based on provider
+        if self.config.stt_provider == "openai":
+            api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+        elif self.config.stt_provider == "deepgram":
+            api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+        else:
+            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+
+        # Create transcriber using factory with glossary
+        return TranscriberFactory.create_transcriber(
+            provider=self.config.stt_provider,
+            api_key=api_key,
+            model=self.config.stt_model,
+            glossary=self.config.custom_glossary,
+        )
+
+    def _create_default_text_refiner(self) -> Optional[TextRefinerBase]:
+        """Create default TextRefiner instance from configuration."""
+        if self.config.enable_text_refinement:
+            # Get the appropriate API key based on provider
+            if self.config.refinement_provider == "openai":
+                api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+            elif self.config.refinement_provider == "cerebras":
+                api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
+            else:
+                raise ValueError(
+                    f"Unknown refinement provider: {self.config.refinement_provider}"
+                )
+
+            if not api_key:
+                raise ValueError(
+                    f"{self.config.refinement_provider.upper()} API key is required for text refinement. "
+                    f"Set {self.config.refinement_provider.upper()}_API_KEY environment variable or provide in config."
+                )
+
+            return TextRefinerFactory.create_refiner(
+                provider=self.config.refinement_provider,
+                api_key=api_key,
+                model=self.config.refinement_model,
+                glossary=self.config.custom_glossary,
+            )
+        return None
+
+    def _create_default_text_inserter(self) -> TextInserter:
+        """Create default TextInserter instance from configuration."""
+        return TextInserter()
+
+    def _create_default_hotkey_service(self) -> HotkeyService:
+        """Create default HotkeyService instance from configuration."""
+        return HotkeyService(
+            hotkey=self.config.hotkey or None,
+            toggle_hotkey=self.config.toggle_hotkey or None,
         )
 
     def update_configuration(self, new_config: PushToTalkConfig):
@@ -182,28 +407,9 @@ class PushToTalkApp:
         self.config = new_config
 
         # Check if we need to reinitialize components
-        needs_reinit = (
-            old_config.openai_api_key != new_config.openai_api_key
-            or old_config.stt_model != new_config.stt_model
-            or old_config.refinement_model != new_config.refinement_model
-            or old_config.sample_rate != new_config.sample_rate
-            or old_config.chunk_size != new_config.chunk_size
-            or old_config.channels != new_config.channels
-            or old_config.hotkey != new_config.hotkey
-            or old_config.toggle_hotkey != new_config.toggle_hotkey
-            or old_config.insertion_delay != new_config.insertion_delay
-            or old_config.enable_text_refinement != new_config.enable_text_refinement
-            or old_config.enable_audio_processing != new_config.enable_audio_processing
-            or old_config.debug_mode != new_config.debug_mode
-            or old_config.silence_threshold != new_config.silence_threshold
-            or old_config.min_silence_duration != new_config.min_silence_duration
-            or old_config.speed_factor != new_config.speed_factor
-            or old_config.custom_glossary != new_config.custom_glossary
-        )
-
-        if needs_reinit:
+        if new_config.requires_component_reinitialization(old_config):
             logger.info("Configuration changes require component reinitialization")
-            self._initialize_components()
+            self._initialize_components(force_recreate=True)
         else:
             logger.info("Configuration updated without requiring component changes")
 
@@ -229,6 +435,11 @@ class PushToTalkApp:
         logger.info("Starting PushToTalk application...")
 
         self.is_running = True
+
+        # Start command processing worker thread
+        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
+        self.worker_thread.start()
+
         self.hotkey_service.start_service()
 
         logger.info("PushToTalk is running.")
@@ -257,6 +468,15 @@ class PushToTalkApp:
         self.is_running = False
         self.hotkey_service.stop_service()
 
+        # Signal worker thread to stop
+        self.command_queue.put("QUIT")
+        if self.worker_thread:
+            self.worker_thread.join(timeout=2.0)
+            self.worker_thread = None
+
+        if self.audio_recorder:
+            self.audio_recorder.shutdown()
+
         # No cleanup needed for audio feedback utility functions
 
         logger.info("PushToTalk application stopped")
@@ -280,8 +500,40 @@ class PushToTalkApp:
         self.stop()
         sys.exit(0)
 
+    def _worker_loop(self):
+        """Worker loop to process commands from the queue."""
+        logger.info("Worker thread started")
+        while True:
+            try:
+                command = self.command_queue.get(timeout=0.5)
+                if command == "QUIT":
+                    break
+                elif command == "START_RECORDING":
+                    self._do_start_recording()
+                elif command == "STOP_RECORDING":
+                    self._do_stop_recording()
+                else:
+                    logger.warning(f"Unknown command received: {command}")
+
+                self.command_queue.task_done()
+            except queue.Empty:
+                if not self.is_running:
+                    break
+            except Exception as e:
+                logger.error(f"Error in worker loop: {e}")
+
     def _on_start_recording(self):
-        """Callback for when recording starts."""
+        """Callback for when recording starts (called from hotkey thread)."""
+        # Push command to queue to avoid blocking hotkey listener
+        self.command_queue.put("START_RECORDING")
+
+    def _on_stop_recording(self):
+        """Callback for when recording stops (called from hotkey thread)."""
+        # Push command to queue to avoid blocking hotkey listener
+        self.command_queue.put("STOP_RECORDING")
+
+    def _do_start_recording(self):
+        """Internal method to perform start recording actions."""
         with self.processing_lock:
             # Play audio feedback if enabled
             if self.config.enable_audio_feedback:
@@ -290,19 +542,15 @@ class PushToTalkApp:
             if not self.audio_recorder.start_recording():
                 logger.error("Failed to start audio recording")
 
-    def _on_stop_recording(self):
-        """Callback for when recording stops."""
+    def _do_stop_recording(self):
+        """Internal method to perform stop recording actions."""
         # Play audio feedback immediately when hotkey is released
         if self.config.enable_audio_feedback:
             play_stop_feedback()
 
-        def process_recording():
-            with self.processing_lock:
-                self._process_recorded_audio()
-
-        # Process in a separate thread to avoid blocking the hotkey service
-        processing_thread = threading.Thread(target=process_recording, daemon=True)
-        processing_thread.start()
+        # Process recording
+        with self.processing_lock:
+            self._process_recorded_audio()
 
     def _process_recorded_audio(self):
         """Process the recorded audio through the full pipeline."""
@@ -315,39 +563,30 @@ class PushToTalkApp:
                 logger.warning("No audio file to process")
                 return
 
+            # Save audio file in debug mode before processing
+            if self.config.debug_mode:
+                self._save_debug_audio(audio_file)
+
             # Get active window info for logging
             window_title = self.text_inserter.get_active_window_title()
             if window_title:
                 logger.info(f"Target window: {window_title}")
 
-            # Process audio if enabled (silence detection and speed-up)
-            processed_audio_file = audio_file
-            if self.audio_processor and self.config.enable_audio_processing:
-                logger.info("Processing audio (silence detection and speed-up)...")
-                processed_audio_file = self.audio_processor.process_audio_file(
-                    audio_file
-                )
-                if not processed_audio_file:
-                    logger.warning("Audio processing failed, using original audio")
-
             # Transcribe audio
             logger.info("Transcribing audio...")
-            transcribed_text = self.transcriber.transcribe_audio(processed_audio_file)
-            logger.info(f"Transcribed: {transcribed_text}")
+            transcribed_text = self.transcriber.transcribe_audio(audio_file)
+            logger.info(f"Transcribed text: {transcribed_text}")
 
-            # Clean up temporary files (both original and processed if exists)
-            logger.warning(
-                "Transcription failed or returned empty text due to short audio"
-            )
-            for temp_file in set([audio_file, processed_audio_file]):
-                if temp_file and os.path.exists(temp_file):
-                    try:
-                        os.remove(temp_file)
-                        logger.debug(f"Cleaned up temporary file: {temp_file}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clean up {temp_file}: {e}")
+            # Clean up temporary audio file
+            try:
+                if os.path.exists(audio_file):
+                    os.unlink(audio_file)
+                    logger.debug(f"Cleaned up audio file: {audio_file}")
+            except Exception as cleanup_error:
+                logger.warning(f"Error cleaning up audio file: {cleanup_error}")
 
             if transcribed_text is None:
+                logger.warning("Transcribed text is None, skipping refinement")
                 return
 
             # Refine text if enabled (if failed, fallback to the original transcription)
@@ -361,44 +600,70 @@ class PushToTalkApp:
 
             # Insert text into active window
             logger.info("Inserting text into active window...")
-            success = self.text_inserter.insert_text(
-                final_text, method=self.config.insertion_method
-            )
+            success = self.text_inserter.insert_text(final_text)
 
             if success:
                 logger.info("Text insertion successful")
             else:
                 logger.error("Text insertion failed")
 
-            # Clean up temporary files
-            try:
-                if processed_audio_file != audio_file and os.path.exists(
-                    processed_audio_file
-                ):
-                    os.unlink(processed_audio_file)
-                    logger.debug(
-                        f"Cleaned up processed audio file: {processed_audio_file}"
-                    )
-                if os.path.exists(audio_file):
-                    os.unlink(audio_file)
-                    logger.debug(f"Cleaned up original audio file: {audio_file}")
-            except Exception as cleanup_error:
-                logger.warning(f"Error cleaning up audio files: {cleanup_error}")
-
         except Exception as e:
             logger.error(f"Error processing recorded audio: {e}")
-            # Clean up temporary files even on error
+            # Clean up temporary audio file even on error
             try:
-                if (
-                    "processed_audio_file" in locals()
-                    and processed_audio_file != audio_file
-                    and os.path.exists(processed_audio_file)
-                ):
-                    os.unlink(processed_audio_file)
+                logger.debug(f"Cleaning up audio file: {audio_file}")
                 if "audio_file" in locals() and os.path.exists(audio_file):
                     os.unlink(audio_file)
             except Exception:
-                pass  # Ignore cleanup errors during error handling
+                # Ignore cleanup errors during error handling
+                logger.error(f"Error cleaning up audio file {audio_file}: {e}")
+
+    def _save_debug_audio(self, audio_file: str):
+        """
+        Save recorded audio file to debug directory when debug mode is enabled.
+
+        Args:
+            audio_file: Path to the recorded audio file
+        """
+        try:
+            import shutil
+            from datetime import datetime
+
+            # Create debug directory with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[
+                :-3
+            ]  # Remove last 3 digits of microseconds
+            debug_dir = f"debug_audio_{timestamp}"
+            os.makedirs(debug_dir, exist_ok=True)
+
+            # Copy audio file to debug directory
+            debug_audio_path = os.path.join(debug_dir, "recorded_audio.wav")
+            shutil.copy2(audio_file, debug_audio_path)
+
+            logger.info(f"Debug: Saved recorded audio to {debug_audio_path}")
+
+            # Create info file with recording details
+            info_path = os.path.join(debug_dir, "recording_info.txt")
+            with open(info_path, "w") as f:
+                f.write("Audio Recording Debug Information\n")
+                f.write(f"Timestamp: {timestamp}\n")
+                f.write("Settings:\n")
+                f.write(f"  Sample Rate: {self.config.sample_rate} Hz\n")
+                f.write(f"  Channels: {self.config.channels}\n")
+                f.write(f"  Chunk Size: {self.config.chunk_size}\n")
+                f.write("Configuration:\n")
+                f.write(f"  STT Model: {self.config.stt_model}\n")
+                f.write(
+                    f"  Text Refinement: {'Enabled' if self.config.enable_text_refinement else 'Disabled'}\n"
+                )
+                if self.config.enable_text_refinement:
+                    f.write(f"  Refinement Model: {self.config.refinement_model}\n")
+
+            logger.info(f"Debug: Saved recording info to {info_path}")
+            logger.info(f"Debug files saved to directory: {debug_dir}")
+
+        except Exception as e:
+            logger.error(f"Failed to save debug audio: {e}")
 
     def change_hotkey(self, new_hotkey: str) -> bool:
         """
@@ -468,18 +733,31 @@ class PushToTalkApp:
 
         # Reinitialize text refiner if needed
         if old_value != self.config.enable_text_refinement:
-            self.text_refiner = (
-                TextRefiner(
-                    api_key=self.config.openai_api_key,
-                    model=self.config.refinement_model,
-                )
-                if self.config.enable_text_refinement
-                else None
-            )
+            if self.config.enable_text_refinement:
+                # Get the appropriate API key based on provider
+                if self.config.refinement_provider == "openai":
+                    api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+                elif self.config.refinement_provider == "cerebras":
+                    api_key = self.config.cerebras_api_key or os.getenv(
+                        "CEREBRAS_API_KEY"
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown refinement provider: {self.config.refinement_provider}"
+                    )
 
-            # Set glossary if text refiner is enabled
-            if self.text_refiner and self.config.custom_glossary:
-                self.text_refiner.set_glossary(self.config.custom_glossary)
+                self.text_refiner = TextRefinerFactory.create_refiner(
+                    provider=self.config.refinement_provider,
+                    api_key=api_key,
+                    model=self.config.refinement_model,
+                    glossary=self.config.custom_glossary,
+                )
+            else:
+                self.text_refiner = None
+
+            # Set glossary for transcriber if enabled
+            if self.transcriber:
+                self.transcriber.set_glossary(self.config.custom_glossary)
 
         logger.info(
             f"Text refinement {'enabled' if self.config.enable_text_refinement else 'disabled'}"

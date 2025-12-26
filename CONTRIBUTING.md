@@ -87,7 +87,10 @@ What actually happens
 - OS: [Windows 11/macOS 14/Ubuntu 22.04]
 - Python: [3.9.x]
 - PushToTalk: [0.4.0]
-- Model used: [OpenAI Wisper]
+- STT Provider: [OpenAI/Deepgram]
+- STT Model: [e.g., whisper-1, nova-3]
+- Refinement Provider: [OpenAI/Cerebras]
+- Refinement Model: [e.g., gpt-4.1-nano, llama-3.3-70b]
 
 ## Additional Context
 Any other relevant information, logs, or screenshots
@@ -175,7 +178,10 @@ When suggesting features, include:
 - **Python 3.9+**: Required for the application
 - **uv**: Python package manager ([installation guide](https://docs.astral.sh/uv/))
 - **Git**: For version control
-- **OpenAI API Key**: For testing transcription features
+- **API Keys** (at least one required):
+  - **OpenAI API Key**: For Whisper transcription or GPT refinement ([get key](https://platform.openai.com/api-keys))
+  - **Deepgram API Key**: For alternative transcription provider ([get key](https://console.deepgram.com/))
+  - **Cerebras API Key**: For alternative text refinement provider ([get key](https://console.cerebras.ai/))
 
 #### Platform-Specific Requirements
 
@@ -209,9 +215,14 @@ sudo apt-get install -y portaudio19-dev libasound2-dev build-essential
 
 3. **Set up environment variables**
    ```bash
-   # Create a .env file (optional)
-   echo "OPENAI_API_KEY=your_api_key_here" > .env
+   # Create a .env file (optional - API keys can also be set via GUI)
+   # At least one STT provider API key is required
+   echo "OPENAI_API_KEY=your_openai_key_here" > .env
+   echo "DEEPGRAM_API_KEY=your_deepgram_key_here" >> .env
+   echo "CEREBRAS_API_KEY=your_cerebras_key_here" >> .env
    ```
+
+   Environment variables are checked automatically if GUI or config file values are empty.
 
 4. **Verify installation**
    ```bash
@@ -267,21 +278,22 @@ uv run pytest tests/test_transcription.py -v
 
 ```
 tests/
-├── conftest.py              # Test configuration and fixtures
-├── test_audio_recorder.py   # Audio recording functionality
-├── test_audio_processor.py  # Audio processing pipeline
-├── test_transcription.py    # OpenAI Whisper integration
-├── test_text_refiner.py     # AI text refinement
-├── test_hotkey_service.py   # Hotkey detection
-├── test_integration.py      # End-to-end integration tests
-├── test_format_instruction.py # Format instruction processing
-└── fixtures/                # Real audio files for testing
-    ├── audio1.wav           # Business meeting audio
-    ├── audio1_script.txt
-    ├── audio2.wav           # Product demo audio
-    ├── audio2_script.txt
-    ├── audio3.wav           # To-do list with formatting
-    └── audio3_script.txt
+├── conftest.py                      # Test configuration and fixtures
+├── test_push_to_talk.py             # Core app logic, config, lifecycle
+├── test_config_gui.py               # GUI component integration
+├── test_audio_recorder.py           # Audio recording functionality
+├── test_transcription_openai.py     # OpenAI Whisper integration
+├── test_transcription_deepgram.py   # Deepgram provider integration
+├── test_transcriber_factory.py      # Transcriber factory pattern
+├── test_text_refiner.py             # AI text refinement (OpenAI & Cerebras)
+├── test_hotkey_service.py           # Hotkey detection
+├── test_integration.py              # End-to-end integration tests
+├── test_format_instruction.py       # Format instruction processing
+├── test_helpers.py                  # Helper function tests
+├── test_utils.py                    # Utility function tests
+├── README.md                        # Testing documentation
+└── fixtures/                        # Real audio files for testing
+    └── (audio files for integration tests)
 ```
 
 ### Writing Tests
@@ -289,23 +301,30 @@ tests/
 **Test Guidelines:**
 - Use descriptive test names: `test_audio_recorder_start_success`
 - Include comprehensive logging using loguru for debugging
-- Mock external dependencies (OpenAI API, PyAudio)
+- Use `pytest-mock` (mocker fixture) for all mocking - no `unittest.mock` decorators
+- Mock external dependencies (API calls, PyAudio, network requests)
 - Test both success and failure scenarios
 - Use real audio fixtures for integration tests
+- **Provider Testing**: Test all relevant providers (OpenAI, Deepgram for STT; OpenAI, Cerebras for refinement)
+- **Factory Testing**: Ensure factory pattern correctly instantiates the right provider based on config
+- See [tests/README.md](tests/README.md) for detailed testing patterns
 
 **Test Template:**
 ```python
 import pytest
 from loguru import logger
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from src.your_module import YourClass
 
 class TestYourClass:
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Setup for each test method"""
         logger.info("Setting up YourClass test")
         self.instance = YourClass()
+        yield
+        # Optional teardown code here
 
     def test_functionality_success(self):
         """Test successful functionality"""
@@ -317,10 +336,9 @@ class TestYourClass:
         assert result is not None
         logger.info("Functionality test passed")
 
-    @patch('external.dependency')
-    def test_functionality_with_mock(self, mock_dependency):
-        """Test with mocked dependencies"""
-        mock_dependency.return_value = "expected_value"
+    def test_functionality_with_mock(self, mocker):
+        """Test with mocked dependencies using pytest-mock"""
+        mock_dependency = mocker.patch('external.dependency', return_value="expected_value")
 
         result = self.instance.method_with_dependency()
 
@@ -384,50 +402,10 @@ We follow PEP 8 with some project-specific conventions:
 **Code Organization:**
 - **Docstrings**: Use Google-style docstrings for all public methods
 - **Type hints**: Include type annotations for function parameters and returns
-- **Error handling**: Use specific exception types, log errors appropriately
+- **Error handling**: Use specific exception types, log errors with loguru
 - **Comments**: Explain complex logic, not obvious code
 
-**Example:**
-```python
-from typing import Optional, List
-from loguru import logger
-
-class AudioProcessor:
-    """Processes audio files with silence removal and speed adjustment.
-
-    This class handles audio preprocessing to optimize transcription
-    quality and reduce API costs through smart audio manipulation.
-    """
-
-    def __init__(self, silence_threshold: float = -16.0) -> None:
-        """Initialize the audio processor.
-
-        Args:
-            silence_threshold: dBFS threshold for silence detection.
-        """
-        self.silence_threshold = silence_threshold
-        logger.info(f"AudioProcessor initialized with threshold {silence_threshold}")
-
-    def process_audio(self, audio_file_path: str) -> Optional[str]:
-        """Process audio file with silence removal and speed adjustment.
-
-        Args:
-            audio_file_path: Path to the input audio file.
-
-        Returns:
-            Path to processed audio file, or None if processing failed.
-
-        Raises:
-            AudioProcessingError: If audio processing fails.
-        """
-        try:
-            # Implementation here
-            logger.info(f"Successfully processed audio: {audio_file_path}")
-            return processed_path
-        except Exception as e:
-            logger.error(f"Audio processing failed: {e}")
-            raise AudioProcessingError(f"Failed to process {audio_file_path}") from e
-```
+See existing code in [src/](../src/) for examples of project style.
 
 ### Commit Message Format
 
@@ -481,37 +459,80 @@ refactor(transcription): extract API client configuration to separate method
 
 ## Project Structure
 
-Understanding the codebase organization:
+For detailed component information, see [AGENTS.md](AGENTS.md).
 
 ```
 push-to-talk/
-├── main.py                  # Application entry point
-├── src/                     # Source code
-│   ├── push_to_talk.py     # Main application orchestrator
-│   ├── config_gui.py       # Configuration GUI interface
-│   ├── audio_recorder.py   # Audio recording functionality
-│   ├── audio_processor.py  # Smart audio processing pipeline
-│   ├── transcription.py    # OpenAI Whisper integration
-│   ├── text_refiner.py     # AI text refinement
-│   ├── text_inserter.py    # Cross-platform text insertion
-│   ├── hotkey_service.py   # Global hotkey management
-│   ├── utils.py            # Utility functions
-│   ├── config/             # Configuration management
-│   │   └── prompts.py      # AI prompt templates
-│   └── assets/             # Application assets
-│       └── audio/          # Audio feedback files
-├── tests/                   # Test suite
-├── build_script/           # Build and packaging scripts
-├── dist/                   # Built executables
-└── docs/                   # Additional documentation
+├── main.py                              # Application entry point
+├── pyproject.toml                       # Project configuration
+├── AGENTS.md                            # Developer guide
+├── CONTRIBUTING.md                      # This file
+├── README.md                            # User documentation
+│
+├── src/                                 # Source code (4,600+ lines)
+│   ├── push_to_talk.py                 # Core app + config + DI (793 lines)
+│   ├── audio_recorder.py               # PyAudio recording (181 lines)
+│   ├── hotkey_service.py               # Global hotkey detection (608 lines)
+│   ├── text_inserter.py                # Clipboard/keyboard insertion (94 lines)
+│   ├── utils.py                        # Audio feedback utilities (89 lines)
+│   │
+│   ├── gui/                            # Modular GUI (2,180 lines across 9 modules)
+│   │   ├── configuration_window.py     # Main window coordinator (554 lines)
+│   │   ├── api_section.py             # API keys & provider config (534 lines)
+│   │   ├── glossary_section.py        # Custom glossary management (281 lines)
+│   │   ├── settings_section.py        # Feature flags (151 lines)
+│   │   ├── status_section.py          # Status display (123 lines)
+│   │   ├── audio_section.py           # Audio settings (100 lines)
+│   │   ├── hotkey_section.py          # Hotkey configuration with Record button
+│   │   ├── hotkey_recorder.py         # Hotkey recording via key capture
+│   │   ├── validators.py              # Input validation (153 lines)
+│   │   ├── config_persistence.py      # Config file I/O (86 lines)
+│   │   └── __init__.py                # Module exports
+│   │
+│   ├── transcription_base.py           # Abstract transcriber interface (50 lines)
+│   ├── transcription_openai.py         # OpenAI Whisper (81 lines)
+│   ├── transcription_deepgram.py       # Deepgram API (144 lines)
+│   ├── transcriber_factory.py          # STT provider factory (43 lines)
+│   │
+│   ├── text_refiner_base.py            # Abstract refiner interface (83 lines)
+│   ├── text_refiner_openai.py          # OpenAI GPT refinement (111 lines)
+│   ├── text_refiner_cerebras.py        # Cerebras API refinement (115 lines)
+│   ├── text_refiner_factory.py         # Refinement provider factory (46 lines)
+│   │
+│   └── config/
+│       ├── constants.py                # App constants (96 lines)
+│       ├── prompts.py                  # Refinement prompts (26 lines)
+│       └── hotkey_aliases.json         # Key alias mappings (137 lines)
+│
+├── tests/                               # Test suite (3,900+ lines)
+│   ├── conftest.py                     # Test fixtures & setup
+│   ├── test_push_to_talk.py            # Core app tests
+│   ├── test_config_gui.py              # GUI tests
+│   ├── test_audio_recorder.py          # Audio recording tests
+│   ├── test_transcription_openai.py    # OpenAI tests
+│   ├── test_transcription_deepgram.py  # Deepgram tests
+│   ├── test_text_refiner.py            # Text refinement tests
+│   ├── test_hotkey_service.py          # Hotkey service tests
+│   ├── test_hotkey_recorder.py         # Hotkey recorder tests
+│   ├── test_integration.py             # End-to-end tests
+│   ├── test_format_instruction.py      # Format tests
+│   ├── test_helpers.py                 # Helper tests
+│   ├── test_utils.py                   # Utility tests
+│   ├── test_transcriber_factory.py     # Factory tests
+│   ├── README.md                       # Testing documentation
+│   └── fixtures/                       # Test audio files
+│
+├── build_script/                        # Cross-platform builds
+│   ├── build.bat                       # Windows build
+│   ├── build_macos.sh                  # macOS build
+│   ├── build_linux.sh                  # Linux build
+│   ├── build.py                        # Python build helper
+│   ├── push_to_talk.spec               # PyInstaller config
+│   └── PACKAGING.md                    # Packaging guide
+│
+└── .github/                             # GitHub configuration
+    └── (workflows, templates, etc.)
 ```
-
-**Core Components:**
-- **GUI Layer**: `main.py`, `config_gui.py` - User interface
-- **Audio Pipeline**: `audio_recorder.py`, `audio_processor.py` - Audio handling
-- **AI Integration**: `transcription.py`, `text_refiner.py` - OpenAI services
-- **System Integration**: `hotkey_service.py`, `text_inserter.py` - OS interaction
-- **Configuration**: `config/` - Settings and prompts management
 
 ## Release Process
 
@@ -533,10 +554,15 @@ We follow [Semantic Versioning](https://semver.org/):
 
 **Pre-release Testing:**
 - Run comprehensive test suite with coverage
-- Test GUI functionality on target platforms
-- Validate audio processing with various input formats
-- Verify OpenAI API integration with different models
-- Test hotkey functionality across operating systems
+- Test GUI functionality on target platforms (Windows, macOS, Linux)
+- Validate audio processing with various input formats and sample rates
+- Test STT providers: Verify OpenAI Whisper and Deepgram with different models
+- Test refinement providers: Verify OpenAI GPT and Cerebras with different models
+- Test hotkey functionality across operating systems (platform-aware defaults)
+- Test configuration persistence and live config sync
+- Validate custom glossary functionality with both refinement providers
+- Test error handling for missing/invalid API keys
+- Verify environment variable fallback for API keys
 
 ## Getting Help
 

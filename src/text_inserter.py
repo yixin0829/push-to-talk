@@ -6,24 +6,26 @@ from typing import Optional
 import pyautogui
 import pyperclip
 
+from src.config.constants import (
+    TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS,
+    TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS,
+)
+
 
 class TextInserter:
-    def __init__(self, insertion_delay: float = 0.1):
-        """
-        Initialize the text inserter.
+    # Default insertion delay in seconds
+    DEFAULT_INSERTION_DELAY = 0.005
 
-        Args:
-            insertion_delay: Delay between keystrokes in seconds
-        """
-        self.insertion_delay = insertion_delay
+    def __init__(self):
+        """Initialize the text inserter."""
+        self.insertion_delay = self.DEFAULT_INSERTION_DELAY
 
-    def insert_text(self, text: str, method: str = "clipboard") -> bool:
+    def insert_text(self, text: str) -> bool:
         """
-        Insert text into the currently active window.
+        Insert text into the currently active window using clipboard method.
 
         Args:
             text: Text to insert
-            method: Method to use for insertion ("clipboard" or "sendkeys")
 
         Returns:
             True if insertion was successful, False otherwise
@@ -33,14 +35,7 @@ class TextInserter:
             return False
 
         try:
-            if method == "clipboard":
-                return self._insert_via_clipboard(text)
-            elif method == "sendkeys":
-                return self._insert_via_sendkeys(text)
-            else:
-                logger.error(f"Unknown insertion method: {method}")
-                return False
-
+            return self._insert_via_clipboard(text)
         except Exception as e:
             logger.error(f"Text insertion failed: {e}")
             return False
@@ -52,12 +47,12 @@ class TextInserter:
             original_clipboard = pyperclip.paste()
             pyperclip.copy(text)
 
-            time.sleep(0.05)
+            time.sleep(TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS)
 
             paste_keys = ["command", "v"] if sys.platform == "darwin" else ["ctrl", "v"]
             pyautogui.hotkey(*paste_keys)
 
-            time.sleep(0.1)
+            time.sleep(TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS)
 
             if original_clipboard:
                 pyperclip.copy(original_clipboard)
@@ -67,18 +62,6 @@ class TextInserter:
 
         except Exception as e:
             logger.error(f"Clipboard insertion failed: {e}")
-            return False
-
-    def _insert_via_sendkeys(self, text: str) -> bool:
-        """Insert text by simulating individual keystrokes."""
-
-        try:
-            pyautogui.write(text, interval=self.insertion_delay)
-            logger.info(f"Text inserted via sendkeys: {len(text)} characters")
-            return True
-
-        except Exception as e:
-            logger.error(f"SendKeys insertion failed: {e}")
             return False
 
     def _get_clipboard_text(self) -> Optional[str]:

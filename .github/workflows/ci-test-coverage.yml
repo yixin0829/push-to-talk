@@ -1,8 +1,8 @@
-name: test-cov
+name: CI Test Coverage
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main" ]
 

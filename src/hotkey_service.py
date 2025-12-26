@@ -1,9 +1,13 @@
-import keyboard
 import threading
-from loguru import logger
-import sys
-from typing import Callable, Optional, Set
 import time
+import sys
+import json
+import functools
+from pathlib import Path
+from typing import Callable, Optional, Set
+
+from loguru import logger
+from pynput import keyboard as pynput_keyboard
 
 
 class HotkeyService:
@@ -24,9 +28,14 @@ class HotkeyService:
         self.service_thread: Optional[threading.Thread] = None
 
         # Track which keys are currently pressed for the hotkey combination
-        self.pressed_keys: Set[str] = set()
+        self.current_keys: Set[str] = set()
         self.hotkey_keys: Set[str] = set()
         self.toggle_hotkey_keys: Set[str] = set()
+
+        # Track listener state
+        self._listener: Optional[pynput_keyboard.Listener] = None
+        self._push_hotkey_active = False
+        self._toggle_hotkey_active = False
 
         # Callbacks
         self.on_start_recording: Optional[Callable] = None
@@ -47,13 +56,13 @@ class HotkeyService:
     def _get_default_hotkey() -> str:
         """Get the default push-to-talk hotkey for the current platform."""
         modifier = HotkeyService._get_platform_modifier()
-        return f"{modifier}+shift+space"
+        return f"{modifier}+shift+^"
 
     @staticmethod
     def _get_default_toggle_hotkey() -> str:
         """Get the default toggle hotkey for the current platform."""
         modifier = HotkeyService._get_platform_modifier()
-        return f"{modifier}+shift+^"
+        return f"{modifier}+shift+space"
 
     @staticmethod
     def get_platform_name() -> str:
@@ -76,46 +85,105 @@ class HotkeyService:
 
     def _parse_hotkey_combination(self, hotkey: str, key_set: Set[str]):
         """Parse a hotkey string to extract individual keys into the given set."""
-        try:
-            # Parse the hotkey combination to get individual keys
-            parsed = keyboard.parse_hotkey(hotkey)
-            key_set.clear()
+        key_set.clear()
 
-            for combo in parsed:
-                for key in combo:
-                    # Convert scan codes to key names
-                    if hasattr(key, "name"):
-                        key_set.add(key.name)
-                    else:
-                        # Handle scan codes
-                        key_name = (
-                            keyboard.key_to_scan_codes(key)[0]
-                            if isinstance(key, str)
-                            else key
-                        )
-                        key_set.add(str(key_name))
+        if not hotkey:
+            return
 
+        parts = [part.strip() for part in hotkey.split("+") if part.strip()]
+        if not parts:
+            logger.error(f"Hotkey '{hotkey}' did not contain any valid keys")
+            return
+
+        for raw_part in parts:
+            normalized = self._normalize_key_name(raw_part)
+            if normalized:
+                key_set.add(normalized)
+            else:
+                logger.error(f"Unrecognized key '{raw_part}' in hotkey '{hotkey}'")
+
+        if key_set:
             logger.info(f"Hotkey '{hotkey}' keys parsed: {key_set}")
+        else:
+            logger.error(f"Hotkey '{hotkey}' did not produce any valid keys")
+
+    @staticmethod
+    def _normalize_key_name(name: str) -> Optional[str]:
+        """Normalize a key name from configuration or listener events."""
+
+        if not name:
+            return None
+
+        name = name.lower().strip()
+
+        # Handle single character keys (letters, numbers, punctuation)
+        if len(name) == 1:
+            if name == " ":
+                return "space"
+            if name == "\n":
+                return "enter"
+            if name == "\t":
+                return "tab"
+
+            # The caret key is typically produced by shift+6 on US layouts
+            if name == "^":
+                return "caret"
+
+            return name
+
+        alias_map = HotkeyService._get_alias_map()
+        if name in alias_map:
+            return alias_map[name]
+
+        # Handle virtual key names such as 'ctrl_l'
+        if name.endswith("_l") or name.endswith("_r"):
+            base = name[:-2]
+            if base in alias_map:
+                return alias_map[base]
+
+        # Replace spaces with underscores for matching
+        normalized = name.replace(" ", "_")
+        if normalized in alias_map:
+            return alias_map[normalized]
+
+        return normalized if normalized else None
+
+    @staticmethod
+    @functools.lru_cache(maxsize=1)
+    def _get_alias_map() -> dict[str, str]:
+        """
+        Return mapping from alias name to canonical name.
+
+        Loads from JSON configuration file and caches the result.
+        """
+        # Path to the hotkey aliases JSON file
+        config_dir = Path(__file__).parent / "config"
+        aliases_file = config_dir / "hotkey_aliases.json"
+
+        try:
+            with open(aliases_file, "r") as f:
+                alias_groups = json.load(f)
+
+            # Build lookup dictionary: each alias maps to its canonical name
+            lookup: dict[str, str] = {}
+            for canonical, aliases in alias_groups.items():
+                for alias in aliases:
+                    lookup[alias] = canonical
+                # Also map canonical name to itself
+                lookup[canonical] = canonical
+
+            return lookup
+
+        except FileNotFoundError:
+            logger.error(f"Hotkey aliases file not found: {aliases_file}")
+            # Return empty dict as fallback
+            return {}
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse hotkey aliases JSON: {e}")
+            return {}
         except Exception as e:
-            logger.error(f"Error parsing hotkey '{hotkey}': {e}")
-            # Fallback to manual parsing for common combinations
-            modifier = self._get_platform_modifier()
-            default_hotkey = f"{modifier}+shift+space"
-            default_toggle = f"{modifier}+shift+^"
-
-            if hotkey == default_hotkey:
-                key_set.update({modifier, "shift", "space"})
-            elif hotkey == default_toggle:
-                key_set.update({modifier, "shift", "^"})
-            elif hotkey == "cmd+shift+space":  # macOS support
-                key_set.update({"cmd", "shift", "space"})
-            elif hotkey == "cmd+shift+^":  # macOS support
-                key_set.update({"cmd", "shift", "^"})
-
-    def _parse_hotkey(self):
-        """Parse the hotkey string to extract individual keys."""
-        # This method is kept for backward compatibility but now calls the new method
-        self._parse_hotkey_combination(self.hotkey, self.hotkey_keys)
+            logger.error(f"Error loading hotkey aliases: {e}")
+            return {}
 
     def set_callbacks(self, on_start_recording: Callable, on_stop_recording: Callable):
         """
@@ -174,91 +242,181 @@ class HotkeyService:
         if self.is_recording:
             self._stop_recording()
 
-        # Unhook all keyboard events
-        try:
-            keyboard.unhook_all()
-        except Exception as e:
-            logger.warning(f"Error unhooking keyboard events: {e}")
+        # Stop listener if active
+        listener = self._listener
+        if listener:
+            try:
+                listener.stop()
+            except Exception as exc:
+                logger.debug(f"Error stopping hotkey listener: {exc}")
 
         # Wait for service thread to finish
         if self.service_thread and self.service_thread.is_alive():
             self.service_thread.join(timeout=5.0)
+        self.service_thread = None
+
+        with self._lock:
+            self.current_keys.clear()
+            self._push_hotkey_active = False
+            self._toggle_hotkey_active = False
 
         logger.info("Hotkey service stopped")
 
     def _run_service(self):
         """Main service loop running in a separate thread."""
+        listener: Optional[pynput_keyboard.Listener] = None
+
         try:
-            # Register both hotkey combinations
-            keyboard.add_hotkey(self.hotkey, self._on_hotkey_press)
-            keyboard.add_hotkey(self.toggle_hotkey, self._on_toggle_hotkey_press)
-
-            # Register key release detection for push-to-talk keys only
-            keyboard.on_release(self._on_key_release)
-
-            # Keep the service running
             while self.is_running:
+                if listener is None or not listener.is_alive():
+                    if listener is not None and self.is_running:
+                        logger.warning(
+                            "Hotkey listener stopped unexpectedly; attempting to restart."
+                        )
+                        try:
+                            listener.stop()
+                            listener.join(timeout=1.0)
+                        except Exception:
+                            pass
+
+                    try:
+                        listener = pynput_keyboard.Listener(
+                            on_press=self._on_key_press,
+                            on_release=self._on_key_release,
+                        )
+                        listener.start()
+                        self._listener = listener
+                        logger.debug("Hotkey listener thread started")
+                    except Exception as exc:
+                        listener = None
+                        logger.error(f"Failed to start hotkey listener: {exc}")
+                        time.sleep(1.0)
+                        continue
+
                 time.sleep(0.1)
 
         except Exception as e:
             logger.error(f"Error in hotkey service: {e}")
         finally:
-            # Clean up
-            try:
-                keyboard.unhook_all()
-            except Exception:
-                pass
+            if listener is not None:
+                try:
+                    listener.stop()
+                except Exception:
+                    pass
+                try:
+                    listener.join(timeout=2.0)
+                except Exception:
+                    pass
 
-    def _on_hotkey_press(self):
-        """Handle push-to-talk hotkey combination press event."""
+            self._listener = None
+
+            with self._lock:
+                self.current_keys.clear()
+                self._push_hotkey_active = False
+                self._toggle_hotkey_active = False
+
+    def _on_key_press(self, key):
+        """Handle key press events from the global listener."""
+
+        if not self.is_running:
+            return
+
+        key_name = self._key_to_name(key)
+        if key_name is None:
+            return
+
         with self._lock:
-            if not self.is_recording and self.is_running:
-                self._start_recording(toggle_mode=False)
+            self.current_keys.add(key_name)
 
-    def _on_toggle_hotkey_press(self):
-        """Handle toggle hotkey combination press event."""
-        with self._lock:
-            if not self.is_running:
-                return
-
-            if self.is_recording:
-                # Currently recording, stop it
-                self._stop_recording()
+            # Handle toggle hotkey first so toggle presses take precedence
+            if self.toggle_hotkey_keys and self._are_keys_active(
+                self.toggle_hotkey_keys
+            ):
+                if not self._toggle_hotkey_active:
+                    self._toggle_hotkey_active = True
+                    if self.is_recording:
+                        self._stop_recording()
+                    else:
+                        self._start_recording(toggle_mode=True)
             else:
-                # Not recording, start it in toggle mode
-                self._start_recording(toggle_mode=True)
+                self._toggle_hotkey_active = False
 
-    def _on_key_release(self, event):
-        """Handle any key release event for push-to-talk mode only."""
+            # Handle push-to-talk hotkey
+            if self.hotkey_keys and self._are_keys_active(self.hotkey_keys):
+                self._push_hotkey_active = True
+                if not self.is_recording:
+                    self._start_recording(toggle_mode=False)
+
+    def _on_key_release(self, key):
+        """Handle key release events from the global listener."""
+
+        if not self.is_running:
+            return
+
+        key_name = self._key_to_name(key)
+        if key_name is None:
+            return
+
         with self._lock:
-            # Only handle key release if we're in push-to-talk mode (not toggle mode)
-            if self.is_recording and self.is_running and not self.is_toggle_mode:
-                # Check if any of the push-to-talk hotkey keys was released
-                key_name = (
-                    event.name if hasattr(event, "name") else str(event.scan_code)
-                )
+            self.current_keys.discard(key_name)
 
-                # Check common key name variations
-                key_variations = [key_name]
-                if key_name == "left ctrl" or key_name == "right ctrl":
-                    key_variations.extend(["ctrl", "left ctrl", "right ctrl"])
-                elif key_name == "left shift" or key_name == "right shift":
-                    key_variations.extend(["shift", "left shift", "right shift"])
-                elif key_name == "ctrl":
-                    key_variations.extend(["left ctrl", "right ctrl"])
-                elif key_name == "shift":
-                    key_variations.extend(["left shift", "right shift"])
-                # macOS command key variations
-                elif key_name == "left cmd" or key_name == "right cmd":
-                    key_variations.extend(["cmd", "left cmd", "right cmd", "command"])
-                elif key_name == "cmd" or key_name == "command":
-                    key_variations.extend(["left cmd", "right cmd", "cmd", "command"])
+            if self._toggle_hotkey_active and not self._are_keys_active(
+                self.toggle_hotkey_keys
+            ):
+                self._toggle_hotkey_active = False
 
-                # If any variation of the released key is part of our push-to-talk hotkey, stop recording
-                if any(
-                    var in self.hotkey_keys or var == "space" for var in key_variations
-                ):
-                    self._stop_recording()
+            if (
+                self.is_recording
+                and not self.is_toggle_mode
+                and self._push_hotkey_active
+                and not self._are_keys_active(self.hotkey_keys)
+            ):
+                self._push_hotkey_active = False
+                self._stop_recording()
+            elif not self._are_keys_active(self.hotkey_keys):
+                self._push_hotkey_active = False
+
+    def _key_to_name(self, key) -> Optional[str]:
+        """Convert pynput key objects to normalized string names."""
+
+        try:
+            if isinstance(key, pynput_keyboard.Key):
+                name = key.name
+            elif isinstance(key, pynput_keyboard.KeyCode):
+                if key.char:
+                    name = key.char
+                elif key.vk is not None:
+                    try:
+                        mapped = pynput_keyboard.KeyCode.from_vk(key.vk)
+                        if mapped.char:
+                            name = mapped.char
+                        elif hasattr(mapped, "name") and mapped.name:
+                            name = mapped.name
+                        else:
+                            name = f"vk{key.vk}"
+                    except Exception:
+                        name = f"vk{key.vk}"
+                else:
+                    name = None
+            else:
+                name = getattr(key, "name", None) or getattr(key, "char", None)
+
+            if name is None:
+                return None
+
+            return self._normalize_key_name(str(name))
+
+        except Exception as exc:
+            logger.debug(f"Unable to normalize key '{key}': {exc}")
+            return None
+
+    def _are_keys_active(self, required_keys: Set[str]) -> bool:
+        """Check if all keys in a combination are currently pressed."""
+
+        if not required_keys:
+            return False
+
+        return all(key in self.current_keys for key in required_keys)
 
     def _start_recording(self, toggle_mode: bool = False):
         """Start recording audio.
@@ -281,12 +439,14 @@ class HotkeyService:
     def _stop_recording(self):
         """Stop recording audio."""
         try:
-            if self.on_stop_recording and self.is_recording:
+            if self.is_recording:
                 mode_str = "toggle" if self.is_toggle_mode else "push-to-talk"
                 self.is_recording = False
                 self.is_toggle_mode = False
                 logger.info(f"Recording stopped ({mode_str} mode)")
-                self.on_stop_recording()
+
+                if self.on_stop_recording:
+                    self.on_stop_recording()
         except Exception as e:
             logger.error(f"Error stopping recording: {e}")
 
@@ -306,12 +466,14 @@ class HotkeyService:
             self.stop_service()
 
         try:
-            # Test if the hotkey is valid
-            keyboard.parse_hotkey(new_hotkey)
+            parsed_keys: Set[str] = set()
+            self._parse_hotkey_combination(new_hotkey, parsed_keys)
+
+            if not parsed_keys:
+                raise ValueError("No valid keys in new hotkey")
+
             self.hotkey = new_hotkey
-            self._parse_hotkey_combination(
-                self.hotkey, self.hotkey_keys
-            )  # Re-parse the new hotkey
+            self.hotkey_keys = parsed_keys
 
             if was_running:
                 return self.start_service()
@@ -344,12 +506,14 @@ class HotkeyService:
             self.stop_service()
 
         try:
-            # Test if the toggle hotkey is valid
-            keyboard.parse_hotkey(new_toggle_hotkey)
+            parsed_keys: Set[str] = set()
+            self._parse_hotkey_combination(new_toggle_hotkey, parsed_keys)
+
+            if not parsed_keys:
+                raise ValueError("No valid keys in new toggle hotkey")
+
             self.toggle_hotkey = new_toggle_hotkey
-            self._parse_hotkey_combination(
-                self.toggle_hotkey, self.toggle_hotkey_keys
-            )  # Re-parse the new toggle hotkey
+            self.toggle_hotkey_keys = parsed_keys
 
             if was_running:
                 return self.start_service()

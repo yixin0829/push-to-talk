@@ -1,65 +1,67 @@
 import pytest
 import os
 from loguru import logger
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock
 
-from src.transcription import Transcriber
+from src.transcription_openai import OpenAITranscriber
 
 
-class TestTranscriber:
-    def setup_method(self):
+class TestOpenAITranscriber:
+    @pytest.fixture(autouse=True)
+    def setup(self, mocker):
         """Setup for each test method"""
-        logger.info("Setting up Transcriber test")
+        logger.info("Setting up OpenAITranscriber test")
 
         # Use a mock API key for testing
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"}):
-            self.transcriber = Transcriber()
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
+        self.transcriber = OpenAITranscriber()
 
-    def test_initialization_with_env_var(self):
-        """Test Transcriber initialization with environment variable"""
-        logger.info("Testing Transcriber initialization with env var")
+    def test_initialization_with_env_var(self, mocker):
+        """Test OpenAITranscriber initialization with environment variable"""
+        logger.info("Testing OpenAITranscriber initialization with env var")
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"}):
-            transcriber = Transcriber()
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "env-api-key"})
+        transcriber = OpenAITranscriber()
 
-            assert transcriber.api_key == "env-api-key"
-            assert transcriber.model == "whisper-1"
-            assert transcriber.client is not None
+        assert transcriber.api_key == "env-api-key"
+        assert transcriber.model == "whisper-1"
+        assert transcriber.client is not None
 
-        logger.info("Transcriber initialization with env var test passed")
+        logger.info("OpenAITranscriber initialization with env var test passed")
 
     def test_initialization_with_explicit_key(self):
-        """Test Transcriber initialization with explicit API key"""
-        logger.info("Testing Transcriber initialization with explicit key")
+        """Test OpenAITranscriber initialization with explicit API key"""
+        logger.info("Testing OpenAITranscriber initialization with explicit key")
 
-        transcriber = Transcriber(api_key="explicit-api-key", model="custom-model")
+        transcriber = OpenAITranscriber(
+            api_key="explicit-api-key", model="custom-model"
+        )
 
         assert transcriber.api_key == "explicit-api-key"
         assert transcriber.model == "custom-model"
         assert transcriber.client is not None
 
-        logger.info("Transcriber initialization with explicit key test passed")
+        logger.info("OpenAITranscriber initialization with explicit key test passed")
 
-    def test_initialization_no_api_key(self):
-        """Test Transcriber initialization without API key"""
-        logger.info("Testing Transcriber initialization without API key")
+    def test_initialization_no_api_key(self, mocker):
+        """Test OpenAITranscriber initialization without API key"""
+        logger.info("Testing OpenAITranscriber initialization without API key")
 
-        with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ValueError) as exc_info:
-                Transcriber()
+        mocker.patch.dict(os.environ, {}, clear=True)
+        with pytest.raises(ValueError) as exc_info:
+            OpenAITranscriber()
 
-            assert "OpenAI API key is required" in str(exc_info.value)
+        assert "OpenAI API key is required" in str(exc_info.value)
 
-        logger.info("Transcriber initialization no API key test passed")
+        logger.info("OpenAITranscriber initialization no API key test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_success(self, mock_remove, mock_exists):
+    def test_transcribe_audio_success(self, mocker):
         """Test successful audio transcription"""
         logger.info("Testing successful audio transcription")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock the OpenAI client response
         mock_response = "This is the transcribed text."
@@ -79,14 +81,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio success test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_with_language(self, mock_remove, mock_exists):
+    def test_transcribe_audio_with_language(self, mocker):
         """Test audio transcription with language specified"""
         logger.info("Testing audio transcription with language")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         mock_response = "This is transcribed French text."
         self.transcriber.client.audio.transcriptions.create = MagicMock(
@@ -103,12 +104,11 @@ class TestTranscriber:
 
         logger.info("Transcribe audio with language test passed")
 
-    @patch("os.path.exists")
-    def test_transcribe_audio_file_not_found(self, mock_exists):
+    def test_transcribe_audio_file_not_found(self, mocker):
         """Test transcription when audio file doesn't exist"""
         logger.info("Testing transcription with missing file")
 
-        mock_exists.return_value = False
+        mocker.patch("os.path.exists", return_value=False)
 
         result = self.transcriber.transcribe_audio("nonexistent.wav")
 
@@ -116,14 +116,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio file not found test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_api_failure(self, mock_remove, mock_exists):
+    def test_transcribe_audio_api_failure(self, mocker):
         """Test transcription API failure"""
         logger.info("Testing transcription API failure")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock API failure
         self.transcriber.client.audio.transcriptions.create = MagicMock(
@@ -136,14 +135,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio API failure test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_empty_response(self, mock_remove, mock_exists):
+    def test_transcribe_audio_empty_response(self, mocker):
         """Test transcription with empty response"""
         logger.info("Testing transcription with empty response")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock empty response
         self.transcriber.client.audio.transcriptions.create = MagicMock(return_value="")
@@ -154,14 +152,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio empty response test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_whitespace_response(self, mock_remove, mock_exists):
+    def test_transcribe_audio_whitespace_response(self, mocker):
         """Test transcription with whitespace-only response"""
         logger.info("Testing transcription with whitespace response")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock whitespace response
         self.transcriber.client.audio.transcriptions.create = MagicMock(
@@ -174,14 +171,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio whitespace response test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_object_response(self, mock_remove, mock_exists):
+    def test_transcribe_audio_object_response(self, mocker):
         """Test transcription with object response (has text attribute)"""
         logger.info("Testing transcription with object response")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock object response with text attribute
         mock_response = MagicMock()
@@ -196,14 +192,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio object response test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_object_without_text(self, mock_remove, mock_exists):
+    def test_transcribe_audio_object_without_text(self, mocker):
         """Test transcription with object response without text attribute"""
         logger.info("Testing transcription with object response without text")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock object response without text attribute
         mock_response = MagicMock()
@@ -219,17 +214,16 @@ class TestTranscriber:
 
         logger.info("Transcribe audio object without text test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    @patch("time.time")
-    def test_transcribe_audio_timing(self, mock_time, mock_remove, mock_exists):
+    def test_transcribe_audio_timing(self, mocker):
         """Test transcription timing measurement"""
         logger.info("Testing transcription timing measurement")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock time progression - need more calls for logging
+        mock_time = mocker.patch("time.time")
         mock_time.side_effect = [1000.0, 1002.5, 1002.6, 1002.7, 1002.8, 1002.9]
 
         mock_response = "Timed transcription"
@@ -246,16 +240,15 @@ class TestTranscriber:
 
         logger.info("Transcribe audio timing test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_cleanup_failure(self, mock_remove, mock_exists):
+    def test_transcribe_audio_cleanup_failure(self, mocker):
         """Test transcription when cleanup fails"""
         logger.info("Testing transcription cleanup failure")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
 
         # Mock cleanup failure
+        mock_remove = mocker.patch("os.remove")
         mock_remove.side_effect = Exception("Failed to remove file")
 
         mock_response = "Transcription despite cleanup failure"
@@ -270,14 +263,13 @@ class TestTranscriber:
 
         logger.info("Transcribe audio cleanup failure test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_api_error_cleanup(self, mock_remove, mock_exists):
+    def test_transcribe_audio_api_error_cleanup(self, mocker):
         """Test that cleanup happens even when API fails"""
         logger.info("Testing cleanup on API error")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Mock API failure
         self.transcriber.client.audio.transcriptions.create = MagicMock(
@@ -290,15 +282,17 @@ class TestTranscriber:
 
         logger.info("Transcribe audio API error cleanup test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_cleanup_error_on_failure(self, mock_remove, mock_exists):
+    def test_transcribe_audio_cleanup_error_on_failure(self, mocker):
         """Test cleanup error handling when API fails and file removal fails"""
         logger.info("Testing cleanup error handling on API failure")
 
+        mock_exists = mocker.patch("os.path.exists")
         mock_exists.side_effect = [True, False]  # File exists initially, then doesn't
+
+        mock_remove = mocker.patch("os.remove")
         mock_remove.side_effect = Exception("Cannot remove file")
+
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
 
         # Mock API failure
         self.transcriber.client.audio.transcriptions.create = MagicMock(
@@ -312,29 +306,28 @@ class TestTranscriber:
 
         logger.info("Transcribe audio cleanup error on failure test passed")
 
-    def test_different_model_initialization(self):
+    def test_different_model_initialization(self, mocker):
         """Test initialization with different model"""
         logger.info("Testing initialization with different model")
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-            transcriber = Transcriber(model="whisper-large")
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+        transcriber = OpenAITranscriber(model="whisper-large")
 
-            assert transcriber.model == "whisper-large"
+        assert transcriber.model == "whisper-large"
 
         logger.info("Different model initialization test passed")
 
-    @patch("builtins.open", mock_open(read_data=b"fake audio data"))
-    @patch("os.path.exists")
-    @patch("os.remove")
-    def test_transcribe_audio_with_custom_model(self, mock_remove, mock_exists):
+    def test_transcribe_audio_with_custom_model(self, mocker):
         """Test transcription with custom model"""
         logger.info("Testing transcription with custom model")
 
-        mock_exists.return_value = True
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("os.remove")
 
         # Create transcriber with custom model
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-            transcriber = Transcriber(model="whisper-large")
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+        transcriber = OpenAITranscriber(model="whisper-large")
 
         mock_response = "Custom model transcription"
         transcriber.client.audio.transcriptions.create = MagicMock(

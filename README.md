@@ -4,18 +4,25 @@
 
 
 # PushToTalk - AI Refined Speech-to-Text Dictation
-[![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
 
-A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (to be built), and Linux (to be built). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
+![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)
+![License](https://img.shields.io/github/license/yixin0829/push-to-talk)
+![Version](https://img.shields.io/github/v/release/yixin0829/push-to-talk)
+![Platform](https://img.shields.io/badge/platform-windows-lightgrey)
+[![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
+![GitHub Issues](https://img.shields.io/github/issues/yixin0829/push-to-talk)
+![GitHub Downloads](https://img.shields.io/github/downloads/yixin0829/push-to-talk/total)
+
+A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
+- **🔄 Live Config Sync**: GUI edits instantly push updates to the running background service—no restart required
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
-- **✨ Text Refinement**: Improves transcription quality using Refinement Models
-- **🤖 Speech-to-Text**: Uses OpenAI transcription service for accurate transcription
-- **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio
-- **⚡ Smart Audio Processing**: Automatic silence removal and pitch-preserving speed adjustment for faster transcription
+- **✨ Multi-Provider Text Refinement**: Improves transcription quality using OpenAI GPT or Cerebras models
+- **🤖 Multi-Provider Speech-to-Text**: Choose between OpenAI Whisper or Deepgram for accurate transcription
+- **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio (platform-aware defaults)
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
 ## Demos
@@ -28,7 +35,12 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
-- OpenAI API key (https://platform.openai.com/docs/api-reference/introduction)
+- **At least one STT API key**:
+  - OpenAI Whisper: https://platform.openai.com/docs/api-reference/introduction
+  - Deepgram: https://deepgram.com/
+- **Text refinement (optional)**:
+  - OpenAI GPT: https://platform.openai.com/docs/api-reference/introduction
+  - Cerebras: https://cerebras.ai/
 - Microphone access (for recording)
 
 ## Quick Start (GUI Application)
@@ -46,10 +58,12 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
    - **Monitor status** with real-time indicators (green = running, gray = stopped)
    - **View active settings** displayed when running
    - **Easy control** with "Stop Application" button to terminate
+   - **Tweak settings live**—changes made while running apply instantly
 
 3. **Daily usage**:
    - GUI provides persistent control and status monitoring
    - Use your configured hotkeys to record and transcribe
+   - Tune preferences without stopping the service; hotkeys update in real time
    - Start/stop the service anytime from the GUI
 
 ### For Developers
@@ -67,8 +81,11 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 
 3. **Run the GUI application**:
    ```bash
-   uv run python main.py
+   uv run python main.py           # Normal mode (logs to file only)
+   uv run python main.py --debug   # Debug mode (logs to console and file)
    ```
+
+   The `--debug` flag enables console logging for real-time debugging and troubleshooting.
 
 ## GUI Configuration Interface
 
@@ -79,35 +96,68 @@ The application features a comprehensive, persistent configuration GUI with orga
   - **Gray circle + "Ready to start"**: Application stopped
   - **Green circle + "Running - Use your configured hotkeys"**: Application running
 - **Active Settings Display**: Shows current hotkeys and enabled features when running
+- **Live Updates Banner**: Status automatically refreshes when settings change mid-session
 
-### API Settings
-- **OpenAI API Key**: Secure entry with show/hide functionality
-- **Model Selection**: Choose Whisper and Refinement Models
-- **API Key Testing**: Validate your credentials
+### Live Configuration Updates
+
+The application features a sophisticated real-time configuration system that applies changes instantly while running:
+
+#### How It Works
+- **Variable Tracing**: Every GUI field (text boxes, checkboxes, dropdowns) automatically detects changes using Tkinter variable traces
+- **Smart Debouncing**: Rapid typing is intelligently handled with configurable delay to prevent excessive updates
+- **Selective Reinitialization**: Only components affected by changes are reinitialized (e.g., hotkey changes → restart hotkey service)
+- **Service Continuity**: Critical services like hotkey detection automatically restart after updates
+
+#### Technical Features
+- **Instant Propagation**: Editing any field triggers a debounced update to the running PushToTalk service
+- **Persistent Storage**: Changes are automatically saved to JSON file asynchronously for permanent persistence
+- **Callback Support**: Optional listeners receive validated Pydantic configuration models whenever values change
+- **Glossary Sync**: Glossary edits are copied before rebuilds to prevent UI/model divergence
+- **Safe Programmatic Updates**: GUI refreshes suspend traces to avoid infinite callback loops
+- **Thread-Safe Saves**: Non-blocking background saves with deduplication prevent file conflicts
+
+#### Example Scenarios
+- **Hotkey Change**: Type "ctrl+alt+space" → Only final result triggers one hotkey service restart
+- **Non-Critical Change**: Toggle "Audio Feedback" → Updates instantly without restarting core components
+- **API Key Change**: Update OpenAI key → Only transcription/refinement components reinitialize
+
+### Speech-to-Text Settings
+- **STT Provider Selection**: Choose between OpenAI or Deepgram (default: Deepgram)
+- **API Key**: Secure entry with show/hide functionality (dynamically shows OpenAI or Deepgram field based on provider)
+- **Model Selection**: Choose provider-specific models:
+  - **OpenAI**: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe
+  - **Deepgram**: nova-3 (default and recommended), nova-2, base, enhanced, whisper-medium
+
+### Text Refinement Settings
+- **Refinement Provider**: Choose between OpenAI or Cerebras (default: Cerebras)
+- **Refinement Model**: Provider-specific models:
+  - **OpenAI**: gpt-4.1-nano, gpt-4o-mini, gpt-4o
+  - **Cerebras**: llama-3.3-70b (default), llama-3.1-70b, and other Cerebras models
 
 ### Audio Settings
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
 - **Chunk Size**: Buffer size configuration
 - **Channels**: Mono/stereo recording options
-- **Audio Processing**: Smart silence removal and pitch-preserving speed adjustment
 - **Helpful Recommendations**: Built-in guidance for optimal settings
 
 ### Hotkey Configuration
-- **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+Space)
-- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+^)
-- **Validation**: Prevents duplicate hotkey assignments
-- **Examples**: Common hotkey combinations provided
-
-### Text Insertion Settings
-- **Insertion Method**: Choose between clipboard (fast) or sendkeys (compatible)
-- **Insertion Delay**: Fine-tune timing for different applications
-- **Method Guidance**: Recommendations for each approach
+- **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+^ on Windows/Linux, Cmd+Shift+Space on macOS)
+- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+Space on Windows/Linux, Cmd+Shift+^ on macOS)
+- **Record Button**: Click "Record" and press keys one at a time to capture hotkey combinations
+- **Validation**: Prevents duplicate hotkey assignments and ensures hotkeys are different
 
 ### Custom Glossary
 - **Domain-Specific Terms**: Add specialized vocabulary, acronyms, and proper names
 - **Easy Management**: Add, edit, and delete glossary terms through the GUI
 - **Search Functionality**: Quickly find and manage existing terms
 - **Automatic Integration**: Glossary terms are automatically included in transcription refinement
+
+### Custom Refinement Prompt
+- **Customizable System Prompt**: Create your own text refinement instructions
+- **Glossary Placeholder**: Use `{custom_glossary}` placeholder to include glossary terms in your prompt
+- **Copy Default Buttons**: Start from default prompts (with or without glossary) as templates
+- **Reference Section**: View default prompts in collapsible reference panel
+- **Live Updates**: Changes apply immediately to running application
 
 
 ## How to Use
@@ -130,38 +180,50 @@ This creates `dist\PushToTalk.exe` - a standalone GUI application.
 
 ## Configuration
 
-The application supports both GUI and file-based configuration:
+The application supports both GUI and file-based configuration with automatic environment variable fallback:
+
+### API Key Management
+The application supports three ways to provide API keys (checked in this order):
+1. **GUI**: Enter API keys directly in the configuration interface (stored in `push_to_talk_config.json`)
+2. **Environment Variables**: Set `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, or `CEREBRAS_API_KEY`
+3. **Configuration File**: Manually edit `push_to_talk_config.json`
+
+The required API key depends on your selected providers:
+- **STT Provider**: OpenAI requires `openai_api_key`, Deepgram requires `deepgram_api_key`
+- **Refinement Provider**: OpenAI requires `openai_api_key`, Cerebras requires `cerebras_api_key`
+
+Environment variables are checked automatically if GUI or config file values are empty.
 
 ### Via GUI (Recommended)
 - Launch the application to access the integrated configuration interface
 - **All settings** validated and saved automatically to `push_to_talk_config.json`
 - **Real-time status** shows application state with visual indicators
-- Every time you start the application, your configuration is saved and overwrites the old configuration in the JSON file `push_to_talk_config.json`
+- **Auto-sync**: Edits instantly update the running background service and any registered callbacks
+- API keys are validated on startup; application will show clear error messages if required keys are missing
 
 ### File-Based Configuration
 The application creates a `push_to_talk_config.json` file. Example configuration file:
 
 ```json
 {
-  "openai_api_key": "your_api_key_here",
-  "stt_model": "gpt-4o-transcribe",
-  "refinement_model": "gpt-4.1-nano",
+  "stt_provider": "deepgram",
+  "openai_api_key": "",
+  "deepgram_api_key": "your_deepgram_key",
+  "stt_model": "nova-3",
+  "refinement_provider": "cerebras",
+  "refinement_model": "llama-3.3-70b",
+  "cerebras_api_key": "your_cerebras_key",
   "sample_rate": 16000,
   "chunk_size": 1024,
   "channels": 1,
-  "hotkey": "ctrl+shift+space",
-  "toggle_hotkey": "ctrl+shift+^",
-  "insertion_method": "sendkeys",
-  "insertion_delay": 0.005,
+  "hotkey": "ctrl+shift+^",
+  "toggle_hotkey": "ctrl+shift+space",
   "enable_text_refinement": true,
   "enable_logging": true,
   "enable_audio_feedback": true,
-  "enable_audio_processing": true,
   "debug_mode": false,
-  "silence_threshold": -16.0,
-  "min_silence_duration": 400.0,
-  "speed_factor": 1.5,
-  "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"]
+  "custom_glossary": ["API", "OAuth", "microservices", "PostgreSQL"],
+  "custom_refinement_prompt": ""
 }
 ```
 
@@ -169,25 +231,24 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper and GPT services. Required for transcription and text refinement. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
-| `stt_model` | string | `"gpt-4o-transcribe"` | STT Model for speech-to-text. Options: `gpt-4o-transcribe`, `whisper-1`. |
-| `refinement_model` | string | `"gpt-4.1-nano"` | Refinement Model for text refinement. Options: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. |
-| `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition with Whisper. |
+| `stt_provider` | string | `"deepgram"` | Speech-to-text provider. Options: `openai`, `deepgram`. Determines which transcription service to use. |
+| `openai_api_key` | string | `""` | Your OpenAI API key for Whisper services. Required when using OpenAI provider. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
+| `deepgram_api_key` | string | `""` | Your Deepgram API key for transcription services. Required when using Deepgram provider. Can be set via GUI, config file, or `DEEPGRAM_API_KEY` environment variable. |
+| `stt_model` | string | `"nova-3"` | STT Model for speech-to-text. For OpenAI: `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`. For Deepgram: `nova-3`, `nova-2`, `base`, `enhanced`, `whisper-medium`. |
+| `refinement_provider` | string | `"cerebras"` | Text refinement provider. Options: `openai`, `cerebras`. Determines which AI service refines transcribed text. |
+| `refinement_model` | string | `"llama-3.3-70b"` | Refinement Model for text refinement. For OpenAI: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. For Cerebras: `llama-3.3-70b`, `llama-3.1-70b`, and other Cerebras-supported models. |
+| `cerebras_api_key` | string | `""` | Your Cerebras API key for text refinement. Required when using Cerebras provider. Can be set via GUI, config file, or `CEREBRAS_API_KEY` environment variable. |
+| `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
-| `hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for push-to-talk. See [Hotkey Options](#hotkey-options) for examples. |
-| `toggle_hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. |
-| `insertion_method` | string | `"sendkeys"` | Method for inserting text. Options: `sendkeys` (better for special chars), `clipboard` (faster). |
-| `insertion_delay` | float | `0.005` | Delay in seconds before text insertion. Helps ensure target window is ready. |
-| `enable_text_refinement` | boolean | `true` | Whether to use GPT to refine transcribed text. Disable for faster processing without refinement. |
+| `hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+shift+^`, macOS `cmd+shift+space`. See [Hotkey Options](#hotkey-options) for examples. |
+| `toggle_hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+shift+space`, macOS `cmd+shift+^`. |
+| `enable_text_refinement` | boolean | `true` | Whether to refine transcribed text using AI. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
-| `enable_audio_feedback` | boolean | `true` | Whether to play sophisticated audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
-| `enable_audio_processing` | boolean | `true` | Whether to enable smart audio processing (silence removal and speed adjustment) for faster transcription. |
-| `debug_mode` | boolean | `false` | Whether to enable debug mode. If enabled, processed audio files will be saved to the current directory. |
-| `silence_threshold` | float | `-16.0` | dBFS threshold for silence detection. Higher values (closer to 0) are more sensitive to quiet sounds. |
-| `min_silence_duration` | float | `400.0` | Minimum duration of silence in milliseconds required to split audio segments. |
-| `speed_factor` | float | `1.5` | Speed adjustment factor. 1.5 means 1.5x faster playback while preserving pitch quality. |
+| `enable_audio_feedback` | boolean | `true` | Whether to play audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
+| `debug_mode` | boolean | `false` | Whether to enable debug mode. When enabled, recorded audio files are saved to timestamped debug directories (e.g., `debug_audio_20231215_143022_456/`) with recording metadata for troubleshooting. |
 | `custom_glossary` | array | `[]` | List of domain-specific terms, acronyms, and proper names to improve transcription accuracy. Terms are automatically included in text refinement prompts. |
+| `custom_refinement_prompt` | string | `""` | Custom system prompt for text refinement. Leave empty to use default prompts. Use `{custom_glossary}` placeholder to include glossary terms dynamically. |
 
 #### Audio Quality Settings
 
@@ -205,42 +266,19 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   - `1` - Mono recording (recommended for speech)
   - `2` - Stereo recording (unnecessary for speech-to-text)
 
-#### Audio Processing Settings
-
-- **silence_threshold**:
-  - `-16.0` (dBFS) - Recommended balance between noise removal and speech preservation
-  - `-10.0` - More aggressive silence removal (may cut quiet speech)
-  - `-30.0` - Less aggressive (keeps more background noise)
-
-- **min_silence_duration**:
-  - `400.0` ms - Recommended for natural speech patterns
-  - `200.0` ms - More aggressive silence removal (faster processing)
-  - `800.0` ms - Conservative (preserves natural pauses)
-
-- **speed_factor**:
-  - `1.5` - Recommended 1.5x speedup with pitch preservation
-  - `1.0` - No speed adjustment (original timing)
-  - `2.0` - 2x speedup (more aggressive, may affect quality)
-
 ### Hotkey Options
 
-You can configure different hotkey combinations for both modes:
+You can configure different hotkey combinations for both modes. Platform-specific defaults ensure compatibility:
 
 **Push-to-talk hotkey** (hold to record):
-- `ctrl+shift+space` (default)
-- `ctrl+alt+r`
-- `f12`
+- Windows/Linux: `ctrl+shift+^` (default), `ctrl+alt+r`, `f12`
+- macOS: `cmd+shift+space` (default), `cmd+alt+r`, `f12`
 
 **Toggle hotkey** (press once to start, press again to stop):
-- `ctrl+shift+^` (default)
-- `ctrl+shift+t`
+- Windows/Linux: `ctrl+shift+space` (default), `ctrl+shift+t`
+- macOS: `cmd+shift+^` (default), `cmd+shift+t`
 
-Both hotkeys support any combination from the `keyboard` library.
-
-### Text Insertion Methods
-
-- **sendkeys** (default): Simulates individual keystrokes using pyautogui, better for special characters
-- **clipboard**: Faster and more reliable, uses pyperclip and pyautogui for Ctrl+V
+Both hotkeys support any combination from the `keyboard` library. The application automatically uses platform-aware defaults based on your OS.
 
 ### Custom Glossary
 
@@ -270,124 +308,59 @@ The application includes clean and simple audio feedback:
 
 ## Architecture
 
-The application consists of several modular components:
-
-### Core Components
-
-- **ConfigurationGUI** (`src/config_gui.py`): User-friendly GUI for settings management
-- **MainGUI** (`main.py`): Entry point with welcome flow and startup management
-- **AudioRecorder** (`src/audio_recorder.py`): Handles audio recording using PyAudio
-- **AudioProcessor** (`src/audio_processor.py`): Smart audio processing with silence removal and pitch-preserving speed adjustment using pydub and psola
-- **Transcriber** (`src/transcription.py`): Converts speech to text using OpenAI Whisper
-- **TextRefiner** (`src/text_refiner.py`): Improves transcription using Refinement Models with custom glossary support
-- **TextInserter** (`src/text_inserter.py`): Inserts text into active windows using pyautogui and pyperclip
-- **HotkeyService** (`src/hotkey_service.py`): Manages global hotkey detection
-- **PushToTalkApp** (`src/push_to_talk.py`): Main application orchestrator with dynamic configuration updates
-
-### User Experience Flow
-
-1. **Launch** → Single window with integrated welcome and configuration
-2. **Configure** → Comprehensive GUI with organized settings sections
-3. **Start** → Click "Start Application" with immediate visual feedback
-4. **Monitor** → Real-time status indicators and active settings display
-5. **Operate** → Background push-to-talk with persistent GUI control
-6. **Control** → Easy start/stop with "Stop Application" button
-7. **Manage** → Multiple start/stop cycles without closing the interface
-
-### Threading Architecture
-
-The application uses multiple threads to ensure responsive operation and prevent blocking of the main GUI thread:
-
 ```mermaid
 sequenceDiagram
-    participant Main as Main Thread
-    participant GUI as GUI Thread
-    participant HotkeyThread as Hotkey Service Thread
-    participant AudioThread as Audio Recording Thread
-    participant ProcessThread as Audio Processing Thread
-    participant FeedbackThread as Audio Feedback Thread
+    participant Main as Main Thread (GUI)
+    participant Hotkey as Hotkey Service Thread
+    participant Worker as Worker Thread
+    participant Audio as Audio Recording Thread
 
-    Note over Main,FeedbackThread: Application Startup
-    Main->>GUI: Create GUI window
-    Main->>+HotkeyThread: Start hotkey service
-    HotkeyThread-->>Main: Service running
+    Note over Main,Audio: Application Startup
+    Main->>Main: Initialize GUI
+    Main->>+Hotkey: Start Hotkey Service
+    Hotkey-->>Main: Service running
+    Main->>+Worker: Start Worker Thread
+    Worker-->>Main: Worker running
 
-    Note over Main,FeedbackThread: User Presses Hotkey
-    HotkeyThread->>+FeedbackThread: Play start feedback (non-blocking)
-    HotkeyThread->>+AudioThread: Start audio recording
-    AudioThread-->>HotkeyThread: Recording started
-    FeedbackThread-->>HotkeyThread: Feedback played
+    Note over Main,Audio: Start Recording (User Presses Hotkey)
+    Hotkey->>Worker: Queue "START_RECORDING"
+    Worker->>Worker: Play start feedback (non-blocking)
+    Worker->>+Audio: Start audio recording
+    Audio-->>Worker: Recording started
+    Audio->>Audio: Capture audio loop
 
-    Note over Main,FeedbackThread: User Releases Hotkey
-    HotkeyThread->>+FeedbackThread: Play stop feedback (non-blocking)
-    HotkeyThread->>+ProcessThread: Process recording (daemon thread)
-    ProcessThread->>AudioThread: Stop recording
-    AudioThread-->>ProcessThread: Audio file returned
-    FeedbackThread-->>HotkeyThread: Feedback played
+    Note over Main,Audio: Stop Recording (User Releases Hotkey)
+    Hotkey->>Worker: Queue "STOP_RECORDING"
+    Worker->>Worker: Play stop feedback (non-blocking)
+    Worker->>Audio: Stop recording
+    Audio-->>Worker: Audio file returned
 
-    Note over Main,FeedbackThread: Audio Processing Pipeline
-    ProcessThread->>ProcessThread: Process audio (silence removal, speed-up)
-    ProcessThread->>ProcessThread: Transcribe via OpenAI API
-    ProcessThread->>ProcessThread: Refine text via GPT API
-    ProcessThread->>ProcessThread: Insert text into active window
-    ProcessThread->>ProcessThread: Cleanup temp files
+    Note over Main,Audio: Audio Processing Pipeline (in Worker)
+    Worker->>Worker: Transcribe Audio (API)
+    Worker->>Worker: Refine Text (API)
+    Worker->>Worker: Insert Text (Clipboard)
+    Worker->>Worker: Cleanup temp files
 
-    Note over Main,FeedbackThread: GUI Status Updates
-    GUI->>Main: Real-time status monitoring
-    Main-->>GUI: Application state updates
-    GUI->>Main: User configuration changes
-    Main->>HotkeyThread: Update hotkey bindings (if needed)
-
-    Note over Main,FeedbackThread: Application Shutdown
-    GUI->>Main: Stop application request
-    Main->>HotkeyThread: Stop service
-    HotkeyThread-->>Main: Service stopped
+    Note over Main,Audio: Application Shutdown
+    Main->>Hotkey: Stop service
+    Hotkey-->>Main: Service stopped
+    Main->>Worker: Queue "QUIT"
+    Worker-->>Main: Worker stopped
 ```
 
-**Key Threading Features:**
-- **Non-blocking Operation**: Audio processing runs in daemon threads to avoid blocking hotkey detection
-- **Parallel Audio Feedback**: Start/stop feedback sounds play in separate threads for immediate response
-- **Thread-safe Processing**: Uses `threading.Lock()` to prevent concurrent audio processing operations
-- **Daemon Threads**: Processing threads are marked as daemon to prevent hanging on application exit
-- **GUI Responsiveness**: Main GUI thread remains responsive during audio processing operations
+### Threading Model
 
-### Data Flow
+The application uses separate threads for responsiveness:
 
-```mermaid
-flowchart TB
-    %% GUI
-    GUI -->|"Save Configuration"| PushToTalkApp
-    GUI -.->|"Real-time Updates"| PushToTalkApp
+- **Main Thread**: GUI and configuration
+- **Hotkey Service**: Global keyboard detection (producer) → queues commands
+- **Worker Thread**: Audio processing pipeline (consumer) → transcribe → refine → insert text
+- **Audio Recording**: Real-time PyAudio buffering
+- **Daemon Threads**: Non-blocking API calls
 
-    %% Main Flow
-    PushToTalkApp -->|"Initialize"| HotkeyService
-    HotkeyService -->|"Start/Stop Recording"| AudioRecorder
-    AudioRecorder -->|"Audio File"| AudioProcessor
-    AudioProcessor -->|"Processed Audio"| Transcriber
-    Transcriber -->|"AI Transcription"| TextRefiner
-    TextRefiner -->|"AI Refinement"| TextInserter
-```
+**Key Design**: Hotkeys are detected instantly even during API calls because the hotkey service operates independently from the worker thread. Commands queue and process sequentially, preventing race conditions.
 
-1. User presses hotkey → Audio recording starts
-2. User releases hotkey → Recording stops
-3. Audio file is processed (silence removal and speed adjustment for faster transcription)
-4. Processed audio is sent to OpenAI Whisper for transcription
-5. Raw transcription is refined using Refinement Models (if enabled)
-6. Refined text is inserted into the active window
-
-## Dependencies
-
-- **tkinter**: GUI interface (built into Python)
-- **keyboard**: Global hotkey detection
-- **loguru**: Enhanced logging with better formatting and features
-- **pyaudio**: Audio recording
-- **pydub**: Smart silence detection and audio manipulation
-- **soundfile**: High-quality audio I/O
-- **psola**: Pitch-preserving time-scale modification
-- **openai**: Speech-to-text and text refinement
-- **pyautogui**: Cross-platform text insertion and window management
-- **pyperclip**: Cross-platform clipboard operations
-- **playsound3**: Cross-platform audio feedback (lightweight alternative to pygame)
+See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 
 ## Troubleshooting
 
@@ -404,7 +377,11 @@ flowchart TB
    - Check `push_to_talk.log` for error details
 
 3. **Start/Stop button not working**:
-   - Ensure all required fields are filled (especially OpenAI API key)
+   - Ensure all required fields are filled (API keys based on selected providers)
+   - For Deepgram STT: Need `deepgram_api_key`
+   - For OpenAI STT: Need `openai_api_key`
+   - For Cerebras refinement: Need `cerebras_api_key`
+   - For OpenAI refinement: Need `openai_api_key`
    - Use "Test Configuration" to validate settings
    - Check that no other instance is running
 
@@ -430,17 +407,18 @@ flowchart TB
    - Try a different hotkey combination in the GUI
    - Ensure the application shows "Running" status in the GUI
 
-4. **OpenAI API errors**:
+4. **API errors or missing credentials**:
    - Use the "Test Configuration" button in the GUI to validate settings
-   - Verify your API key is valid and has sufficient credits
-   - Check your OpenAI account has access to the models you're using
+   - Verify your API keys are valid and have sufficient credits/usage quota
+   - Check that your accounts have access to the models you're using
+   - For Deepgram: Verify Deepgram API key and subscription plan
+   - For Cerebras: Verify Cerebras API key and account status
    - Ensure internet connectivity
+   - Check `push_to_talk.log` for specific API error messages
 
 5. **Text not inserting**:
    - Make sure the target window is active and has a text input field
-   - Try switching insertion method in the GUI (sendkeys vs clipboard)
    - Check Windows permissions for clipboard access
-   - Increase insertion delay if text appears truncated
 
 6. **GUI appearance issues**:
    - Try restarting the application
@@ -456,11 +434,9 @@ Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The G
 
 1. **Optimize audio settings**: Lower sample rates (8000-16000 Hz) for faster processing
 2. **Enable audio processing**: Smart silence removal and speed adjustment can significantly reduce transcription time
-3. **Adjust silence threshold**: Fine-tune -16 dBFS for your environment (higher for noisy environments)
-4. **Disable text refinement**: For faster transcription without GPT processing
-5. **Use clipboard method**: Generally faster than sendkeys for text insertion
-6. **Short recordings**: Keep recordings under 30 seconds for optimal performance
-7. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
+3. **Disable text refinement**: For faster transcription without GPT processing
+4. **Short recordings**: Keep recordings under 30 seconds for optimal performance
+5. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
 
 ## Security Considerations
 
@@ -472,214 +448,10 @@ Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The G
 
 ## Testing
 
-### Unit Test Suite
+For comprehensive testing information, see [CONTRIBUTING.md](CONTRIBUTING.md#testing).
 
-The application includes comprehensive unit tests to ensure code quality and functionality. The test suite covers all core components with detailed logging using loguru for debugging.
-
-#### Running Tests
-
+**Quick Start:**
 ```bash
-# Run all tests
-uv run pytest
-
-# Run tests with coverage report
-uv run pytest tests/ --cov=src --cov-report=html --cov-fail-under=80
-
-# Run specific test file
-uv run pytest tests/test_audio_recorder.py -v
-
-# Run tests with detailed output
-uv run pytest tests/ -v --tb=long
+uv run pytest tests/ -v                       # All tests
+uv run pytest tests/ --cov=src --cov-report=html # With coverage
 ```
-
-#### Test Structure
-
-The test suite is organized by component in the `tests/` directory:
-
-```
-tests/
-├── __init__.py
-├── conftest.py                      # Test configuration and fixtures
-├── test_audio_recorder.py           # Audio recording functionality tests
-├── test_audio_processor.py          # Audio processing and silence removal tests
-├── test_transcription.py            # OpenAI Whisper integration tests
-├── test_text_refiner.py             # AI text refinement tests
-├── test_hotkey_service.py           # Hotkey detection and management tests
-├── test_utils.py                    # Audio feedback and utility function tests
-├── test_integration_simplified.py  # Integration tests with real audio files
-├── test_format_instruction.py      # Format instruction processing tests
-└── fixtures/                       # Real audio files and scripts for integration testing
-    ├── audio1.wav                   # Business meeting audio
-    ├── audio1_script.txt
-    ├── audio2.wav                   # Product demo audio
-    ├── audio2_script.txt
-    ├── audio3.wav                   # To-do list with format instruction
-    └── audio3_script.txt
-```
-
-#### Test Coverage by Component
-
-##### AudioRecorder (`test_audio_recorder.py`)
-- **Initialization**: Default and custom parameter validation
-- **Recording Lifecycle**: Start/stop recording with thread management
-- **Error Handling**: PyAudio failures, cleanup on errors
-- **Audio Data Management**: Sample width detection, temporary file creation
-- **Thread Safety**: Recording thread management and termination
-
-**Key Test Cases:**
-- `test_start_recording_success`: Validates successful audio recording start
-- `test_stop_recording_success`: Tests proper audio file generation and cleanup
-- `test_sample_width_fallback`: Ensures fallback logic for different audio formats
-- `test_cleanup_with_exception`: Verifies graceful error handling
-
-##### AudioProcessor (`test_audio_processor.py`)
-- **Initialization Testing**: Default and custom parameter validation
-- **Audio Processing Pipeline**: Silence detection, removal, and speed adjustment (simplified)
-- **File Format Handling**: Basic audio file loading and error handling
-- **Error Handling**: Graceful failure handling for invalid audio files
-
-**Key Test Cases:**
-- `test_initialization`: Default parameter validation
-- `test_custom_initialization`: Custom parameter configuration
-- `test_process_audio_file_load_failure`: Audio file load error handling
-
-**Note**: Complex audio processing tests (PSOLA, stereo-to-mono conversion, debug mode) are simplified due to mocking complexity. Full audio processing functionality is validated in integration tests using real audio files.
-
-##### Transcriber (`test_transcription.py`)
-- **OpenAI API Integration**: Whisper model configuration and API calls
-- **Error Handling**: Network failures, invalid API keys, empty responses
-- **File Management**: Temporary file cleanup and error recovery
-- **Response Processing**: String and object response handling
-
-**Key Test Cases:**
-- `test_transcribe_audio_success`: Successful transcription workflow
-- `test_transcribe_audio_with_language`: Language parameter support
-- `test_transcribe_audio_api_failure`: API error handling and fallback
-- `test_transcribe_audio_cleanup_failure`: Cleanup error resilience
-
-##### TextRefiner (`test_text_refiner.py`)
-- **AI Text Refinement**: GPT model integration for text improvement
-- **Prompt Management**: Custom and default prompt handling
-- **Model Configuration**: GPT-4 and GPT-5 specific settings
-- **Length Optimization**: Skip refinement for short text snippets
-
-**Key Test Cases:**
-- `test_refine_text_success`: Complete text refinement pipeline
-- `test_refine_text_gpt5_model_settings`: GPT-5 reasoning parameter handling
-- `test_set_custom_prompt`: Custom refinement prompt configuration
-- `test_refine_text_too_short`: Length-based refinement optimization
-
-##### HotkeyService (`test_hotkey_service.py`)
-- **Global Hotkey Detection**: Push-to-talk and toggle mode hotkeys
-- **Threading Management**: Service lifecycle and thread safety
-- **Key Parsing**: Hotkey combination validation and parsing
-- **Mode Management**: Push-to-talk vs toggle recording modes
-
-**Key Test Cases:**
-- `test_start_service_success`: Hotkey service initialization
-- `test_on_hotkey_press_not_recording`: Push-to-talk hotkey handling
-- `test_on_toggle_hotkey_press_start_recording`: Toggle mode functionality
-- `test_change_hotkey_success`: Dynamic hotkey reconfiguration
-
-##### Integration Tests (`test_integration_simplified.py`, `test_format_instruction.py`)
-- **Real Audio File Processing**: Tests with actual WAV files from fixtures directory
-- **Audio Processing Pipeline**: End-to-end audio processing with different settings
-- **Debug Mode Validation**: Verification of debug file generation and processing metadata
-- **Format Instruction Processing**: Special handling of text refinement instructions
-- **Fallback Behavior**: API failure handling and graceful degradation
-
-**Key Test Cases:**
-- `test_audio_processor_real_files_basic`: Process all three fixture audio files
-- `test_audio_processor_debug_mode_real_files`: Debug file generation with real audio
-- `test_format_instruction_text_processing`: Bullet point formatting with audio3
-- `test_text_refiner_format_instruction_bullet_points`: Specific format instruction handling
-- `test_audio_file_format_validation`: WAV format validation and compatibility
-
-**Fixture Audio Files:**
-- **audio1.wav**: Business meeting with filler words and stutters (~42s)
-- **audio2.wav**: Product demo with technical terminology (~35s)
-- **audio3.wav**: Personal to-do list with format instruction "Format this as a to-do list in bullet points" (~35s)
-
-#### Test Features
-
-##### Detailed Logging
-All tests include comprehensive logging using loguru for debugging:
-
-```python
-logger.info("Testing successful audio recording start")
-assert result is True
-logger.info("Audio recording start test passed")
-```
-
-##### Mock Integration
-Extensive use of `unittest.mock` to isolate components:
-
-```python
-@patch('pyaudio.PyAudio')
-@patch('tempfile.NamedTemporaryFile')
-def test_audio_recording(self, mock_temp_file, mock_pyaudio):
-    # Test implementation with mocked dependencies
-```
-
-##### Error Simulation
-Tests include error condition handling:
-
-```python
-def test_api_failure(self):
-    mock_api.side_effect = Exception("API request failed")
-    result = self.component.process()
-    assert result is None  # Graceful failure
-```
-
-##### Cross-Platform Testing
-Platform-specific behavior validation:
-
-```python
-@patch('sys.platform', 'darwin')  # macOS
-def test_macos_hotkeys(self):
-    # macOS-specific hotkey testing
-```
-
-#### Running Specific Test Categories
-
-```bash
-# Test audio components only
-uv run pytest tests/test_audio_*.py -v
-
-# Test API integrations only
-uv run pytest tests/test_transcription.py tests/test_text_refiner.py -v
-
-# Test GUI components (when implemented)
-uv run pytest tests/test_*gui*.py -v
-
-# Run tests with specific markers
-uv run pytest tests/ -m "not slow" -v
-```
-
-#### Continuous Integration
-
-The test suite is designed for CI/CD integration:
-
-```yaml
-# Example GitHub Actions workflow
-- name: Run Tests
-  run: |
-    uv sync --dev
-    uv run pytest tests/ --cov=src --cov-report=xml
-```
-
-#### Performance Testing
-
-While not yet implemented, the test structure supports performance benchmarks:
-
-```python
-# Future performance test example
-@pytest.mark.performance
-def test_transcription_speed(self):
-    start_time = time.time()
-    result = self.transcriber.transcribe_audio("test_audio.wav")
-    duration = time.time() - start_time
-    assert duration < 5.0  # Max 5 seconds for transcription
-```
-
-The test suite ensures reliability across all components and provides confidence when implementing new features or refactoring existing code.
