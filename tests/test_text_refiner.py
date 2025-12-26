@@ -4,6 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.text_refiner_openai import TextRefinerOpenAI
+from src.text_refiner_cerebras import CerebrasTextRefiner
 
 
 class TestTextRefinerOpenAI:
@@ -465,3 +466,278 @@ class TestTextRefinerOpenAI:
         assert "- TestTerm" in used_prompt
 
         logger.info("Custom prompt with glossary in refine_text test passed")
+
+
+class TestCerebrasTextRefiner:
+    @pytest.fixture(autouse=True)
+    def setup(self, mocker):
+        """Setup for each test method"""
+        logger.info("Setting up CerebrasTextRefiner test")
+
+        # Use a mock API key for testing
+        mocker.patch.dict(os.environ, {"CEREBRAS_API_KEY": "test-cerebras-key"})
+
+        # Mock the Cerebras client
+        self.mock_client = MagicMock()
+        mocker.patch(
+            "src.text_refiner_cerebras.Cerebras", return_value=self.mock_client
+        )
+        self.refiner = CerebrasTextRefiner()
+
+    def test_initialization_with_env_var(self, mocker):
+        """Test CerebrasTextRefiner initialization with environment variable"""
+        logger.info("Testing CerebrasTextRefiner initialization with env var")
+
+        mocker.patch.dict(os.environ, {"CEREBRAS_API_KEY": "env-cerebras-key"})
+        mock_client = MagicMock()
+        mocker.patch("src.text_refiner_cerebras.Cerebras", return_value=mock_client)
+
+        refiner = CerebrasTextRefiner()
+
+        assert refiner.api_key == "env-cerebras-key"
+        assert refiner.model == "llama-3.3-70b"
+        assert refiner.client is not None
+        assert refiner.custom_refinement_prompt is None
+
+        logger.info("CerebrasTextRefiner initialization with env var test passed")
+
+    def test_initialization_with_explicit_key(self, mocker):
+        """Test CerebrasTextRefiner initialization with explicit API key"""
+        logger.info("Testing CerebrasTextRefiner initialization with explicit key")
+
+        mock_client = MagicMock()
+        mocker.patch("src.text_refiner_cerebras.Cerebras", return_value=mock_client)
+
+        refiner = CerebrasTextRefiner(
+            api_key="explicit-cerebras-key", model="llama-3.1-70b"
+        )
+
+        assert refiner.api_key == "explicit-cerebras-key"
+        assert refiner.model == "llama-3.1-70b"
+        assert refiner.client is not None
+
+        logger.info("CerebrasTextRefiner initialization with explicit key test passed")
+
+    def test_initialization_no_api_key(self, mocker):
+        """Test CerebrasTextRefiner initialization without API key"""
+        logger.info("Testing CerebrasTextRefiner initialization without API key")
+
+        mocker.patch.dict(os.environ, {}, clear=True)
+        with pytest.raises(ValueError) as exc_info:
+            CerebrasTextRefiner()
+
+        assert "Cerebras API key is required" in str(exc_info.value)
+
+        logger.info("CerebrasTextRefiner initialization no API key test passed")
+
+    def test_refine_text_success(self):
+        """Test successful text refinement with Cerebras"""
+        logger.info("Testing successful Cerebras text refinement")
+
+        # Mock the Cerebras client response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[
+            0
+        ].message.content = "This is the refined text with proper punctuation."
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        raw_text = "this is some rough transcribed text without punctuation"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "This is the refined text with proper punctuation."
+
+        # Verify the API was called correctly
+        self.mock_client.chat.completions.create.assert_called_once()
+        call_args = self.mock_client.chat.completions.create.call_args
+        assert call_args[1]["model"] == "llama-3.3-70b"
+        assert call_args[1]["stream"] is False
+        assert call_args[1]["max_completion_tokens"] == 2048
+        assert call_args[1]["temperature"] == 0.2
+
+        logger.info("Refine text success test passed")
+
+    def test_refine_text_with_custom_prompt(self):
+        """Test text refinement with custom prompt"""
+        logger.info("Testing Cerebras text refinement with custom prompt")
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Custom refined text."
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        # Set custom prompt first
+        custom_prompt = "Custom refinement instructions"
+        self.refiner.set_custom_prompt(custom_prompt)
+
+        raw_text = "some text to refine with custom prompt that is long enough"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "Custom refined text."
+
+        # Verify custom prompt was used in the API call
+        call_args = self.mock_client.chat.completions.create.call_args
+        messages = call_args[1]["messages"]
+        assert messages[0]["role"] == "system"
+        assert messages[0]["content"] == custom_prompt
+
+        logger.info("Refine text with custom prompt test passed")
+
+    def test_refine_text_empty_input(self):
+        """Test refinement with empty input"""
+        logger.info("Testing Cerebras refinement with empty input")
+
+        result = self.refiner.refine_text("")
+        assert result is None
+
+        result = self.refiner.refine_text("   ")
+        assert result is None
+
+        result = self.refiner.refine_text(None)
+        assert result is None
+
+        logger.info("Refine text empty input test passed")
+
+    def test_refine_text_too_short(self):
+        """Test refinement with text too short"""
+        logger.info("Testing Cerebras refinement with text too short")
+
+        short_text = "Hi there"  # Less than 20 characters
+        result = self.refiner.refine_text(short_text)
+
+        # Should return original text without API call
+        assert result == short_text
+
+        # Verify API was not called
+        self.mock_client.chat.completions.create.assert_not_called()
+
+        logger.info("Refine text too short test passed")
+
+    def test_refine_text_api_failure(self):
+        """Test text refinement API failure"""
+        logger.info("Testing Cerebras text refinement API failure")
+
+        # Mock API failure
+        self.mock_client.chat.completions.create = MagicMock(
+            side_effect=Exception("API request failed")
+        )
+
+        raw_text = "this is some text that should cause an api failure"
+        result = self.refiner.refine_text(raw_text)
+
+        # Should return original text on API failure
+        assert result == raw_text.strip()
+
+        logger.info("Refine text API failure test passed")
+
+    def test_refine_text_empty_api_response(self):
+        """Test refinement with empty API response"""
+        logger.info("Testing Cerebras refinement with empty API response")
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = ""
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        raw_text = "some text to refine but api returns empty"
+        result = self.refiner.refine_text(raw_text)
+
+        # Should return original text when API returns empty
+        assert result == raw_text.strip()
+
+        logger.info("Refine text empty API response test passed")
+
+    def test_refine_text_none_api_response(self):
+        """Test refinement with None API response"""
+        logger.info("Testing Cerebras refinement with None API response")
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = None
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        raw_text = "some text to refine but api returns none"
+        result = self.refiner.refine_text(raw_text)
+
+        # Should return original text when API returns None
+        assert result == raw_text.strip()
+
+        logger.info("Refine text None API response test passed")
+
+    def test_refine_text_timing(self, mocker):
+        """Test refinement timing measurement"""
+        logger.info("Testing Cerebras refinement timing measurement")
+
+        # Mock time progression
+        mock_time = mocker.patch("src.text_refiner_cerebras.time.time")
+        mock_time.side_effect = [1000.0, 1001.5, 1001.6, 1001.7, 1001.8, 1001.9]
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Timed refined text"
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        raw_text = "text to refine with timing measurement"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "Timed refined text"
+
+        # Verify time.time() was called at least twice (start and end)
+        assert mock_time.call_count >= 2
+
+        logger.info("Refine text timing test passed")
+
+    def test_refine_text_with_glossary(self):
+        """Test refinement uses glossary correctly"""
+        logger.info("Testing Cerebras refinement with glossary")
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Refined with glossary terms"
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        # Set glossary
+        self.refiner.set_glossary(["API", "OAuth", "Pydantic"])
+
+        raw_text = "text to refine with glossary terms"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "Refined with glossary terms"
+
+        # Verify the default prompt with glossary was used
+        call_args = self.mock_client.chat.completions.create.call_args
+        messages = call_args[1]["messages"]
+        system_prompt = messages[0]["content"]
+        # The prompt should contain glossary reference when glossary is set
+        assert "API" in system_prompt or "glossary" in system_prompt.lower()
+
+        logger.info("Refine text with glossary test passed")
+
+    def test_custom_prompt_with_glossary_placeholder(self):
+        """Test custom prompt with glossary placeholder substitution"""
+        logger.info("Testing Cerebras custom prompt with glossary placeholder")
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Refined with custom glossary"
+        self.mock_client.chat.completions.create = MagicMock(return_value=mock_response)
+
+        # Set custom prompt with placeholder
+        custom_prompt = "Refine text.\n\nGlossary:\n{custom_glossary}\n\nEnd."
+        self.refiner.set_custom_prompt(custom_prompt)
+        self.refiner.set_glossary(["TestTerm", "AnotherTerm"])
+
+        raw_text = "text to refine with custom prompt and glossary"
+        result = self.refiner.refine_text(raw_text)
+
+        assert result == "Refined with custom glossary"
+
+        # Verify the formatted prompt was used
+        call_args = self.mock_client.chat.completions.create.call_args
+        messages = call_args[1]["messages"]
+        used_prompt = messages[0]["content"]
+        assert "{custom_glossary}" not in used_prompt
+        assert "- AnotherTerm" in used_prompt
+        assert "- TestTerm" in used_prompt
+
+        logger.info("Custom prompt with glossary placeholder test passed")
