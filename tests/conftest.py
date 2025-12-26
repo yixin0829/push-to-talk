@@ -2,7 +2,7 @@ import pytest
 import sys
 import tkinter as tk
 from loguru import logger
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 
 # Configure loguru for tests
@@ -117,7 +117,7 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
     gui.root = mock_tk_root
 
     # Initialize sections with mocked frames
-    gui.api_section = mock_gui_sections["api"](Mock())
+    gui.api_section = mock_gui_sections["api"](MagicMock())
     gui.api_section.set_values(
         config.stt_provider,
         config.openai_api_key,
@@ -128,23 +128,23 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         config.refinement_model,
     )
 
-    gui.audio_section = mock_gui_sections["audio"](Mock())
+    gui.audio_section = mock_gui_sections["audio"](MagicMock())
     gui.audio_section.set_values(
         config.sample_rate,
         config.chunk_size,
         config.channels,
     )
 
-    gui.hotkey_section = mock_gui_sections["hotkey"](Mock())
+    gui.hotkey_section = mock_gui_sections["hotkey"](MagicMock())
     gui.hotkey_section.set_values(
         config.hotkey,
         config.toggle_hotkey,
     )
 
-    gui.text_insertion_section = mock_gui_sections["text_insertion"](Mock())
+    gui.text_insertion_section = mock_gui_sections["text_insertion"](MagicMock())
     gui.text_insertion_section.set_value(config.insertion_delay)
 
-    gui.feature_flags_section = mock_gui_sections["feature_flags"](Mock())
+    gui.feature_flags_section = mock_gui_sections["feature_flags"](MagicMock())
     gui.feature_flags_section.set_values(
         config.enable_text_refinement,
         config.enable_logging,
@@ -153,13 +153,13 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
     )
 
     gui.glossary_section = mock_gui_sections["glossary"](
-        Mock(), mock_tk_root, config.custom_glossary
+        MagicMock(), mock_tk_root, config.custom_glossary
     )
 
     # For prompt_section, we need to mock the tk.Text widget behavior
     # since it doesn't use StringVar like other sections
     gui.prompt_section = mock_gui_sections["prompt"](
-        Mock(), mock_tk_root, config.custom_refinement_prompt
+        MagicMock(), mock_tk_root, config.custom_refinement_prompt
     )
     # Store the prompt value and mock get_prompt/set_prompt to use it
     gui.prompt_section._stored_prompt = config.custom_refinement_prompt
@@ -168,6 +168,6 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         gui.prompt_section, "_stored_prompt", p
     )
 
-    gui.status_section = mock_gui_sections["status"](Mock())
+    gui.status_section = mock_gui_sections["status"](MagicMock())
 
     return gui

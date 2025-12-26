@@ -1,6 +1,6 @@
 import sys
 import types
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock
 
 from tests.test_helpers import create_keyboard_stub, create_pyautogui_stub
 
@@ -15,14 +15,12 @@ sys.modules.setdefault("pynput.keyboard", keyboard_stub)
 
 from src.push_to_talk import PushToTalkConfig  # noqa: E402
 
-# Alias for consistency with test code
-ConfigurationGUI = ConfigurationWindow
 
 def test_gui_updates_running_app_when_config_changes(prepared_config_gui):
     gui = prepared_config_gui
 
-    gui.app_instance = Mock()
-    gui.on_config_changed = Mock()
+    gui.app_instance = MagicMock()
+    gui.on_config_changed = MagicMock()
     gui.is_running = True
 
     # Change hotkey through the hotkey section
@@ -48,8 +46,8 @@ def test_force_notify_triggers_update_even_when_values_match(prepared_config_gui
     gui = prepared_config_gui
     config = gui.config
 
-    gui.app_instance = Mock()
-    gui.on_config_changed = Mock()
+    gui.app_instance = MagicMock()
+    gui.on_config_changed = MagicMock()
     gui.is_running = True
 
     gui._notify_config_changed(force=True)
@@ -172,8 +170,8 @@ def test_update_gui_from_config_updates_provider_fields(prepared_config_gui):
         gui.config.refinement_provider,
         gui.config.refinement_model,
     )
-    gui.app_instance = Mock()
-    gui.on_config_changed = Mock()
+    gui.app_instance = MagicMock()
+    gui.on_config_changed = MagicMock()
     gui.is_running = False
 
     # Verify initial state
@@ -238,8 +236,8 @@ def test_stt_model_preserved_when_switching_providers(prepared_config_gui):
     )
 
     # Mock the stt_model_combo widget
-    gui.api_section.stt_model_combo = Mock()
-    gui.api_section.stt_model_combo.__setitem__ = Mock()
+    gui.api_section.stt_model_combo = MagicMock()
+    gui.api_section.stt_model_combo.__setitem__ = MagicMock()
 
     # Verify initial OpenAI model is stored
     assert gui.api_section.openai_stt_model == "gpt-4o-transcribe"
