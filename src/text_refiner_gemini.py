@@ -8,14 +8,14 @@ from src.text_refiner_base import TextRefinerBase
 
 class GeminiTextRefiner(TextRefinerBase):
     def __init__(
-        self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash-preview-05-20"
+        self, api_key: Optional[str] = None, model: str = "gemini-3-flash-preview"
     ):
         """
         Initialize the text refiner with Google Gemini API.
 
         Args:
             api_key: Google Gemini API key. If None, will use GOOGLE_API_KEY environment variable
-            model: Refinement Model to use (default: gemini-2.5-flash-preview-05-20)
+            model: Refinement Model to use (default: gemini-3-flash-preview)
         """
         super().__init__()
 

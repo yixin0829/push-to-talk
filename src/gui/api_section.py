@@ -57,7 +57,7 @@ class APISection:
         # Provider-specific refinement model selections
         self.openai_refinement_model = "gpt-4.1-nano"
         self.cerebras_refinement_model = "llama-3.3-70b"
-        self.gemini_refinement_model = "gemini-2.5-flash-preview-05-20"
+        self.gemini_refinement_model = "gemini-3-flash-preview"
 
         self._create_widgets()
 
@@ -389,12 +389,10 @@ class APISection:
             "llama3.1-8b",
         ]
         gemini_models = [
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview",
             "gemini-2.5-flash-preview-05-20",
             "gemini-2.5-pro-preview-06-05",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
         ]
 
         # Save the current model to the appropriate provider-specific variable
@@ -546,12 +544,10 @@ class APISection:
                 ]
             elif provider == "gemini":
                 models = [
+                    "gemini-3-flash-preview",
+                    "gemini-3-pro-preview",
                     "gemini-2.5-flash-preview-05-20",
                     "gemini-2.5-pro-preview-06-05",
-                    "gemini-2.0-flash",
-                    "gemini-2.0-flash-lite",
-                    "gemini-1.5-flash",
-                    "gemini-1.5-pro",
                 ]
             else:
                 models = []
