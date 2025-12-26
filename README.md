@@ -11,7 +11,6 @@
 ![Platform](https://img.shields.io/badge/platform-windows-lightgrey)
 [![codecov](https://codecov.io/gh/yixin0829/push-to-talk/graph/badge.svg?token=ZXD777GTHS)](https://codecov.io/gh/yixin0829/push-to-talk)
 ![GitHub Issues](https://img.shields.io/github/issues/yixin0829/push-to-talk)
-![GitHub Stars](https://img.shields.io/github/stars/yixin0829/push-to-talk)
 ![GitHub Downloads](https://img.shields.io/github/downloads/yixin0829/push-to-talk/total)
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
