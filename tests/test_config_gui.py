@@ -1,6 +1,6 @@
 import sys
 import types
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from tests.test_helpers import create_keyboard_stub, create_pyautogui_stub
 
@@ -15,6 +15,8 @@ sys.modules.setdefault("pynput.keyboard", keyboard_stub)
 
 from src.push_to_talk import PushToTalkConfig  # noqa: E402
 
+# Alias for consistency with test code
+ConfigurationGUI = ConfigurationWindow
 
 def test_gui_updates_running_app_when_config_changes(prepared_config_gui):
     gui = prepared_config_gui
