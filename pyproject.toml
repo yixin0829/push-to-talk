@@ -28,6 +28,12 @@ dev = [
     "ruff>=0.12.5",
 ]
 
+[tool.coverage.run]
+omit = ["src/gui/*"]
+
+[tool.coverage.report]
+omit = ["src/gui/*"]
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
