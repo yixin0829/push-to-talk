@@ -18,6 +18,7 @@ from src.text_refiner_factory import TextRefinerFactory
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
+from src.exceptions import ConfigurationError
 
 
 def _get_default_hotkey() -> str:
@@ -204,18 +205,18 @@ class PushToTalkApp:
             if not self.config.openai_api_key:
                 self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
                 if not self.config.openai_api_key:
-                    raise ValueError(
+                    raise ConfigurationError(
                         "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
                     )
         elif self.config.stt_provider == "deepgram":
             if not self.config.deepgram_api_key:
                 self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
                 if not self.config.deepgram_api_key:
-                    raise ValueError(
+                    raise ConfigurationError(
                         "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
                     )
         else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(f"Unknown STT provider: {self.config.stt_provider}")
 
         # Use injected dependencies or initialize to None (will be created in _initialize_components)
         self.audio_recorder = audio_recorder
@@ -345,7 +346,7 @@ class PushToTalkApp:
         elif self.config.stt_provider == "deepgram":
             api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
         else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(f"Unknown STT provider: {self.config.stt_provider}")
 
         # Create transcriber using factory with glossary
         return TranscriberFactory.create_transcriber(
@@ -364,12 +365,12 @@ class PushToTalkApp:
             elif self.config.refinement_provider == "cerebras":
                 api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
             else:
-                raise ValueError(
+                raise ConfigurationError(
                     f"Unknown refinement provider: {self.config.refinement_provider}"
                 )
 
             if not api_key:
-                raise ValueError(
+                raise ConfigurationError(
                     f"{self.config.refinement_provider.upper()} API key is required for text refinement. "
                     f"Set {self.config.refinement_provider.upper()}_API_KEY environment variable or provide in config."
                 )
@@ -610,13 +611,14 @@ class PushToTalkApp:
         except Exception as e:
             logger.error(f"Error processing recorded audio: {e}")
             # Clean up temporary audio file even on error
-            try:
-                logger.debug(f"Cleaning up audio file: {audio_file}")
-                if "audio_file" in locals() and os.path.exists(audio_file):
-                    os.unlink(audio_file)
-            except Exception:
-                # Ignore cleanup errors during error handling
-                logger.error(f"Error cleaning up audio file {audio_file}: {e}")
+            if "audio_file" in locals() and audio_file:
+                try:
+                    logger.debug(f"Cleaning up audio file: {audio_file}")
+                    if os.path.exists(audio_file):
+                        os.unlink(audio_file)
+                except Exception as cleanup_error:
+                    # Ignore cleanup errors during error handling
+                    logger.error(f"Error cleaning up audio file {audio_file}: {cleanup_error}")
 
     def _save_debug_audio(self, audio_file: str):
         """
@@ -742,7 +744,7 @@ class PushToTalkApp:
                         "CEREBRAS_API_KEY"
                     )
                 else:
-                    raise ValueError(
+                    raise ConfigurationError(
                         f"Unknown refinement provider: {self.config.refinement_provider}"
                     )
 

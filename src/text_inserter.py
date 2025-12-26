@@ -3,8 +3,8 @@ from loguru import logger
 import sys
 from typing import Optional
 
-import pyautogui
 import pyperclip
+from pynput.keyboard import Controller, Key
 
 from src.config.constants import (
     TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS,
@@ -19,6 +19,7 @@ class TextInserter:
     def __init__(self):
         """Initialize the text inserter."""
         self.insertion_delay = self.DEFAULT_INSERTION_DELAY
+        self.keyboard = Controller()
 
     def insert_text(self, text: str) -> bool:
         """
@@ -49,8 +50,13 @@ class TextInserter:
 
             time.sleep(TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS)
 
-            paste_keys = ["command", "v"] if sys.platform == "darwin" else ["ctrl", "v"]
-            pyautogui.hotkey(*paste_keys)
+            # Use platform-specific modifier key for paste
+            modifier_key = Key.cmd if sys.platform == "darwin" else Key.ctrl
+
+            # Press modifier+v to paste
+            with self.keyboard.pressed(modifier_key):
+                self.keyboard.press("v")
+                self.keyboard.release("v")
 
             time.sleep(TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS)
 
@@ -79,14 +85,12 @@ class TextInserter:
         """
         Get the title of the currently active window.
 
+        Note: This functionality is not available without pyautogui.
+        Returns None for logging purposes.
+
         Returns:
-            Window title or None if no active window
+            None (window title detection not implemented)
         """
-        try:
-            window = pyautogui.getActiveWindow()
-            if window:
-                return window.title if window.title else None
-            return None
-        except Exception as e:
-            logger.error(f"Failed to get active window title: {e}")
-            return None
+        # Window title detection was removed to eliminate pyautogui dependency
+        # This is only used for logging, so returning None is acceptable
+        return None

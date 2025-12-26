@@ -2,15 +2,18 @@ import threading
 import time
 import sys
 import json
-import functools
 from pathlib import Path
 from typing import Callable, Optional, Set
 
 from loguru import logger
 from pynput import keyboard as pynput_keyboard
 
+from src.config.constants import HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS
+
 
 class HotkeyService:
+    # Class-level cache for hotkey alias mappings (loaded once at class definition)
+    _ALIAS_MAP: dict[str, str] | None = None
     def __init__(self, hotkey: str = None, toggle_hotkey: str = None):
         """
         Initialize the hotkey service.
@@ -149,13 +152,16 @@ class HotkeyService:
         return normalized if normalized else None
 
     @staticmethod
-    @functools.lru_cache(maxsize=1)
     def _get_alias_map() -> dict[str, str]:
         """
         Return mapping from alias name to canonical name.
 
-        Loads from JSON configuration file and caches the result.
+        Loads from JSON configuration file on first call and caches the result.
         """
+        # Return cached result if available
+        if HotkeyService._ALIAS_MAP is not None:
+            return HotkeyService._ALIAS_MAP
+
         # Path to the hotkey aliases JSON file
         config_dir = Path(__file__).parent / "config"
         aliases_file = config_dir / "hotkey_aliases.json"
@@ -172,17 +178,22 @@ class HotkeyService:
                 # Also map canonical name to itself
                 lookup[canonical] = canonical
 
+            # Cache the result
+            HotkeyService._ALIAS_MAP = lookup
             return lookup
 
         except FileNotFoundError:
             logger.error(f"Hotkey aliases file not found: {aliases_file}")
-            # Return empty dict as fallback
+            # Cache empty dict as fallback
+            HotkeyService._ALIAS_MAP = {}
             return {}
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse hotkey aliases JSON: {e}")
+            HotkeyService._ALIAS_MAP = {}
             return {}
         except Exception as e:
             logger.error(f"Error loading hotkey aliases: {e}")
+            HotkeyService._ALIAS_MAP = {}
             return {}
 
     def set_callbacks(self, on_start_recording: Callable, on_stop_recording: Callable):
@@ -252,7 +263,7 @@ class HotkeyService:
 
         # Wait for service thread to finish
         if self.service_thread and self.service_thread.is_alive():
-            self.service_thread.join(timeout=5.0)
+            self.service_thread.join(timeout=HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS)
         self.service_thread = None
 
         with self._lock:

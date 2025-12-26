@@ -176,6 +176,11 @@ class AudioRecorder:
         except Exception as e:
             logger.error(f"Error during audio interface shutdown: {e}")
 
-    def __del__(self):
-        """Destructor to ensure cleanup."""
+    def __enter__(self):
+        """Context manager entry - returns self for use in 'with' statements."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cleanup even if exceptions occur."""
         self.shutdown()
+        return False  # Don't suppress exceptions

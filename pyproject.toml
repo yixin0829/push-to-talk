@@ -9,7 +9,6 @@ dependencies = [
     "loguru>=0.7.2",
     "openai>=1.97.1",
     "pyaudio>=0.2.14",
-    "pyautogui>=0.9.54",
     "pydantic>=2.0.0",
     "pyperclip>=1.9.0",
     "playsound3>=3.2.4",
