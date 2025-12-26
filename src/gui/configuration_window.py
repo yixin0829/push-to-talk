@@ -174,9 +174,9 @@ Configure your settings below, then click "Start Application" to begin:"""
         )
 
         requirements = [
-            "• OpenAI or Deepgram API key (for speech recognition)",
+            "• Valid API Key for Speech Recognition",
             "• Microphone access",
-            "• Administrator privileges (for global hotkeys)",
+            "• Appropriate system permissions (for global hotkeys)",
         ]
 
         for req in requirements:
