@@ -2,6 +2,7 @@ from typing import Optional
 from src.text_refiner_base import TextRefinerBase
 from src.text_refiner_openai import TextRefinerOpenAI
 from src.text_refiner_cerebras import CerebrasTextRefiner
+from src.text_refiner_gemini import GeminiTextRefiner
 
 
 class TextRefinerFactory:
@@ -33,10 +34,12 @@ class TextRefinerFactory:
             refiner = TextRefinerOpenAI(api_key=api_key, model=model)
         elif provider == "cerebras":
             refiner = CerebrasTextRefiner(api_key=api_key, model=model)
+        elif provider == "gemini":
+            refiner = GeminiTextRefiner(api_key=api_key, model=model)
         else:
             raise ValueError(
                 f"Unsupported refinement provider: {provider}. "
-                f"Supported providers: openai, cerebras"
+                f"Supported providers: openai, cerebras, gemini"
             )
 
         # Set glossary if provided

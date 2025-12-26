@@ -46,12 +46,13 @@ class PushToTalkConfig(BaseModel):
     # Text refinement settings
     refinement_provider: str = Field(
         default="cerebras",
-        description="Text refinement provider: 'openai' or 'cerebras'",
+        description="Text refinement provider: 'openai', 'cerebras', or 'gemini'",
     )
     refinement_model: str = Field(
         default="llama-3.3-70b", description="Model for text refinement"
     )
     cerebras_api_key: str = Field(default="", description="Cerebras API key")
+    gemini_api_key: str = Field(default="", description="Gemini API key")
 
     # Audio settings
     sample_rate: int = Field(default=16000, gt=0, description="Audio sample rate in Hz")
@@ -363,6 +364,8 @@ class PushToTalkApp:
                 api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
             elif self.config.refinement_provider == "cerebras":
                 api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
+            elif self.config.refinement_provider == "gemini":
+                api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
             else:
                 raise ValueError(
                     f"Unknown refinement provider: {self.config.refinement_provider}"
@@ -741,6 +744,8 @@ class PushToTalkApp:
                     api_key = self.config.cerebras_api_key or os.getenv(
                         "CEREBRAS_API_KEY"
                     )
+                elif self.config.refinement_provider == "gemini":
+                    api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
                 else:
                     raise ValueError(
                         f"Unknown refinement provider: {self.config.refinement_provider}"
