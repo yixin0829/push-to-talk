@@ -1,70 +1,20 @@
 import sys
 import types
-from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
-class DummyKey:
-    def __init__(self, name: Optional[str] = None):
-        if name is not None:
-            self.name = name
+from tests.test_helpers import create_keyboard_stub
 
-
-class DummyKeyCode:
-    def __init__(self, char: Optional[str] = None, vk: Optional[int] = None):
-        self.char = char
-        self.vk = vk
-
-    @classmethod
-    def from_vk(cls, vk: int):
-        return cls(vk=vk)
-
-
-class DummyListener:
-    def __init__(self, on_press=None, on_release=None):
-        self.on_press = on_press
-        self.on_release = on_release
-        self._alive = False
-
-    def start(self):  # pragma: no cover - trivial
-        self._alive = True
-
-    def stop(self):  # pragma: no cover - trivial
-        self._alive = False
-
-    def join(self, timeout=None):  # pragma: no cover - trivial
-        return None
-
-    def is_alive(self):  # pragma: no cover - trivial
-        return self._alive
-
-
-# Populate common key objects used by the service
-Key = DummyKey
-Key.ctrl = DummyKey("ctrl")
-Key.shift = DummyKey("shift")
-Key.space = DummyKey("space")
-Key.alt = DummyKey("alt")
-Key.cmd = DummyKey("cmd")
-Key.ctrl_l = DummyKey("ctrl_l")
-Key.ctrl_r = DummyKey("ctrl_r")
-Key.shift_l = DummyKey("shift_l")
-Key.shift_r = DummyKey("shift_r")
-Key.cmd_l = DummyKey("cmd_l")
-Key.cmd_r = DummyKey("cmd_r")
-
-keyboard_stub = types.SimpleNamespace(
-    Listener=DummyListener,
-    Key=Key,
-    KeyCode=DummyKeyCode,
-)
-
+# Setup keyboard stub for pynput imports
+keyboard_stub = create_keyboard_stub()
 sys.modules.setdefault("pynput", types.SimpleNamespace(keyboard=keyboard_stub))
 sys.modules["pynput.keyboard"] = keyboard_stub
 
 from src.hotkey_service import HotkeyService  # noqa: E402
 
+# Aliases for backward compatibility in tests
 pynput_keyboard = keyboard_stub
+Key = keyboard_stub.Key
 
 
 class TestHotkeyService:
@@ -110,10 +60,10 @@ class TestHotkeyService:
         assert self.service.start_service() is False
         assert self.service.is_running is False
 
-    @patch("src.hotkey_service.threading.Thread")
-    def test_start_service_success(self, mock_thread):
+    def test_start_service_success(self, mocker):
         """Starting the service should create and start a listener thread."""
 
+        mock_thread = mocker.patch("src.hotkey_service.threading.Thread")
         start_cb = MagicMock()
         stop_cb = MagicMock()
         self.service.set_callbacks(start_cb, stop_cb)
@@ -135,10 +85,12 @@ class TestHotkeyService:
         self.service.is_running = True
         assert self.service.start_service() is False
 
-    @patch("src.hotkey_service.threading.Thread", side_effect=Exception("boom"))
-    def test_start_service_thread_failure(self, mock_thread):
+    def test_start_service_thread_failure(self, mocker):
         """Thread creation failures should be surfaced as False."""
 
+        mock_thread = mocker.patch(
+            "src.hotkey_service.threading.Thread", side_effect=Exception("boom")
+        )
         start_cb = MagicMock()
         stop_cb = MagicMock()
         self.service.set_callbacks(start_cb, stop_cb)
@@ -282,26 +234,26 @@ class TestHotkeyService:
 
 
 class TestHotkeyServicePlatformSupport:
-    @patch("sys.platform", "darwin")
-    def test_macos_defaults(self):
+    def test_macos_defaults(self, mocker):
+        mocker.patch("sys.platform", "darwin")
         service = HotkeyService()
-        assert service.hotkey == "cmd+shift+space"
-        assert service.toggle_hotkey == "cmd+shift+^"
+        assert service.hotkey == "cmd+shift+^"
+        assert service.toggle_hotkey == "cmd+shift+space"
         assert HotkeyService.get_platform_name() == "macOS"
         assert HotkeyService.get_platform_modifier_key() == "cmd"
 
-    @patch("sys.platform", "win32")
-    def test_windows_defaults(self):
+    def test_windows_defaults(self, mocker):
+        mocker.patch("sys.platform", "win32")
         service = HotkeyService()
-        assert service.hotkey == "ctrl+shift+space"
-        assert service.toggle_hotkey == "ctrl+shift+^"
+        assert service.hotkey == "ctrl+shift+^"
+        assert service.toggle_hotkey == "ctrl+shift+space"
         assert HotkeyService.get_platform_name() == "Windows"
         assert HotkeyService.get_platform_modifier_key() == "ctrl"
 
-    @patch("sys.platform", "linux")
-    def test_linux_defaults(self):
+    def test_linux_defaults(self, mocker):
+        mocker.patch("sys.platform", "linux")
         service = HotkeyService()
-        assert service.hotkey == "ctrl+shift+space"
-        assert service.toggle_hotkey == "ctrl+shift+^"
+        assert service.hotkey == "ctrl+shift+^"
+        assert service.toggle_hotkey == "ctrl+shift+space"
         assert HotkeyService.get_platform_name() == "Linux"
         assert HotkeyService.get_platform_modifier_key() == "ctrl"

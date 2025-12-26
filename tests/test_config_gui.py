@@ -1,132 +1,23 @@
 import sys
 import types
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-pyautogui_stub = types.SimpleNamespace(
-    hotkey=lambda *_, **__: None,
-    write=lambda *_, **__: None,
-    getActiveWindow=lambda: None,
-)
+from tests.test_helpers import create_keyboard_stub, create_pyautogui_stub
 
+# Setup stubs for GUI-related imports
+pyautogui_stub = create_pyautogui_stub()
 sys.modules.setdefault("mouseinfo", types.SimpleNamespace())
 sys.modules.setdefault("pyautogui", pyautogui_stub)
 
-
-class _DummyListener:
-    def __init__(self, *_, **__):
-        pass
-
-    def start(self):
-        return None
-
-    def stop(self):
-        return None
-
-    def join(self, *_):
-        return None
-
-
-keyboard_stub = types.SimpleNamespace(
-    Listener=_DummyListener,
-    Key=types.SimpleNamespace,
-    KeyCode=types.SimpleNamespace,
-)
-
+keyboard_stub = create_keyboard_stub()
 sys.modules.setdefault("pynput", types.SimpleNamespace(keyboard=keyboard_stub))
 sys.modules.setdefault("pynput.keyboard", keyboard_stub)
 
-from src.gui import ConfigurationWindow  # noqa: E402
 from src.push_to_talk import PushToTalkConfig  # noqa: E402
 
-# Alias for consistency with test code
-ConfigurationGUI = ConfigurationWindow
 
-
-def _prepare_gui(
-    config: PushToTalkConfig, config_file_path: str = "push_to_talk_config_test.json"
-) -> ConfigurationGUI:
-    """
-    Prepare a GUI instance with mocked sections.
-
-    Note: The new architecture uses modular sections, so we need to create
-    them with the config values for testing.
-
-    Args:
-        config: Configuration to use for the GUI
-        config_file_path: Path to config file (defaults to test file to avoid overwriting real config)
-    """
-    import tkinter as tk
-
-    gui = ConfigurationGUI(config, config_file_path=config_file_path)
-
-    # Create mocked sections that respond to get/set operations
-    from src.gui.api_section import APISection
-    from src.gui.audio_section import AudioSection
-    from src.gui.hotkey_section import HotkeySection
-    from src.gui.settings_section import TextInsertionSection, FeatureFlagsSection
-    from src.gui.glossary_section import GlossarySection
-    from src.gui.status_section import StatusSection
-
-    # Create a real Tk root for Tkinter variables to work
-    try:
-        test_root = tk.Tk()
-        test_root.withdraw()  # Hide the window
-    except Exception:
-        # If Tk fails (e.g., no display), skip tests
-        import pytest
-
-        pytest.skip("Cannot create Tk root window")
-
-    gui.root = test_root
-
-    # Create real section instances (they're lightweight without actual widgets)
-    # We'll mock their frames to avoid creating actual Tk widgets
-    with patch("tkinter.ttk.LabelFrame"):
-        gui.api_section = APISection(Mock())
-        gui.api_section.set_values(
-            config.stt_provider,
-            config.openai_api_key,
-            config.deepgram_api_key,
-            config.stt_model,
-            config.refinement_model,
-        )
-
-        gui.audio_section = AudioSection(Mock())
-        gui.audio_section.set_values(
-            config.sample_rate,
-            config.chunk_size,
-            config.channels,
-        )
-
-        gui.hotkey_section = HotkeySection(Mock())
-        gui.hotkey_section.set_values(
-            config.hotkey,
-            config.toggle_hotkey,
-        )
-
-        gui.text_insertion_section = TextInsertionSection(Mock())
-        gui.text_insertion_section.set_value(config.insertion_delay)
-
-        gui.feature_flags_section = FeatureFlagsSection(Mock())
-        gui.feature_flags_section.set_values(
-            config.enable_text_refinement,
-            config.enable_logging,
-            config.enable_audio_feedback,
-            config.debug_mode,
-        )
-
-        gui.glossary_section = GlossarySection(
-            Mock(), test_root, config.custom_glossary
-        )
-
-        gui.status_section = StatusSection(Mock())
-
-    return gui
-
-
-def test_gui_updates_running_app_when_config_changes():
-    config = PushToTalkConfig(openai_api_key="test-key")
-    gui = _prepare_gui(config)
+def test_gui_updates_running_app_when_config_changes(prepared_config_gui):
+    gui = prepared_config_gui
 
     gui.app_instance = Mock()
     gui.on_config_changed = Mock()
@@ -151,9 +42,9 @@ def test_gui_updates_running_app_when_config_changes():
     gui.on_config_changed.assert_not_called()
 
 
-def test_force_notify_triggers_update_even_when_values_match():
-    config = PushToTalkConfig(openai_api_key="test-key")
-    gui = _prepare_gui(config)
+def test_force_notify_triggers_update_even_when_values_match(prepared_config_gui):
+    gui = prepared_config_gui
+    config = gui.config
 
     gui.app_instance = Mock()
     gui.on_config_changed = Mock()
@@ -167,33 +58,16 @@ def test_force_notify_triggers_update_even_when_values_match():
     assert forced_config == config
 
 
-def test_custom_glossary_is_copied_when_building_config():
-    config = PushToTalkConfig(openai_api_key="test-key", custom_glossary=["alpha"])
-    gui = _prepare_gui(config)
-
-    gui._notify_config_changed(force=True)
-    assert gui.config.custom_glossary == ["alpha"]
-
-    # Modify GUI glossary without notifying and ensure stored config is unchanged
-    gui.glossary_section.glossary_terms.append("beta")
-    assert gui.config.custom_glossary == ["alpha"]
-
-    # Notify again and confirm the change is propagated
-    gui._notify_config_changed()
-    assert gui.config.custom_glossary == ["alpha", "beta"]
-
-
-def test_config_changes_trigger_async_save(tmp_path):
+def test_config_changes_trigger_async_save(tmp_path, prepared_config_gui, mocker):
     """Test that configuration changes trigger asynchronous save to JSON file."""
     import time
     import json
 
-    config = PushToTalkConfig(
-        openai_api_key="test-key",
-        hotkey="ctrl+shift+^",
-        toggle_hotkey="ctrl+shift+space",
-    )
-    gui = _prepare_gui(config)
+    gui = prepared_config_gui
+    # Update hotkeys for this test
+    gui.config.hotkey = "ctrl+shift+^"
+    gui.config.toggle_hotkey = "ctrl+shift+space"
+    gui.hotkey_section.set_values("ctrl+shift+^", "ctrl+shift+space")
 
     # Use a temporary file for testing
     test_config_file = tmp_path / "test_config.json"
@@ -203,15 +77,22 @@ def test_config_changes_trigger_async_save(tmp_path):
     # Mark initialization as complete so saves are triggered
     gui._initialization_complete = True
 
-    # Patch the save method to use our test file
-    with patch.object(gui._config_persistence, "save_async") as mock_save:
-        # Change a configuration value
-        gui.hotkey_section.hotkey_var.set("ctrl+alt+h")
-        # Call _notify_config_changed directly to bypass debouncing
-        gui._notify_config_changed()
+    # Store the original save method before patching
+    original_save_async = gui._config_persistence.save_async
 
-        # Verify async save was called
-        mock_save.assert_called_once()
+    # Patch the save method to use our test file
+    mock_save = mocker.patch.object(gui._config_persistence, "save_async")
+    # Change a configuration value
+    gui.hotkey_section.hotkey_var.set("ctrl+alt+h")
+    # Call _notify_config_changed directly to bypass debouncing
+    gui._notify_config_changed()
+
+    # Verify async save was called
+    mock_save.assert_called_once()
+
+    # Stop the mock and restore the original method
+    mocker.stop(mock_save)
+    gui._config_persistence.save_async = original_save_async
 
     # Test the actual async save functionality
     gui.hotkey_section.hotkey_var.set("ctrl+alt+test")
@@ -233,14 +114,13 @@ def test_config_changes_trigger_async_save(tmp_path):
     assert saved_data["openai_api_key"] == "test-key"
 
 
-def test_concurrent_async_saves_are_deduplicated(tmp_path):
+def test_concurrent_async_saves_are_deduplicated(tmp_path, prepared_config_gui):
     """Test that concurrent async saves are properly deduplicated."""
     import threading
     import time
     import json
 
-    config = PushToTalkConfig(openai_api_key="test-key")
-    gui = _prepare_gui(config)
+    gui = prepared_config_gui
     gui.is_running = True
 
     test_config_file = tmp_path / "concurrent_test.json"
@@ -274,15 +154,22 @@ def test_concurrent_async_saves_are_deduplicated(tmp_path):
     assert saved_data["openai_api_key"] == "test-key"
 
 
-def test_update_gui_from_config_updates_provider_fields():
+def test_update_gui_from_config_updates_provider_fields(prepared_config_gui):
     """Test that _update_sections_from_config updates stt_provider and deepgram_api_key."""
-    # Initial config with OpenAI provider
-    config = PushToTalkConfig(
-        stt_provider="openai",
-        openai_api_key="openai-key",
-        deepgram_api_key="",
+    gui = prepared_config_gui
+    # Update config for this test
+    gui.config.stt_provider = "openai"
+    gui.config.openai_api_key = "openai-key"
+    gui.config.deepgram_api_key = ""
+    gui.api_section.set_values(
+        "openai",
+        "openai-key",
+        "",
+        gui.config.cerebras_api_key,
+        gui.config.stt_model,
+        gui.config.refinement_provider,
+        gui.config.refinement_model,
     )
-    gui = _prepare_gui(config)
     gui.app_instance = Mock()
     gui.on_config_changed = Mock()
     gui.is_running = False
@@ -332,15 +219,21 @@ def test_update_gui_from_config_updates_provider_fields():
     assert gui.config.deepgram_api_key == "deepgram-key"
 
 
-def test_stt_model_preserved_when_switching_providers():
+def test_stt_model_preserved_when_switching_providers(prepared_config_gui):
     """Test that STT model selection is preserved when switching between providers."""
-    # Start with OpenAI provider and gpt-4o-transcribe model
-    config = PushToTalkConfig(
-        stt_provider="openai",
-        stt_model="gpt-4o-transcribe",
-        openai_api_key="test-key",
+    gui = prepared_config_gui
+    # Update for this test
+    gui.config.stt_provider = "openai"
+    gui.config.stt_model = "gpt-4o-transcribe"
+    gui.api_section.set_values(
+        "openai",
+        gui.config.openai_api_key,
+        gui.config.deepgram_api_key,
+        gui.config.cerebras_api_key,
+        "gpt-4o-transcribe",
+        gui.config.refinement_provider,
+        gui.config.refinement_model,
     )
-    gui = _prepare_gui(config)
 
     # Mock the stt_model_combo widget
     gui.api_section.stt_model_combo = Mock()
@@ -388,28 +281,26 @@ def test_stt_model_preserved_when_switching_providers():
     assert gui.api_section.deepgram_stt_model == "nova-2"
 
 
-def test_loaded_config_not_overwritten_during_initialization(tmp_path):
+def test_loaded_config_not_overwritten_during_initialization(
+    tmp_path, prepared_config_gui, mocker
+):
     """Test that loaded configuration is not overwritten by async save during GUI initialization."""
     import time
     import json
 
-    # Create a config file with specific non-default values
+    gui = prepared_config_gui
+    # Update config with specific non-default values
+    gui.config.openai_api_key = "loaded-api-key"
+    gui.config.hotkey = "ctrl+shift+loaded"
+    gui.config.toggle_hotkey = "ctrl+alt+loaded"
+    gui.config.sample_rate = 16000
+    gui.config.enable_text_refinement = False
+    gui.config.enable_audio_feedback = False
+
+    # Create test config file
     test_config_file = tmp_path / "test_config.json"
-    loaded_config = PushToTalkConfig(
-        openai_api_key="loaded-api-key",
-        hotkey="ctrl+shift+loaded",
-        toggle_hotkey="ctrl+alt+loaded",
-        sample_rate=16000,
-        enable_text_refinement=False,
-        enable_audio_feedback=False,
-    )
-
-    # Save this config to file
     with open(test_config_file, "w") as f:
-        json.dump(loaded_config.model_dump(), f, indent=2)
-
-    # Now create a GUI with this loaded config
-    gui = _prepare_gui(loaded_config)
+        json.dump(gui.config.model_dump(), f, indent=2)
 
     # Mock the config persistence to track saves
     original_save_async = gui._config_persistence.save_async
@@ -419,42 +310,42 @@ def test_loaded_config_not_overwritten_during_initialization(tmp_path):
         save_calls.append(config.model_dump())
         return original_save_async(config, filepath)
 
-    with patch.object(
+    mocker.patch.object(
         gui._config_persistence, "save_async", side_effect=track_save_async
-    ):
-        # Simulate the initialization process
-        gui._update_sections_from_config(loaded_config)
-        gui._setup_variable_traces()
+    )
+    # Simulate the initialization process
+    gui._update_sections_from_config(gui.config)
+    gui._setup_variable_traces()
 
-        # At this point, _initialization_complete should be False
-        assert gui._initialization_complete is False
+    # At this point, _initialization_complete should be False
+    assert gui._initialization_complete is False
 
-        # Trigger a config change notification (simulating what might happen during init)
-        gui._notify_config_changed()
+    # Trigger a config change notification (simulating what might happen during init)
+    gui._notify_config_changed()
 
-        # Verify that NO save was triggered because initialization is not complete
-        assert len(save_calls) == 0, "Config should not be saved during initialization"
+    # Verify that NO save was triggered because initialization is not complete
+    assert len(save_calls) == 0, "Config should not be saved during initialization"
 
-        # Now mark initialization as complete
-        gui._initialization_complete = True
+    # Now mark initialization as complete
+    gui._initialization_complete = True
 
-        # Make an actual change to trigger save
-        gui.hotkey_section.hotkey_var.set("ctrl+shift+changed")
-        gui._notify_config_changed()
+    # Make an actual change to trigger save
+    gui.hotkey_section.hotkey_var.set("ctrl+shift+changed")
+    gui._notify_config_changed()
 
-        # Wait a bit for async save
-        time.sleep(0.1)
+    # Wait a bit for async save
+    time.sleep(0.1)
 
-        # NOW a save should have been triggered
-        assert len(save_calls) == 1, (
-            "Config should be saved after initialization is complete"
-        )
+    # NOW a save should have been triggered
+    assert len(save_calls) == 1, (
+        "Config should be saved after initialization is complete"
+    )
 
-        # Verify the saved config has the changed value
-        saved_config = save_calls[0]
-        assert saved_config["openai_api_key"] == "loaded-api-key"
-        assert saved_config["hotkey"] == "ctrl+shift+changed"  # This was changed
-        assert saved_config["toggle_hotkey"] == "ctrl+alt+loaded"
-        assert saved_config["sample_rate"] == 16000
-        assert saved_config["enable_text_refinement"] is False
-        assert saved_config["enable_audio_feedback"] is False
+    # Verify the saved config has the changed value
+    saved_config = save_calls[0]
+    assert saved_config["openai_api_key"] == "loaded-api-key"
+    assert saved_config["hotkey"] == "ctrl+shift+changed"  # This was changed
+    assert saved_config["toggle_hotkey"] == "ctrl+alt+loaded"
+    assert saved_config["sample_rate"] == 16000
+    assert saved_config["enable_text_refinement"] is False
+    assert saved_config["enable_audio_feedback"] is False

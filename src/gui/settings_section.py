@@ -90,7 +90,7 @@ class FeatureFlagsSection:
         # Text Refinement
         ttk.Checkbutton(
             self.frame,
-            text="Enable Text Refinement (uses GPT for better text quality)",
+            text="Enable Text Refinement (additional processing for better text quality)",
             variable=self.enable_text_refinement_var,
         ).grid(row=0, column=0, sticky="w", pady=2)
 

@@ -104,3 +104,50 @@ def validate_deepgram_api_key(api_key: str) -> bool:
             raise Exception(f"HTTP {e.code}: {e.reason}")
     except urllib.error.URLError as e:
         raise Exception(f"timeout - Network error: {e.reason}")
+
+
+def validate_cerebras_api_key(api_key: str) -> bool:
+    """
+    Validate Cerebras API key by making a test request.
+
+    Args:
+        api_key: Cerebras API key to validate
+
+    Returns:
+        True if valid, False otherwise
+
+    Raises:
+        Exception: With descriptive error message
+    """
+    try:
+        from cerebras.cloud.sdk import Cerebras
+
+        client = Cerebras(api_key=api_key)
+        # Test the API key by making a simple models list request
+        try:
+            _ = client.models.list()
+        except AttributeError:
+            # If models.list() doesn't exist, try a minimal completion request
+            _ = client.chat.completions.create(
+                messages=[{"role": "user", "content": "test"}],
+                model="llama3.1-8b",
+                max_completion_tokens=1,
+            )
+        return True
+    except Exception as e:
+        error_msg = str(e)
+        # Extract the most relevant error message
+        if (
+            "401" in error_msg
+            or "Unauthorized" in error_msg
+            or "Invalid API key" in error_msg
+        ):
+            raise Exception("INVALID - Incorrect API key")
+        elif "403" in error_msg or "Forbidden" in error_msg:
+            raise Exception("INVALID - Access forbidden")
+        elif "404" in error_msg:
+            raise Exception("INVALID - API endpoint not found")
+        elif "timeout" in error_msg.lower():
+            raise Exception("TIMEOUT - Network issue")
+        else:
+            raise Exception(f"ERROR - {error_msg[:60]}...")

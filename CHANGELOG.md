@@ -29,6 +29,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Enhanced debug mode saves recorded audio files with timestamps for troubleshooting
 - Live configuration updates with automatic JSON persistence
 - Unit tests for utils, push_to_talk, and transcription providers (80% coverage)
+- **Custom Refinement Prompt**: User-configurable text refinement prompts
+  - GUI section for editing custom system prompts with multiline text input
+  - Support for `{custom_glossary}` placeholder to include glossary terms dynamically
+  - "Copy Default" buttons to use default prompts as starting point
+  - Collapsible reference section showing default prompt templates
+  - Clear button to revert to default behavior
 
 ### Changed
 - **Configuration System**: Migrated from dataclass to Pydantic BaseModel with validation
