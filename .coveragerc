@@ -1,8 +1,8 @@
 [run]
 source = src
 omit =
-    src/config_gui.py
     src/text_inserter.py
+    src/gui/*
 
 [report]
 exclude_lines =
