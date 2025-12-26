@@ -1,9 +1,9 @@
 [project]
 name = "push-to-talk"
 version = "0.4.0"
-description = "A push-to-talk speech-to-text application using STT AI models for real-time transcription and support active window text insertion."
+description = "An AI speech-to-text dictation tool using STT AI models for ultra-low latency dictation and support active window text insertion."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "deepgram-sdk>=3.9.0",
     "loguru>=0.7.2",

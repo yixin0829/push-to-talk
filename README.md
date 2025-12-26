@@ -358,7 +358,7 @@ The application uses separate threads for responsiveness:
 
 **Key Design**: Hotkeys are detected instantly even during API calls because the hotkey service operates independently from the worker thread. Commands queue and process sequentially, preventing race conditions.
 
-See [CLAUDE.md](CLAUDE.md) for detailed threading implementation.
+See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 
 ## Troubleshooting
 

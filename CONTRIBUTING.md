@@ -459,13 +459,13 @@ refactor(transcription): extract API client configuration to separate method
 
 ## Project Structure
 
-For detailed component information, see [CLAUDE.md](CLAUDE.md).
+For detailed component information, see [AGENTS.md](AGENTS.md).
 
 ```
 push-to-talk/
 ├── main.py                              # Application entry point
 ├── pyproject.toml                       # Project configuration
-├── CLAUDE.md                            # Developer guide
+├── AGENTS.md                            # Developer guide
 ├── CONTRIBUTING.md                      # This file
 ├── README.md                            # User documentation
 │
