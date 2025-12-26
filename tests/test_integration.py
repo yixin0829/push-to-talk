@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 
 from src.transcription_openai import OpenAITranscriber
-from src.text_refiner import TextRefiner
+from src.text_refiner_openai import TextRefinerOpenAI
 
 
 @pytest.mark.integration
@@ -80,7 +80,7 @@ class TestAudioIntegrationWithRealFiles:
         logger.info("Testing text refiner fallback behavior")
 
         # Create refiner with invalid API key to trigger fallback
-        refiner = TextRefiner(api_key="invalid-key-for-testing")
+        refiner = TextRefinerOpenAI(api_key="invalid-key-for-testing")
 
         # Test with audio3 script (contains format instruction)
         raw_text = self.expected_scripts["audio3"]

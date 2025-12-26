@@ -237,23 +237,23 @@ class TestHotkeyServicePlatformSupport:
     def test_macos_defaults(self, mocker):
         mocker.patch("sys.platform", "darwin")
         service = HotkeyService()
-        assert service.hotkey == "cmd+shift+space"
-        assert service.toggle_hotkey == "cmd+shift+^"
+        assert service.hotkey == "cmd+shift+^"
+        assert service.toggle_hotkey == "cmd+shift+space"
         assert HotkeyService.get_platform_name() == "macOS"
         assert HotkeyService.get_platform_modifier_key() == "cmd"
 
     def test_windows_defaults(self, mocker):
         mocker.patch("sys.platform", "win32")
         service = HotkeyService()
-        assert service.hotkey == "ctrl+shift+space"
-        assert service.toggle_hotkey == "ctrl+shift+^"
+        assert service.hotkey == "ctrl+shift+^"
+        assert service.toggle_hotkey == "ctrl+shift+space"
         assert HotkeyService.get_platform_name() == "Windows"
         assert HotkeyService.get_platform_modifier_key() == "ctrl"
 
     def test_linux_defaults(self, mocker):
         mocker.patch("sys.platform", "linux")
         service = HotkeyService()
-        assert service.hotkey == "ctrl+shift+space"
-        assert service.toggle_hotkey == "ctrl+shift+^"
+        assert service.hotkey == "ctrl+shift+^"
+        assert service.toggle_hotkey == "ctrl+shift+space"
         assert HotkeyService.get_platform_name() == "Linux"
         assert HotkeyService.get_platform_modifier_key() == "ctrl"

@@ -41,6 +41,23 @@ wheels = [
 ]
 
 [[package]]
+name = "cerebras-cloud-sdk"
+version = "1.59.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6e/4e/24b9e248a6dcff4ab67a33a359c5c2475c2b1f1ddf0ae46e557c761eb9b6/cerebras_cloud_sdk-1.59.0.tar.gz", hash = "sha256:0f0af8debc8871d4ec21528dc79b276a31e7a7f578b4a60fae3a1ae27d1f2486", size = 127687, upload-time = "2025-11-06T21:52:23.601Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/12/a86b2c95cda487970ca12724b8bb54eef82e94204f2caa0066367cbc55eb/cerebras_cloud_sdk-1.59.0-py3-none-any.whl", hash = "sha256:89228068a8d649cad0a9231b34bdc2fcdb925241eb3434d788dfea317f274ed7", size = 96186, upload-time = "2025-11-06T21:52:22.243Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.8.3"
 source = { registry = "https://pypi.org/simple" }
@@ -635,6 +652,7 @@ name = "push-to-talk"
 version = "0.4.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "cerebras-cloud-sdk" },
     { name = "deepgram-sdk" },
     { name = "loguru" },
     { name = "openai" },
@@ -659,6 +677,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cerebras-cloud-sdk", specifier = ">=1.59.0" },
     { name = "deepgram-sdk", specifier = ">=3.9.0" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "openai", specifier = ">=1.97.1" },
