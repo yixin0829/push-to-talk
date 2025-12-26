@@ -88,8 +88,7 @@ def dependency_stubs(monkeypatch):
             return self.result
 
     class StubTextInserter:
-        def __init__(self, insertion_delay):
-            self.insertion_delay = insertion_delay
+        def __init__(self):
             self.last_text = None
             self.insert_calls = 0
             self.should_succeed = True
@@ -232,7 +231,6 @@ def test_config_save_and_load_roundtrip(tmp_path):
         channels=2,
         hotkey="ctrl+alt+s",
         toggle_hotkey="ctrl+alt+t",
-        insertion_delay=0.01,
         enable_text_refinement=False,
         enable_logging=False,
         enable_audio_feedback=False,
@@ -271,13 +269,11 @@ def test_initialization_wires_dependencies(make_app, dependency_stubs):
     recorder = dependency_stubs.last("audio_recorder")
     transcriber = dependency_stubs.last("transcriber")
     refiner = dependency_stubs.last("text_refiner")
-    inserter = dependency_stubs.last("text_inserter")
     hotkey_service = dependency_stubs.last("hotkey_service")
 
     assert recorder.sample_rate == config.sample_rate
     assert transcriber.api_key == config.openai_api_key
     assert refiner.glossary == config.custom_glossary
-    assert inserter.insertion_delay == config.insertion_delay
     assert hotkey_service.hotkey == config.hotkey
     assert hotkey_service.callbacks == (app._on_start_recording, app._on_stop_recording)
 
@@ -604,7 +600,6 @@ def test_config_requires_component_reinitialization():
         channels=1,
         hotkey="ctrl+shift+space",
         toggle_hotkey="ctrl+shift+^",
-        insertion_delay=0.005,
         enable_text_refinement=True,
         debug_mode=False,
         custom_glossary=["term1", "term2"],
@@ -625,7 +620,6 @@ def test_config_requires_component_reinitialization():
         ("channels", 2),
         ("hotkey", "ctrl+alt+space"),
         ("toggle_hotkey", "ctrl+alt+^"),
-        ("insertion_delay", 0.01),
         ("enable_text_refinement", False),
         ("debug_mode", True),
         ("custom_glossary", ["different", "terms"]),

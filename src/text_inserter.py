@@ -13,14 +13,12 @@ from src.config.constants import (
 
 
 class TextInserter:
-    def __init__(self, insertion_delay: float = 0.1):
-        """
-        Initialize the text inserter.
+    # Default insertion delay in seconds
+    DEFAULT_INSERTION_DELAY = 0.005
 
-        Args:
-            insertion_delay: Delay between keystrokes in seconds
-        """
-        self.insertion_delay = insertion_delay
+    def __init__(self):
+        """Initialize the text inserter."""
+        self.insertion_delay = self.DEFAULT_INSERTION_DELAY
 
     def insert_text(self, text: str) -> bool:
         """

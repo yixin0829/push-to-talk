@@ -5,6 +5,17 @@ All notable changes to PushToTalk will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+### Changed
+### Removed
+- Removed Text Insertion Settings section from GUI (insertion delay is now fixed at 0.005 seconds)
+- Removed `insertion_delay` configuration parameter from config file and PushToTalkConfig
+### Fixed
+### Technical
+### Documentation
+### Security
+
+## [0.5.0] - 2025-12-26
 
 ### Added
 - **Multi-provider STT support**: Choose between OpenAI (whisper-1, gpt-4o-transcribe) and Deepgram (nova-3, nova-2, enhanced) transcription services
@@ -25,10 +36,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - User-editable `src/config/hotkey_aliases.json` file
   - LRU caching for efficient alias lookups
   - Non-developers can add aliases without code changes
+- **Hotkey Recording UI**: Interactive "Record" button for capturing hotkey combinations
+  - Visual feedback during recording with countdown timer
+  - Easy hotkey configuration without manual typing
+- **Multi-provider Text Refinement**: Support for OpenAI GPT and Cerebras for text refinement
+  - Factory pattern for dynamic provider selection
+  - Provider-specific configuration in GUI
 - Factory pattern for transcriber abstraction with dynamic provider selection in GUI
 - Enhanced debug mode saves recorded audio files with timestamps for troubleshooting
 - Live configuration updates with automatic JSON persistence
-- Unit tests for utils, push_to_talk, and transcription providers (80% coverage)
+- Unit tests for utils, push_to_talk, and transcription providers (80%+ coverage)
 - **Custom Refinement Prompt**: User-configurable text refinement prompts
   - GUI section for editing custom system prompts with multiline text input
   - Support for `{custom_glossary}` placeholder to include glossary terms dynamically
@@ -43,14 +60,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Enhanced error handling with structured validation errors
 - **GUI Architecture**: Refactored from monolithic `config_gui.py` to modular `src/gui/` package
   - `configuration_window.py`: Main orchestrator (~516 lines, down from 1500+)
-  - `api_section.py`: API configuration (~344 lines)
+  - `api_section.py`: API configuration (~586 lines)
   - `audio_section.py`: Audio settings (~100 lines)
-  - `hotkey_section.py`: Hotkey configuration (~70 lines)
-  - `settings_section.py`: Text insertion & feature flags (~146 lines)
-  - `glossary_section.py`: Glossary management (~297 lines)
-  - `status_section.py`: Application status display (~124 lines)
-  - `validators.py`: Configuration validation (~110 lines)
-  - `config_persistence.py`: Async file I/O (~92 lines)
+  - `hotkey_section.py`: Hotkey configuration (~210 lines)
+  - `hotkey_recorder.py`: Interactive hotkey recording (~282 lines)
+  - `prompt_section.py`: Custom refinement prompts (~278 lines)
+  - `glossary_section.py`: Glossary management (~281 lines)
+  - `settings_section.py`: Text insertion & feature flags (~151 lines)
+  - `status_section.py`: Application status display (~123 lines)
+  - `validators.py`: Configuration validation (~153 lines)
+  - `config_persistence.py`: Async file I/O (~98 lines)
 - **Component Initialization**: Added smart reinitialization logic that preserves injected dependencies
   - Components only recreated when configuration changes require it
   - Injected test mocks preserved throughout lifecycle
@@ -58,33 +77,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactored to use loguru for logging
 - GUI now uses variable tracing with debounced updates
 - Renamed `transcription.py` → `transcription_openai.py`
+- Renamed `text_refiner.py` → `text_refiner_openai.py`
 - Simplified integration tests (removed 221 lines)
 - Text insertion now always uses clipboard method (removed sendkeys option)
+- Replaced `keyboard` library with `pynput` for more reliable hotkey detection
 
 ### Removed
-- Audio processing layer (`audio_processor.py`) for architectural simplification
-- Dependencies: numpy, soundfile, psola, pydub
-- AGENTS.md (consolidated into CLAUDE.md)
-- `insertion_method` configuration field - application now exclusively uses clipboard for text insertion
+- Audio processing layer (`audio_processor.py`) for architectural simplification (no silence removal or pitch-preserving speed adjustment)
+- Dependencies: numpy, soundfile, psola, pydub, keyboard
+- CLAUDE.md and GEMINI.md (consolidated into AGENTS.md using symbolic links)
+- `insertion_method` configuration field - application now exclusively uses clipboard pasting for text insertion
 
 ### Fixed
 - Hotkey service inactivity by switching from `keyboard` to `pynput` library
+- Config overwrite during initialization and in tests
 
 ### Technical
-- **Type Safety**: Added comprehensive type hints including `TranscriberBase` abstract class
+- **Type Safety**: Added comprehensive type hints including `TranscriberBase` and `TextRefinerBase` abstract classes
 - **Component Lifecycle**: Implemented `force_recreate` parameter for controlled component reinitialization
 - **Thread Safety**: Injected component preservation during configuration updates
 - **Testing Infrastructure**: Mock components can now be injected and persist through app lifecycle
+- **Factory Pattern**: Introduced `TranscriberFactory` and `TextRefinerFactory` for provider abstraction
+- **Command Queue Pattern**: Implemented command queue and worker thread pattern for audio recording
 
 ### Documentation
+- Added `AGENTS.md` for LLM coding agent guidance
+- Added `docs/development_guides.md` for extending the application with custom providers
 - Updated CLAUDE.md with comprehensive architecture documentation
   - Added "Modular GUI Architecture" section with package structure
   - Added "Configuration Validation with Pydantic" section with examples
   - Added "Dependency Injection Pattern" section with usage guidelines
   - Added "Hotkey Aliases Configuration" section
   - Updated all references from dataclass to Pydantic model
-- Updated README.md to mention validated Pydantic configuration models
+- Updated README.md to mention validated Pydantic configuration models and multi-provider support
 - Updated CONTRIBUTING.md with new project structure showing modular GUI package
+- Enhanced `tests/README.md` with comprehensive testing documentation
 
 ### Security
 
