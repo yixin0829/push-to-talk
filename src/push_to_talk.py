@@ -18,6 +18,13 @@ from src.text_refiner_factory import TextRefinerFactory
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
+from src.exceptions import (
+    ConfigurationError,
+    TranscriptionError,
+    TextRefinementError,
+    TextInsertionError,
+    APIError,
+)
 
 
 def _get_default_hotkey() -> str:
@@ -209,18 +216,20 @@ class PushToTalkApp:
             if not self.config.openai_api_key:
                 self.config.openai_api_key = os.getenv("OPENAI_API_KEY")
                 if not self.config.openai_api_key:
-                    raise ValueError(
+                    raise ConfigurationError(
                         "OpenAI API key is required. Set OPENAI_API_KEY environment variable or provide in config."
                     )
         elif self.config.stt_provider == "deepgram":
             if not self.config.deepgram_api_key:
                 self.config.deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
                 if not self.config.deepgram_api_key:
-                    raise ValueError(
+                    raise ConfigurationError(
                         "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
                     )
         else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(
+                f"Unknown STT provider: {self.config.stt_provider}"
+            )
 
         # Use injected dependencies or initialize to None (will be created in _initialize_components)
         self.audio_recorder = audio_recorder
@@ -238,11 +247,14 @@ class PushToTalkApp:
 
         # State management
         self.is_running = False
-        self.processing_lock = threading.Lock()
 
         # Command queue for handling hotkey events
         self.command_queue = queue.Queue()
         self.worker_thread = None
+
+        # Track background processing threads (one per recording)
+        self.processing_threads = []
+        self.processing_threads_lock = threading.Lock()
 
         # Initialize all components (only creates components that are None)
         self._initialize_components()
@@ -350,7 +362,9 @@ class PushToTalkApp:
         elif self.config.stt_provider == "deepgram":
             api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
         else:
-            raise ValueError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(
+                f"Unknown STT provider: {self.config.stt_provider}"
+            )
 
         # Create transcriber using factory with glossary
         return TranscriberFactory.create_transcriber(
@@ -371,12 +385,12 @@ class PushToTalkApp:
             elif self.config.refinement_provider == "gemini":
                 api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
             else:
-                raise ValueError(
+                raise ConfigurationError(
                     f"Unknown refinement provider: {self.config.refinement_provider}"
                 )
 
             if not api_key:
-                raise ValueError(
+                raise ConfigurationError(
                     f"{self.config.refinement_provider.upper()} API key is required for text refinement. "
                     f"Set {self.config.refinement_provider.upper()}_API_KEY environment variable or provide in config."
                 )
@@ -482,6 +496,21 @@ class PushToTalkApp:
             self.worker_thread.join(timeout=2.0)
             self.worker_thread = None
 
+        # Wait for background processing threads to complete
+        with self.processing_threads_lock:
+            active_threads = [t for t in self.processing_threads if t.is_alive()]
+
+        if active_threads:
+            logger.info(f"Waiting for {len(active_threads)} background processing thread(s) to complete...")
+            for thread in active_threads:
+                thread.join(timeout=5.0)
+                if thread.is_alive():
+                    logger.warning(f"Background thread {thread.name} did not finish in time")
+
+        # Clear processing threads list
+        with self.processing_threads_lock:
+            self.processing_threads.clear()
+
         if self.audio_recorder:
             self.audio_recorder.shutdown()
 
@@ -542,13 +571,12 @@ class PushToTalkApp:
 
     def _do_start_recording(self):
         """Internal method to perform start recording actions."""
-        with self.processing_lock:
-            # Play audio feedback if enabled
-            if self.config.enable_audio_feedback:
-                play_start_feedback()
+        # Play audio feedback if enabled
+        if self.config.enable_audio_feedback:
+            play_start_feedback()
 
-            if not self.audio_recorder.start_recording():
-                logger.error("Failed to start audio recording")
+        if not self.audio_recorder.start_recording():
+            logger.error("Failed to start audio recording")
 
     def _do_stop_recording(self):
         """Internal method to perform stop recording actions."""
@@ -556,20 +584,43 @@ class PushToTalkApp:
         if self.config.enable_audio_feedback:
             play_stop_feedback()
 
-        # Process recording
-        with self.processing_lock:
-            self._process_recorded_audio()
+        # Stop recording and get audio file (fast operation)
+        audio_file = self.audio_recorder.stop_recording()
 
-    def _process_recorded_audio(self):
-        """Process the recorded audio through the full pipeline."""
+        if not audio_file:
+            logger.warning("No audio file to process")
+            return
+
+        # Spawn background thread for processing (don't block worker thread)
+        processing_thread = threading.Thread(
+            target=self._process_audio_background,
+            args=(audio_file,),
+            daemon=True,
+            name=f"AudioProcessing-{len(self.processing_threads)}",
+        )
+
+        # Track the thread for graceful shutdown (before starting to avoid race condition)
+        with self.processing_threads_lock:
+            # Remove completed threads before adding new one to prevent memory leaks
+            self.processing_threads = [t for t in self.processing_threads if t.is_alive()]
+            self.processing_threads.append(processing_thread)
+
+        processing_thread.start()
+
+        logger.info("Recording stopped, processing in background")
+
+    def _process_audio_background(self, audio_file: str):
+        """Process audio in background thread (transcribe, refine, insert).
+
+        This method runs in a separate daemon thread for each recording,
+        allowing new recordings to start immediately without waiting for
+        transcription/refinement to complete.
+
+        Args:
+            audio_file: Path to the recorded audio file
+        """
         try:
-            # Stop recording and get audio file
-            logger.info("Processing recorded audio...")
-            audio_file = self.audio_recorder.stop_recording()
-
-            if not audio_file:
-                logger.warning("No audio file to process")
-                return
+            logger.info(f"Processing audio file: {audio_file}")
 
             # Save audio file in debug mode before processing
             if self.config.debug_mode:
@@ -580,10 +631,14 @@ class PushToTalkApp:
             if window_title:
                 logger.info(f"Target window: {window_title}")
 
-            # Transcribe audio
+            # Transcribe audio (1-3 seconds, runs in background)
             logger.info("Transcribing audio...")
-            transcribed_text = self.transcriber.transcribe_audio(audio_file)
-            logger.info(f"Transcribed text: {transcribed_text}")
+            try:
+                transcribed_text = self.transcriber.transcribe_audio(audio_file)
+                logger.info(f"Transcribed text: {transcribed_text}")
+            except (TranscriptionError, APIError) as e:
+                logger.error(f"Transcription failed: {e}")
+                transcribed_text = None
 
             # Clean up temporary audio file
             try:
@@ -597,34 +652,41 @@ class PushToTalkApp:
                 logger.warning("Transcribed text is None, skipping refinement")
                 return
 
-            # Refine text if enabled (if failed, fallback to the original transcription)
+            # Refine text if enabled (1-2 seconds, runs in background)
             final_text = transcribed_text
             if self.text_refiner and self.config.enable_text_refinement:
                 logger.info("Refining transcribed text...")
-                refined_text = self.text_refiner.refine_text(transcribed_text)
-                if refined_text:
-                    final_text = refined_text
-                    logger.info(f"Refined: {final_text}")
+                try:
+                    refined_text = self.text_refiner.refine_text(transcribed_text)
+                    if refined_text:
+                        final_text = refined_text
+                        logger.info(f"Refined: {final_text}")
+                except (TextRefinementError, APIError) as e:
+                    logger.error(
+                        f"Text refinement failed, using original transcription: {e}"
+                    )
+                    final_text = transcribed_text
 
             # Insert text into active window
             logger.info("Inserting text into active window...")
-            success = self.text_inserter.insert_text(final_text)
-
-            if success:
-                logger.info("Text insertion successful")
-            else:
-                logger.error("Text insertion failed")
+            try:
+                success = self.text_inserter.insert_text(final_text)
+                if success:
+                    logger.info("Text insertion successful")
+                else:
+                    logger.error("Text insertion failed")
+            except TextInsertionError as e:
+                logger.error(f"Text insertion failed: {e}")
 
         except Exception as e:
-            logger.error(f"Error processing recorded audio: {e}")
+            logger.error(f"Error processing audio in background: {e}")
             # Clean up temporary audio file even on error
             try:
-                logger.debug(f"Cleaning up audio file: {audio_file}")
-                if "audio_file" in locals() and os.path.exists(audio_file):
+                if os.path.exists(audio_file):
                     os.unlink(audio_file)
-            except Exception:
-                # Ignore cleanup errors during error handling
-                logger.error(f"Error cleaning up audio file {audio_file}: {e}")
+                    logger.debug(f"Cleaned up audio file on error: {audio_file}")
+            except Exception as cleanup_error:
+                logger.error(f"Error cleaning up audio file {audio_file}: {cleanup_error}")
 
     def _save_debug_audio(self, audio_file: str):
         """
@@ -752,7 +814,7 @@ class PushToTalkApp:
                 elif self.config.refinement_provider == "gemini":
                     api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
                 else:
-                    raise ValueError(
+                    raise ConfigurationError(
                         f"Unknown refinement provider: {self.config.refinement_provider}"
                     )
 

@@ -6,6 +6,7 @@ from typing import Optional
 from loguru import logger
 
 from src.config.constants import AUDIO_RECORDING_THREAD_TIMEOUT_SECONDS
+from src.exceptions import AudioRecordingError
 
 
 class AudioRecorder:
@@ -39,7 +40,9 @@ class AudioRecorder:
             self.audio_interface = pyaudio.PyAudio()
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {e}")
-            self.audio_interface = None
+            raise AudioRecordingError(
+                f"Failed to initialize audio interface: {e}"
+            ) from e
 
         self.stream = None
 
@@ -176,6 +179,11 @@ class AudioRecorder:
         except Exception as e:
             logger.error(f"Error during audio interface shutdown: {e}")
 
-    def __del__(self):
-        """Destructor to ensure cleanup."""
+    def __enter__(self):
+        """Context manager entry - returns self for use in 'with' statements."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cleanup even if exceptions occur."""
         self.shutdown()
+        return False  # Don't suppress exceptions

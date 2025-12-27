@@ -198,14 +198,17 @@ def immediate_thread(monkeypatch):
     """Run thread targets immediately to simplify testing."""
 
     class ImmediateThread:
-        def __init__(self, target, daemon=None):
+        def __init__(self, target, args=(), kwargs=None, daemon=None, name=None):
             self.target = target
+            self.args = args
+            self.kwargs = kwargs or {}
             self.daemon = daemon
             self.started = False
+            self.name = name
 
         def start(self):
             self.started = True
-            self.target()
+            self.target(*self.args, **self.kwargs)
 
     monkeypatch.setattr(push_to_talk.threading, "Thread", ImmediateThread)
 
