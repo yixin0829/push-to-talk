@@ -1,7 +1,5 @@
 from typing import Optional
 from src.text_refiner_base import TextRefinerBase
-from src.text_refiner_openai import TextRefinerOpenAI
-from src.text_refiner_cerebras import CerebrasTextRefiner
 
 
 class TextRefinerFactory:
@@ -30,8 +28,12 @@ class TextRefinerFactory:
             ValueError: If the provider is not supported
         """
         if provider == "openai":
+            from src.text_refiner_openai import TextRefinerOpenAI
+
             refiner = TextRefinerOpenAI(api_key=api_key, model=model)
         elif provider == "cerebras":
+            from src.text_refiner_cerebras import CerebrasTextRefiner
+
             refiner = CerebrasTextRefiner(api_key=api_key, model=model)
         else:
             raise ValueError(
