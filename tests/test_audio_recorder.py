@@ -4,6 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.audio_recorder import AudioRecorder
+from src.exceptions import AudioRecordingError
 
 
 class TestAudioRecorder:
@@ -282,3 +283,17 @@ class TestAudioRecorder:
         wave_file_mock.setsampwidth.assert_called_with(2)
 
         logger.info("Sample width fallback test passed")
+
+    def test_pyaudio_initialization_failure(self, mocker):
+        """Test AudioRecordingError is raised when PyAudio initialization fails"""
+        logger.info("Testing PyAudio initialization failure raises AudioRecordingError")
+
+        # Mock PyAudio to fail on initialization
+        mock_pyaudio_class = mocker.patch("pyaudio.PyAudio")
+        mock_pyaudio_class.side_effect = Exception("PyAudio initialization failed")
+
+        # Should raise AudioRecordingError
+        with pytest.raises(AudioRecordingError, match="Failed to initialize audio interface"):
+            AudioRecorder()
+
+        logger.info("PyAudio initialization failure test passed")

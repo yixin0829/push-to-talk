@@ -2,9 +2,9 @@ import os
 from loguru import logger
 import time
 from typing import Optional
-from openai import OpenAI
+from openai import OpenAI, APIError as OpenAIAPIError
 from src.text_refiner_base import TextRefinerBase
-from src.exceptions import ConfigurationError
+from src.exceptions import ConfigurationError, TextRefinementError, APIError
 from src.config.constants import TEXT_REFINEMENT_MIN_LENGTH
 
 
@@ -88,7 +88,13 @@ class TextRefinerOpenAI(TextRefinerBase):
             )
             return refined_text
 
+        except OpenAIAPIError as e:
+            logger.error(f"OpenAI API error during text refinement: {e}")
+            raise APIError(
+                f"OpenAI refinement API failed: {e}",
+                provider="OpenAI",
+                status_code=getattr(e, "status_code", None),
+            ) from e
         except Exception as e:
             logger.error(f"Text refinement failed: {e}")
-            logger.info("Falling back to original text")
-            return raw_text.strip()
+            raise TextRefinementError(f"Failed to refine text: {e}") from e

@@ -6,6 +6,7 @@ from typing import Optional
 from loguru import logger
 
 from src.config.constants import AUDIO_RECORDING_THREAD_TIMEOUT_SECONDS
+from src.exceptions import AudioRecordingError
 
 
 class AudioRecorder:
@@ -39,7 +40,7 @@ class AudioRecorder:
             self.audio_interface = pyaudio.PyAudio()
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {e}")
-            self.audio_interface = None
+            raise AudioRecordingError(f"Failed to initialize audio interface: {e}") from e
 
         self.stream = None
 

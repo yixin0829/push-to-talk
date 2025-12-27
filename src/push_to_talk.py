@@ -18,7 +18,15 @@ from src.text_refiner_factory import TextRefinerFactory
 from src.text_inserter import TextInserter
 from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
-from src.exceptions import ConfigurationError
+from src.exceptions import (
+    ConfigurationError,
+    AudioRecordingError,
+    TranscriptionError,
+    TextRefinementError,
+    TextInsertionError,
+    HotkeyError,
+    APIError,
+)
 
 
 def _get_default_hotkey() -> str:
@@ -575,8 +583,12 @@ class PushToTalkApp:
 
             # Transcribe audio
             logger.info("Transcribing audio...")
-            transcribed_text = self.transcriber.transcribe_audio(audio_file)
-            logger.info(f"Transcribed text: {transcribed_text}")
+            try:
+                transcribed_text = self.transcriber.transcribe_audio(audio_file)
+                logger.info(f"Transcribed text: {transcribed_text}")
+            except (TranscriptionError, APIError) as e:
+                logger.error(f"Transcription failed: {e}")
+                transcribed_text = None
 
             # Clean up temporary audio file
             try:
@@ -594,19 +606,25 @@ class PushToTalkApp:
             final_text = transcribed_text
             if self.text_refiner and self.config.enable_text_refinement:
                 logger.info("Refining transcribed text...")
-                refined_text = self.text_refiner.refine_text(transcribed_text)
-                if refined_text:
-                    final_text = refined_text
-                    logger.info(f"Refined: {final_text}")
+                try:
+                    refined_text = self.text_refiner.refine_text(transcribed_text)
+                    if refined_text:
+                        final_text = refined_text
+                        logger.info(f"Refined: {final_text}")
+                except (TextRefinementError, APIError) as e:
+                    logger.error(f"Text refinement failed, using original transcription: {e}")
+                    final_text = transcribed_text
 
             # Insert text into active window
             logger.info("Inserting text into active window...")
-            success = self.text_inserter.insert_text(final_text)
-
-            if success:
-                logger.info("Text insertion successful")
-            else:
-                logger.error("Text insertion failed")
+            try:
+                success = self.text_inserter.insert_text(final_text)
+                if success:
+                    logger.info("Text insertion successful")
+                else:
+                    logger.error("Text insertion failed")
+            except TextInsertionError as e:
+                logger.error(f"Text insertion failed: {e}")
 
         except Exception as e:
             logger.error(f"Error processing recorded audio: {e}")

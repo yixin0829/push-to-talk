@@ -10,6 +10,7 @@ from src.config.constants import (
     TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS,
     TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS,
 )
+from src.exceptions import TextInsertionError
 
 
 class TextInserter:
@@ -37,9 +38,12 @@ class TextInserter:
 
         try:
             return self._insert_via_clipboard(text)
+        except TextInsertionError:
+            # Re-raise TextInsertionError as-is
+            raise
         except Exception as e:
             logger.error(f"Text insertion failed: {e}")
-            return False
+            raise TextInsertionError(f"Failed to insert text: {e}") from e
 
     def _insert_via_clipboard(self, text: str) -> bool:
         """Insert text by copying to clipboard and pasting."""
@@ -70,7 +74,7 @@ class TextInserter:
 
         except Exception as e:
             logger.error(f"Clipboard insertion failed: {e}")
-            return False
+            raise TextInsertionError(f"Clipboard insertion failed: {e}") from e
 
     def _get_clipboard_text(self) -> Optional[str]:
         """Get current clipboard text content."""

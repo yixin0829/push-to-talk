@@ -9,6 +9,7 @@ from loguru import logger
 from pynput import keyboard
 
 from src.config.constants import HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS
+from src.exceptions import HotkeyError
 
 
 class HotkeyService:
@@ -240,7 +241,7 @@ class HotkeyService:
         except Exception as e:
             logger.error(f"Failed to start hotkey service: {e}")
             self.is_running = False
-            return False
+            raise HotkeyError(f"Failed to start hotkey service: {e}") from e
 
     def stop_service(self):
         """Stop the hotkey listening service."""
@@ -482,7 +483,7 @@ class HotkeyService:
             self._parse_hotkey_combination(new_hotkey, parsed_keys)
 
             if not parsed_keys:
-                raise ValueError("No valid keys in new hotkey")
+                raise HotkeyError("No valid keys in new hotkey")
 
             self.hotkey = new_hotkey
             self.hotkey_keys = parsed_keys
@@ -522,7 +523,7 @@ class HotkeyService:
             self._parse_hotkey_combination(new_toggle_hotkey, parsed_keys)
 
             if not parsed_keys:
-                raise ValueError("No valid keys in new toggle hotkey")
+                raise HotkeyError("No valid keys in new toggle hotkey")
 
             self.toggle_hotkey = new_toggle_hotkey
             self.toggle_hotkey_keys = parsed_keys

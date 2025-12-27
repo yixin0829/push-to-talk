@@ -4,7 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.transcription_deepgram import DeepgramTranscriber
-from src.exceptions import ConfigurationError
+from src.exceptions import ConfigurationError, TranscriptionError, APIError
 
 
 class TestDeepgramTranscriber:
@@ -131,22 +131,40 @@ class TestDeepgramTranscriber:
         logger.info("Transcribe audio file not found test passed")
 
     def test_transcribe_audio_api_failure(self, mocker):
-        """Test transcription API failure"""
+        """Test transcription API failure raises TranscriptionError"""
         logger.info("Testing transcription API failure")
 
         mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
         mocker.patch("os.path.exists", return_value=True)
 
-        # Mock API failure
+        # Mock API failure (generic exception)
         self.transcriber.client.listen.v1.media.transcribe_file = MagicMock(
             side_effect=Exception("API request failed")
         )
 
-        result = self.transcriber.transcribe_audio("test_audio.wav")
-
-        assert result is None
+        with pytest.raises(TranscriptionError, match="Failed to transcribe audio"):
+            self.transcriber.transcribe_audio("test_audio.wav")
 
         logger.info("Transcribe audio API failure test passed")
+
+    def test_transcribe_audio_deepgram_api_error(self, mocker):
+        """Test that Deepgram API errors with status_code raise APIError"""
+        logger.info("Testing Deepgram API error handling")
+
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
+        mocker.patch("os.path.exists", return_value=True)
+
+        # Mock Deepgram API error with status_code attribute
+        api_error = Exception("Deepgram API rate limit exceeded")
+        api_error.status_code = 429
+        self.transcriber.client.listen.v1.media.transcribe_file = MagicMock(
+            side_effect=api_error
+        )
+
+        with pytest.raises(APIError, match="Deepgram transcription API failed"):
+            self.transcriber.transcribe_audio("test_audio.wav")
+
+        logger.info("Deepgram API error test passed")
 
     def test_transcribe_audio_empty_response(self, mocker):
         """Test transcription with empty response"""
