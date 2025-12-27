@@ -15,6 +15,19 @@
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
+## 🏆 Why PushToTalk?
+
+**Compared to Wispr Flow ($14.40/month) and Superwhisper ($8.49/month), PushToTalk delivers:**
+
+| Feature | PushToTalk | Others |
+|---------|-----------|--------|
+| **Cost** | **FREE** + pay-as-you-go API | $102-216/year subscription |
+| **STT Speed** | **Ultra-fast** (Deepgram Nova-3 and Cerebras) | Standard latency |
+| **Customization** | Multi-provider choice, custom glossary, custom prompts | Limited vendor lock-in |
+| **Privacy** | Full inference provider control, choose your API including Ollama | Proprietary ecosystem |
+
+**For power users, developers, and privacy-conscious teams: PushToTalk is the most customizable, fastest, and nearly free alternative to existing AI dictation tools.**
+
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
