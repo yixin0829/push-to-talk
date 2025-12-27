@@ -4,6 +4,8 @@ import time
 from typing import Optional
 from cerebras.cloud.sdk import Cerebras
 from src.text_refiner_base import TextRefinerBase
+from src.exceptions import ConfigurationError, TextRefinementError, APIError
+from src.config.constants import TEXT_REFINEMENT_MIN_LENGTH
 
 
 class CerebrasTextRefiner(TextRefinerBase):
@@ -19,7 +21,7 @@ class CerebrasTextRefiner(TextRefinerBase):
 
         self.api_key = api_key or os.getenv("CEREBRAS_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "Cerebras API key is required. Set CEREBRAS_API_KEY environment variable or pass api_key parameter."
             )
 
@@ -41,7 +43,7 @@ class CerebrasTextRefiner(TextRefinerBase):
             return None
 
         # Skip refinement if too short (likely not worth the API call)
-        if len(raw_text.strip()) < 20:
+        if len(raw_text.strip()) < TEXT_REFINEMENT_MIN_LENGTH:
             logger.info("Text too short for refinement, returning as-is")
             return raw_text.strip()
 
@@ -88,6 +90,14 @@ class CerebrasTextRefiner(TextRefinerBase):
             return refined_text
 
         except Exception as e:
-            logger.error(f"Text refinement failed: {e}")
-            logger.info("Falling back to original text")
-            return raw_text.strip()
+            # Check if it's a Cerebras API error (would have status_code attribute)
+            if hasattr(e, "status_code"):
+                logger.error(f"Cerebras API error during text refinement: {e}")
+                raise APIError(
+                    f"Cerebras refinement API failed: {e}",
+                    provider="Cerebras",
+                    status_code=getattr(e, "status_code", None),
+                ) from e
+            else:
+                logger.error(f"Text refinement failed: {e}")
+                raise TextRefinementError(f"Failed to refine text: {e}") from e

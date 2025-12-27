@@ -2,8 +2,10 @@ import os
 from loguru import logger
 import time
 from typing import Optional
-from openai import OpenAI
+from openai import OpenAI, APIError as OpenAIAPIError
 from src.text_refiner_base import TextRefinerBase
+from src.exceptions import ConfigurationError, TextRefinementError, APIError
+from src.config.constants import TEXT_REFINEMENT_MIN_LENGTH
 
 
 class TextRefinerOpenAI(TextRefinerBase):
@@ -14,12 +16,15 @@ class TextRefinerOpenAI(TextRefinerBase):
         Args:
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
             model: Refinement Model to use (default: gpt-4.1-nano)
+
+        Raises:
+            ConfigurationError: If API key is not provided
         """
         super().__init__()
 
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter."
             )
 
@@ -41,7 +46,7 @@ class TextRefinerOpenAI(TextRefinerBase):
             return None
 
         # Skip refinement if too short (likely not worth the API call)
-        if len(raw_text.strip()) < 20:
+        if len(raw_text.strip()) < TEXT_REFINEMENT_MIN_LENGTH:
             logger.info("Text too short for refinement, returning as-is")
             return raw_text.strip()
 
@@ -83,7 +88,13 @@ class TextRefinerOpenAI(TextRefinerBase):
             )
             return refined_text
 
+        except OpenAIAPIError as e:
+            logger.error(f"OpenAI API error during text refinement: {e}")
+            raise APIError(
+                f"OpenAI refinement API failed: {e}",
+                provider="OpenAI",
+                status_code=getattr(e, "status_code", None),
+            ) from e
         except Exception as e:
             logger.error(f"Text refinement failed: {e}")
-            logger.info("Falling back to original text")
-            return raw_text.strip()
+            raise TextRefinementError(f"Failed to refine text: {e}") from e

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 from src.text_refiner_openai import TextRefinerOpenAI
 from src.text_refiner_cerebras import CerebrasTextRefiner
+from src.exceptions import ConfigurationError
 
 
 class TestTextRefinerOpenAI:
@@ -48,7 +49,7 @@ class TestTextRefinerOpenAI:
         logger.info("Testing TextRefinerOpenAI initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             TextRefinerOpenAI()
 
         assert "OpenAI API key is required" in str(exc_info.value)
@@ -150,10 +151,12 @@ class TestTextRefinerOpenAI:
         )
 
         raw_text = "this is some text that should cause an api failure"
-        result = self.refiner.refine_text(raw_text)
 
-        # Should return original text on API failure
-        assert result == raw_text.strip()
+        # Should raise TextRefinementError on generic failure
+        from src.exceptions import TextRefinementError
+
+        with pytest.raises(TextRefinementError, match="Failed to refine text"):
+            self.refiner.refine_text(raw_text)
 
         logger.info("Refine text API failure test passed")
 
@@ -523,7 +526,7 @@ class TestCerebrasTextRefiner:
         logger.info("Testing CerebrasTextRefiner initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             CerebrasTextRefiner()
 
         assert "Cerebras API key is required" in str(exc_info.value)
@@ -623,10 +626,12 @@ class TestCerebrasTextRefiner:
         )
 
         raw_text = "this is some text that should cause an api failure"
-        result = self.refiner.refine_text(raw_text)
 
-        # Should return original text on API failure
-        assert result == raw_text.strip()
+        # Should raise TextRefinementError on generic failure
+        from src.exceptions import TextRefinementError
+
+        with pytest.raises(TextRefinementError, match="Failed to refine text"):
+            self.refiner.refine_text(raw_text)
 
         logger.info("Refine text API failure test passed")
 
