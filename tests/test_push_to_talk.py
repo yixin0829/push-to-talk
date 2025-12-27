@@ -144,7 +144,7 @@ def dependency_stubs(monkeypatch):
 
     class StubTextRefinerFactory:
         @staticmethod
-        def create_refiner(provider, api_key, model, glossary=None):
+        def create_refiner(provider, api_key, model, glossary=None, base_url=None):
             refiner = StubTextRefiner(api_key, model)
             if glossary:
                 refiner.set_glossary(glossary)
