@@ -1,8 +1,11 @@
 import sys
 import types
 from unittest.mock import MagicMock
+import pytest
 
 
+from src.hotkey_service import HotkeyService  # noqa: E402
+from src.exceptions import HotkeyError
 from tests.test_helpers import create_keyboard_stub
 
 # Setup keyboard stub for pynput imports
@@ -10,7 +13,6 @@ keyboard_stub = create_keyboard_stub()
 sys.modules.setdefault("pynput", types.SimpleNamespace(keyboard=keyboard_stub))
 sys.modules["pynput.keyboard"] = keyboard_stub
 
-from src.hotkey_service import HotkeyService  # noqa: E402
 
 # Aliases for backward compatibility in tests
 pynput_keyboard = keyboard_stub
@@ -86,7 +88,7 @@ class TestHotkeyService:
         assert self.service.start_service() is False
 
     def test_start_service_thread_failure(self, mocker):
-        """Thread creation failures should be surfaced as False."""
+        """Thread creation failures should be surfaced as HotkeyError."""
 
         mock_thread = mocker.patch(
             "src.hotkey_service.threading.Thread", side_effect=Exception("boom")
@@ -95,7 +97,9 @@ class TestHotkeyService:
         stop_cb = MagicMock()
         self.service.set_callbacks(start_cb, stop_cb)
 
-        assert self.service.start_service() is False
+        with pytest.raises(HotkeyError, match="Failed to start hotkey service"):
+            self.service.start_service()
+
         assert self.service.is_running is False
         mock_thread.assert_called_once()
 

@@ -6,6 +6,7 @@ from deepgram import DeepgramClient
 
 from src.transcription_base import TranscriberBase
 from src.utils import validate_audio_file_exists, validate_audio_duration
+from src.exceptions import TranscriptionError, APIError
 
 
 class DeepgramTranscriber(TranscriberBase):
@@ -111,8 +112,17 @@ class DeepgramTranscriber(TranscriberBase):
             return transcribed_text if transcribed_text else None
 
         except Exception as e:
-            logger.error(f"Transcription failed: {e}")
-            return None
+            # Check if it's a Deepgram API error (would have status_code attribute)
+            if hasattr(e, "status_code"):
+                logger.error(f"Deepgram API error during transcription: {e}")
+                raise APIError(
+                    f"Deepgram transcription API failed: {e}",
+                    provider="Deepgram",
+                    status_code=getattr(e, "status_code", None),
+                ) from e
+            else:
+                logger.error(f"Transcription failed: {e}")
+                raise TranscriptionError(f"Failed to transcribe audio: {e}") from e
 
     def _prepare_keyterms(self, glossary: List[str]) -> List[str]:
         """
