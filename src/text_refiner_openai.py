@@ -81,7 +81,10 @@ class TextRefinerOpenAI(TextRefinerBase):
 
             messages = [
                 {"role": "system", "content": developer_prompt},
-                {"role": "user", "content": f"Please refine this transcribed text:\n\n{raw_text}"}
+                {
+                    "role": "user",
+                    "content": f"Please refine this transcribed text:\n\n{raw_text}",
+                },
             ]
 
             response = self.client.chat.completions.create(

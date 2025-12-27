@@ -238,9 +238,12 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.api_section.openai_api_key_var,
                         self.api_section.deepgram_api_key_var,
                         self.api_section.cerebras_api_key_var,
+                        self.api_section.gemini_api_key_var,
+                        self.api_section.custom_api_key_var,
                         self.api_section.stt_model_var,
                         self.api_section.refinement_provider_var,
                         self.api_section.refinement_model_var,
+                        self.api_section.custom_endpoint_var,
                     ]
                 )
             if self.audio_section:
@@ -350,6 +353,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             deepgram_api_key=api_values["deepgram_api_key"],
             cerebras_api_key=api_values["cerebras_api_key"],
             gemini_api_key=api_values["gemini_api_key"],
+            custom_api_key=api_values["custom_api_key"],
             stt_model=api_values["stt_model"],
             refinement_provider=api_values["refinement_provider"],
             refinement_model=api_values["refinement_model"],
@@ -377,6 +381,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.deepgram_api_key,
                 config.cerebras_api_key,
                 config.gemini_api_key,
+                config.custom_api_key,
                 config.stt_model,
                 config.refinement_provider,
                 config.refinement_model,

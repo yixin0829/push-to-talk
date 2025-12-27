@@ -328,27 +328,36 @@ class APISection:
         )
 
         # Custom API Endpoint (optional)
-        ttk.Label(self.frame, text="Custom Endpoint:").grid(
-            row=4, column=0, sticky="w", pady=2
+        self.custom_endpoint_frame = ttk.Frame(self.frame)
+        self.custom_endpoint_frame.grid(
+            row=4, column=0, columnspan=2, sticky="ew", pady=2
+        )
+        self.custom_endpoint_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(self.custom_endpoint_frame, text="Custom Endpoint:").grid(
+            row=0, column=0, sticky="w", pady=2
         )
         self.custom_endpoint_var = tk.StringVar()
         self.custom_endpoint_entry = ttk.Entry(
-            self.frame,
+            self.custom_endpoint_frame,
             textvariable=self.custom_endpoint_var,
             width=32,
         )
         self.custom_endpoint_entry.grid(
-            row=4, column=1, sticky="w", padx=(10, 0), pady=2
+            row=0, column=1, sticky="w", padx=(10, 0), pady=2
         )
         # Add tooltip-style label
         ttk.Label(
-            self.frame,
+            self.custom_endpoint_frame,
             text="(Optional: for OpenAI-compatible APIs)",
             font=("TkDefaultFont", 8),
             foreground="gray",
-        ).grid(row=5, column=1, sticky="w", padx=(10, 0), pady=0)
+        ).grid(row=1, column=1, sticky="w", padx=(10, 0), pady=0)
 
         self.frame.columnconfigure(1, weight=1)
+
+        # Initial visibility update
+        self._update_custom_endpoint_visibility()
 
     def _on_provider_changed(self, event=None):
         """Handle STT provider changes - show/hide appropriate API key fields."""
@@ -370,8 +379,17 @@ class APISection:
     def _on_refinement_provider_changed(self, event=None):
         """Handle refinement provider changes - update model options."""
         self._update_refinement_model_options()
+        self._update_custom_endpoint_visibility()
         if self.on_change:
             self.on_change()
+
+    def _update_custom_endpoint_visibility(self):
+        """Show or hide the custom endpoint field based on refinement provider."""
+        provider = self.refinement_provider_var.get()
+        if provider == "custom":
+            self.custom_endpoint_frame.grid()
+        else:
+            self.custom_endpoint_frame.grid_remove()
 
     def _on_refinement_model_changed(self, event=None):
         """Handle refinement model changes - save to provider-specific variable."""
@@ -589,6 +607,9 @@ class APISection:
         self.stt_provider_var.set(stt_provider)
         self.refinement_provider_var.set(refinement_provider)
 
+        # Update visibility of custom endpoint
+        self._update_custom_endpoint_visibility()
+
         # Update combobox options to match the providers
         self._update_combobox_options_only()
 
@@ -777,7 +798,7 @@ class APISection:
                 f"  Key: {'*' * min(len(values['custom_api_key']), 20)}"
             )
         if values["custom_endpoint"]:
-             status_lines.append(f"  Endpoint: {values['custom_endpoint']}")
+            status_lines.append(f"  Endpoint: {values['custom_endpoint']}")
 
         # Add configuration summary
         status_lines.append("\n" + "-" * 40)

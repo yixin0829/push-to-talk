@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Custom exception hierarchy in `src/exceptions.py` with `PushToTalkError`, `ConfigurationError`, `APIError`, `AudioRecordingError`, `TranscriptionError`, `TextRefinementError`, `TextInsertionError`, and `HotkeyError`
 - Constants for magic numbers: `TEXT_REFINEMENT_MIN_LENGTH` (20 characters) and `HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS` (5.0 seconds)
 - ⭐ Support for Gemini API as a text refinement provider
+- ⭐ Support custom refinment model provider (e.g. Ollama, Together AI, etc.)
 
 ### Changed
 - Replaced heavyweight `pyautogui` dependency with lightweight `pyperclip` + `pynput` for clipboard operations and keyboard control

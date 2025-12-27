@@ -59,7 +59,9 @@ class GeminiTextRefiner(TextRefinerBase):
             logger.info("Starting Gemini LLM completion for text refinement")
 
             # Combine system prompt and user message
-            full_prompt = f"{system_prompt}\n\nPlease refine this transcribed text:\n\n{raw_text}"
+            full_prompt = (
+                f"{system_prompt}\n\nPlease refine this transcribed text:\n\n{raw_text}"
+            )
 
             response = self.client.generate_content(
                 full_prompt,

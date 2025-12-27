@@ -317,7 +317,9 @@ class TestTextRefinerFactory:
             },
         )
         mock_cerebras_client = MagicMock()
-        mocker.patch("src.text_refiner_cerebras.Cerebras", return_value=mock_cerebras_client)
+        mocker.patch(
+            "src.text_refiner_cerebras.Cerebras", return_value=mock_cerebras_client
+        )
         mock_genai = MagicMock()
         mocker.patch("src.text_refiner_gemini.genai", mock_genai)
 
@@ -345,4 +347,6 @@ class TestTextRefinerFactory:
             assert hasattr(refiner, "set_glossary")
             assert callable(refiner.set_glossary)
 
-        logger.info("All refiners including Gemini implement base interface test passed")
+        logger.info(
+            "All refiners including Gemini implement base interface test passed"
+        )

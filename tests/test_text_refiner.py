@@ -67,7 +67,7 @@ class TestTextRefinerOpenAI:
         assert refiner.api_key == custom_key
         assert refiner.base_url == custom_base_url
         # OpenAI client normalizes the URL by adding a trailing slash if missing
-        assert str(refiner.client.base_url).rstrip('/') == custom_base_url.rstrip('/')
+        assert str(refiner.client.base_url).rstrip("/") == custom_base_url.rstrip("/")
 
         logger.info("TextRefinerOpenAI initialization with custom provider test passed")
 
@@ -78,8 +78,12 @@ class TestTextRefinerOpenAI:
         # Mock the OpenAI client response
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "This is the refined text with proper punctuation."
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        mock_response.choices[
+            0
+        ].message.content = "This is the refined text with proper punctuation."
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "this is some rough transcribed text without punctuation"
         result = self.refiner.refine_text(raw_text)
@@ -156,7 +160,9 @@ class TestTextRefinerOpenAI:
         assert result == short_text
 
         # Verify API was not called
-        mock_create = mocker.patch.object(self.refiner.client.chat.completions, "create")
+        mock_create = mocker.patch.object(
+            self.refiner.client.chat.completions, "create"
+        )
         self.refiner.refine_text(short_text)
         mock_create.assert_not_called()
 
@@ -188,7 +194,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = ""
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "some text to refine but api returns empty"
         result = self.refiner.refine_text(raw_text)
@@ -205,7 +213,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = None
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "some text to refine but api returns none"
         result = self.refiner.refine_text(raw_text)
@@ -247,7 +257,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Non-GPT-5 refined text"
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "text to refine with standard settings"
         result = self.refiner.refine_text(raw_text)
@@ -272,7 +284,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Timed refined text"
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "text to refine with timing measurement"
         result = self.refiner.refine_text(raw_text)
@@ -324,7 +338,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Text refined with custom prompt"
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         raw_text = "text to refine with custom prompt"
         result = self.refiner.refine_text(raw_text)
@@ -361,8 +377,12 @@ class TestTextRefinerOpenAI:
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Refined text without extra whitespace"
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        mock_response.choices[
+            0
+        ].message.content = "Refined text without extra whitespace"
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         # Test with leading/trailing whitespace
         raw_text = "   text with whitespace   "
@@ -388,7 +408,9 @@ class TestTextRefinerOpenAI:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Refined twenty character text"
-        self.refiner.client.chat.completions.create = MagicMock(return_value=mock_response)
+        self.refiner.client.chat.completions.create = MagicMock(
+            return_value=mock_response
+        )
 
         result = self.refiner.refine_text(text_20_chars)
         assert result == "Refined twenty character text"
@@ -484,7 +506,9 @@ class TestTextRefinerOpenAI:
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Refined with custom prompt and glossary"
+        mock_response.choices[
+            0
+        ].message.content = "Refined with custom prompt and glossary"
         mock_create = mocker.patch.object(
             self.refiner.client.chat.completions, "create", return_value=mock_response
         )

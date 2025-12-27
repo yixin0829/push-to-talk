@@ -41,13 +41,27 @@ class TestFormatInstructionIntegration:
         mock_response = type("MockResponse", (), {})()
 
         # Create a realistic bullet-point formatted response
-        mock_response.choices = [type("MockChoice", (), {"message": type("MockMessage", (), {"content": """• Call the dentist and reschedule appointment for next week
+        mock_response.choices = [
+            type(
+                "MockChoice",
+                (),
+                {
+                    "message": type(
+                        "MockMessage",
+                        (),
+                        {
+                            "content": """• Call the dentist and reschedule appointment for next week
 • Finish the Johnson report by end of day tomorrow
 • Pick up groceries: milk, bread, chicken, and vegetables
 • Respond to Sarah's email about the project meeting
 • Call mom (haven't talked all week)
 • Get gas for the car
-• Move laundry to the dryer"""})()})()]
+• Move laundry to the dryer"""
+                        },
+                    )()
+                },
+            )()
+        ]
 
         mock_client.chat.completions.create.return_value = mock_response
 
@@ -191,7 +205,17 @@ class TestFormatInstructionIntegration:
             mock_openai = mocker.patch("src.text_refiner_openai.OpenAI")
             mock_client = mock_openai.return_value
             mock_response = type("MockResponse", (), {})()
-            mock_response.choices = [type("MockChoice", (), {"message": type("MockMessage", (), {"content": test_case["mock_response"]})()})()]
+            mock_response.choices = [
+                type(
+                    "MockChoice",
+                    (),
+                    {
+                        "message": type(
+                            "MockMessage", (), {"content": test_case["mock_response"]}
+                        )()
+                    },
+                )()
+            ]
             mock_client.chat.completions.create.return_value = mock_response
 
             refiner = TextRefinerOpenAI(api_key=f"test-key-{i}")
@@ -222,7 +246,13 @@ class TestFormatInstructionIntegration:
         mock_openai = mocker.patch("src.text_refiner_openai.OpenAI")
         mock_client = mock_openai.return_value
         mock_response = type("MockResponse", (), {})()
-        mock_response.choices = [type("MockChoice", (), {"message": type("MockMessage", (), {"content": "• A\n• B\n• C"})()})()]
+        mock_response.choices = [
+            type(
+                "MockChoice",
+                (),
+                {"message": type("MockMessage", (), {"content": "• A\n• B\n• C"})()},
+            )()
+        ]
         mock_client.chat.completions.create.return_value = mock_response
 
         refiner = TextRefinerOpenAI(api_key="test-short-key")
