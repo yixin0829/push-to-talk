@@ -349,9 +349,11 @@ Configure your settings below, then click "Start Application" to begin:"""
             openai_api_key=api_values["openai_api_key"],
             deepgram_api_key=api_values["deepgram_api_key"],
             cerebras_api_key=api_values["cerebras_api_key"],
+            gemini_api_key=api_values["gemini_api_key"],
             stt_model=api_values["stt_model"],
             refinement_provider=api_values["refinement_provider"],
             refinement_model=api_values["refinement_model"],
+            custom_endpoint=api_values["custom_endpoint"],
             sample_rate=audio_values["sample_rate"],
             chunk_size=audio_values["chunk_size"],
             channels=audio_values["channels"],
@@ -374,9 +376,11 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.openai_api_key,
                 config.deepgram_api_key,
                 config.cerebras_api_key,
+                config.gemini_api_key,
                 config.stt_model,
                 config.refinement_provider,
                 config.refinement_model,
+                config.custom_endpoint,
             )
             self.audio_section.set_values(
                 config.sample_rate, config.chunk_size, config.channels

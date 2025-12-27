@@ -151,3 +151,42 @@ def validate_cerebras_api_key(api_key: str) -> bool:
             raise Exception("TIMEOUT - Network issue")
         else:
             raise Exception(f"ERROR - {error_msg[:60]}...")
+
+
+def validate_gemini_api_key(api_key: str) -> bool:
+    """
+    Validate Google Gemini API key by making a test request.
+
+    Args:
+        api_key: Google Gemini API key to validate
+
+    Returns:
+        True if valid, False otherwise
+
+    Raises:
+        Exception: With descriptive error message
+    """
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+        # Test the API key by listing models (lightweight operation)
+        _ = list(genai.list_models())
+        return True
+    except Exception as e:
+        error_msg = str(e)
+        # Extract the most relevant error message
+        if (
+            "401" in error_msg
+            or "INVALID_ARGUMENT" in error_msg
+            or "API key not valid" in error_msg
+        ):
+            raise Exception("INVALID - Incorrect API key")
+        elif "403" in error_msg or "PERMISSION_DENIED" in error_msg:
+            raise Exception("INVALID - Access forbidden")
+        elif "404" in error_msg:
+            raise Exception("INVALID - API endpoint not found")
+        elif "timeout" in error_msg.lower():
+            raise Exception("TIMEOUT - Network issue")
+        else:
+            raise Exception(f"ERROR - {error_msg[:60]}...")

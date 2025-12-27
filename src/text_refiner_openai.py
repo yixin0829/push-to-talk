@@ -9,13 +9,19 @@ from src.config.constants import TEXT_REFINEMENT_MIN_LENGTH
 
 
 class TextRefinerOpenAI(TextRefinerBase):
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4.1-nano"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "gpt-4.1-nano",
+        base_url: Optional[str] = None,
+    ):
         """
         Initialize the text refiner with OpenAI API.
 
         Args:
             api_key: OpenAI API key. If None, will use OPENAI_API_KEY environment variable
             model: Refinement Model to use (default: gpt-4.1-nano)
+            base_url: Optional custom API endpoint URL (for OpenAI-compatible APIs)
 
         Raises:
             ConfigurationError: If API key is not provided
@@ -29,7 +35,14 @@ class TextRefinerOpenAI(TextRefinerBase):
             )
 
         self.model = model
-        self.client = OpenAI(api_key=self.api_key)
+        self.base_url = base_url if base_url else None
+
+        # Create client with optional custom base URL
+        client_kwargs = {"api_key": self.api_key}
+        if self.base_url:
+            client_kwargs["base_url"] = self.base_url
+            logger.info(f"Using custom API endpoint: {self.base_url}")
+        self.client = OpenAI(**client_kwargs)
 
     def refine_text(self, raw_text: str) -> Optional[str]:
         """

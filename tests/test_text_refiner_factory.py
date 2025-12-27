@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 from src.text_refiner_factory import TextRefinerFactory
 from src.text_refiner_openai import TextRefinerOpenAI
 from src.text_refiner_cerebras import CerebrasTextRefiner
+from src.text_refiner_gemini import GeminiTextRefiner
 from src.text_refiner_base import TextRefinerBase
 
 
@@ -233,3 +234,115 @@ class TestTextRefinerFactory:
         assert refiner.glossary == []
 
         logger.info("Create refiner with empty glossary test passed")
+
+    def test_create_gemini_refiner(self, mocker):
+        """Test factory creates Gemini refiner"""
+        logger.info("Testing factory creates Gemini refiner")
+
+        mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "test-gemini-key"})
+        mock_genai = MagicMock()
+        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+
+        refiner = TextRefinerFactory.create_refiner(
+            provider="gemini", api_key="test-gemini-key", model="gemini-3-flash-preview"
+        )
+
+        assert isinstance(refiner, GeminiTextRefiner)
+        assert isinstance(refiner, TextRefinerBase)
+        assert refiner.api_key == "test-gemini-key"
+        assert refiner.model == "gemini-3-flash-preview"
+
+        logger.info("Factory creates Gemini refiner test passed")
+
+    def test_create_gemini_refiner_with_custom_model(self, mocker):
+        """Test factory creates Gemini refiner with custom model"""
+        logger.info("Testing factory creates Gemini refiner with custom model")
+
+        mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"})
+        mock_genai = MagicMock()
+        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+
+        refiner = TextRefinerFactory.create_refiner(
+            provider="gemini", api_key="test-key", model="gemini-2.5-pro-preview-06-05"
+        )
+
+        assert isinstance(refiner, GeminiTextRefiner)
+        assert refiner.model == "gemini-2.5-pro-preview-06-05"
+
+        logger.info("Factory creates Gemini refiner with custom model test passed")
+
+    def test_create_openai_refiner_with_base_url(self, mocker):
+        """Test factory creates OpenAI refiner with custom base URL"""
+        logger.info("Testing factory creates OpenAI refiner with custom base URL")
+
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+
+        refiner = TextRefinerFactory.create_refiner(
+            provider="openai",
+            api_key="test-key",
+            model="gpt-4o-mini",
+            base_url="https://custom-api.example.com/v1",
+        )
+
+        assert isinstance(refiner, TextRefinerOpenAI)
+        assert refiner.base_url == "https://custom-api.example.com/v1"
+
+        logger.info("Factory creates OpenAI refiner with base URL test passed")
+
+    def test_create_openai_refiner_without_base_url(self, mocker):
+        """Test factory creates OpenAI refiner without base URL (default)"""
+        logger.info("Testing factory creates OpenAI refiner without base URL")
+
+        mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+
+        refiner = TextRefinerFactory.create_refiner(
+            provider="openai", api_key="test-key", model="gpt-4o-mini"
+        )
+
+        assert isinstance(refiner, TextRefinerOpenAI)
+        assert refiner.base_url is None
+
+        logger.info("Factory creates OpenAI refiner without base URL test passed")
+
+    def test_all_refiners_implement_base_interface_including_gemini(self, mocker):
+        """Test that all refiners including Gemini implement TextRefinerBase"""
+        logger.info("Testing all refiners including Gemini implement base interface")
+
+        mocker.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "test-key",
+                "CEREBRAS_API_KEY": "test-key",
+                "GOOGLE_API_KEY": "test-key",
+            },
+        )
+        mock_cerebras_client = MagicMock()
+        mocker.patch("src.text_refiner_cerebras.Cerebras", return_value=mock_cerebras_client)
+        mock_genai = MagicMock()
+        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+
+        openai_refiner = TextRefinerFactory.create_refiner(
+            provider="openai", api_key="test-key", model="gpt-4o-mini"
+        )
+
+        cerebras_refiner = TextRefinerFactory.create_refiner(
+            provider="cerebras", api_key="test-key", model="llama-3.3-70b"
+        )
+
+        gemini_refiner = TextRefinerFactory.create_refiner(
+            provider="gemini", api_key="test-key", model="gemini-3-flash-preview"
+        )
+
+        # Check they all implement the base interface
+        assert isinstance(openai_refiner, TextRefinerBase)
+        assert isinstance(cerebras_refiner, TextRefinerBase)
+        assert isinstance(gemini_refiner, TextRefinerBase)
+
+        # Check they all have the required methods
+        for refiner in [openai_refiner, cerebras_refiner, gemini_refiner]:
+            assert hasattr(refiner, "refine_text")
+            assert callable(refiner.refine_text)
+            assert hasattr(refiner, "set_glossary")
+            assert callable(refiner.set_glossary)
+
+        logger.info("All refiners including Gemini implement base interface test passed")
