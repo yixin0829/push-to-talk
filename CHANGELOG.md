@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Context manager support to `AudioRecorder` for reliable resource cleanup with `__enter__` and `__exit__` methods
 - Custom exception hierarchy in `src/exceptions.py` with `PushToTalkError`, `ConfigurationError`, `APIError`, `AudioRecordingError`, `TranscriptionError`, `TextRefinementError`, `TextInsertionError`, and `HotkeyError`
 - Constants for magic numbers: `TEXT_REFINEMENT_MIN_LENGTH` (20 characters) and `HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS` (5.0 seconds)
+- ⭐ Support for Gemini API as a text refinement provider
 
 ### Changed
 - Replaced heavyweight `pyautogui` dependency with lightweight `pyperclip` + `pynput` for clipboard operations and keyboard control
@@ -28,6 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Optimized hotkey alias loading by replacing `@functools.lru_cache(maxsize=1)` with class-level caching
 - Added Windows DPI awareness support with fallback mechanisms
 - Improved error categorization and debugging with custom exception types
+- ⭐ Implemented non-blocking transcription with background processing
+  - Worker thread spawns background threads for STT processing recording, transcription, refinement and text insertion
+  - Reduce latency from 3-5 seconds to 100ms (user may start recording right after finishing the previous recording)
 
 ### Documentation
 ### Security
