@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Callable, Optional, Set
 
 from loguru import logger
-from pynput import keyboard as pynput_keyboard
+from pynput import keyboard
 
 from src.config.constants import HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS
 
@@ -14,6 +14,7 @@ from src.config.constants import HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS
 class HotkeyService:
     # Class-level cache for hotkey alias mappings (loaded once at class definition)
     _ALIAS_MAP: dict[str, str] | None = None
+
     def __init__(self, hotkey: str = None, toggle_hotkey: str = None):
         """
         Initialize the hotkey service.
@@ -36,7 +37,7 @@ class HotkeyService:
         self.toggle_hotkey_keys: Set[str] = set()
 
         # Track listener state
-        self._listener: Optional[pynput_keyboard.Listener] = None
+        self._listener: Optional[keyboard.Listener] = None
         self._push_hotkey_active = False
         self._toggle_hotkey_active = False
 
@@ -275,7 +276,7 @@ class HotkeyService:
 
     def _run_service(self):
         """Main service loop running in a separate thread."""
-        listener: Optional[pynput_keyboard.Listener] = None
+        listener: Optional[keyboard.Listener] = None
 
         try:
             while self.is_running:
@@ -291,7 +292,7 @@ class HotkeyService:
                             pass
 
                     try:
-                        listener = pynput_keyboard.Listener(
+                        listener = keyboard.Listener(
                             on_press=self._on_key_press,
                             on_release=self._on_key_release,
                         )
@@ -391,14 +392,14 @@ class HotkeyService:
         """Convert pynput key objects to normalized string names."""
 
         try:
-            if isinstance(key, pynput_keyboard.Key):
+            if isinstance(key, keyboard.Key):
                 name = key.name
-            elif isinstance(key, pynput_keyboard.KeyCode):
+            elif isinstance(key, keyboard.KeyCode):
                 if key.char:
                     name = key.char
                 elif key.vk is not None:
                     try:
-                        mapped = pynput_keyboard.KeyCode.from_vk(key.vk)
+                        mapped = keyboard.KeyCode.from_vk(key.vk)
                         if mapped.char:
                             name = mapped.char
                         elif hasattr(mapped, "name") and mapped.name:

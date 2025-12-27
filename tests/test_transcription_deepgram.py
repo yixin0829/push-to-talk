@@ -4,6 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.transcription_deepgram import DeepgramTranscriber
+from src.exceptions import ConfigurationError
 
 
 class TestDeepgramTranscriber:
@@ -46,7 +47,7 @@ class TestDeepgramTranscriber:
         logger.info("Testing DeepgramTranscriber initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             DeepgramTranscriber()
 
         assert "Deepgram API key is required" in str(exc_info.value)

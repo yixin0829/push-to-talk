@@ -4,7 +4,7 @@ import sys
 from typing import Optional
 
 import pyperclip
-from pynput.keyboard import Controller, Key
+from pynput import keyboard
 
 from src.config.constants import (
     TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS,
@@ -19,7 +19,7 @@ class TextInserter:
     def __init__(self):
         """Initialize the text inserter."""
         self.insertion_delay = self.DEFAULT_INSERTION_DELAY
-        self.keyboard = Controller()
+        self.keyboard = keyboard.Controller()
 
     def insert_text(self, text: str) -> bool:
         """
@@ -51,7 +51,9 @@ class TextInserter:
             time.sleep(TEXT_INSERTION_DELAY_AFTER_COPY_SECONDS)
 
             # Use platform-specific modifier key for paste
-            modifier_key = Key.cmd if sys.platform == "darwin" else Key.ctrl
+            modifier_key = (
+                keyboard.Key.cmd if sys.platform == "darwin" else keyboard.Key.ctrl
+            )
 
             # Press modifier+v to paste
             with self.keyboard.pressed(modifier_key):

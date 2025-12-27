@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 from src.text_refiner_openai import TextRefinerOpenAI
 from src.text_refiner_cerebras import CerebrasTextRefiner
+from src.exceptions import ConfigurationError
 
 
 class TestTextRefinerOpenAI:
@@ -48,7 +49,7 @@ class TestTextRefinerOpenAI:
         logger.info("Testing TextRefinerOpenAI initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             TextRefinerOpenAI()
 
         assert "OpenAI API key is required" in str(exc_info.value)
@@ -523,7 +524,7 @@ class TestCerebrasTextRefiner:
         logger.info("Testing CerebrasTextRefiner initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             CerebrasTextRefiner()
 
         assert "Cerebras API key is required" in str(exc_info.value)

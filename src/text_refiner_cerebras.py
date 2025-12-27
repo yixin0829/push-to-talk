@@ -4,6 +4,7 @@ import time
 from typing import Optional
 from cerebras.cloud.sdk import Cerebras
 from src.text_refiner_base import TextRefinerBase
+from src.exceptions import ConfigurationError
 
 
 class CerebrasTextRefiner(TextRefinerBase):
@@ -19,7 +20,7 @@ class CerebrasTextRefiner(TextRefinerBase):
 
         self.api_key = api_key or os.getenv("CEREBRAS_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "Cerebras API key is required. Set CEREBRAS_API_KEY environment variable or pass api_key parameter."
             )
 

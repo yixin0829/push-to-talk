@@ -4,6 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.transcription_openai import OpenAITranscriber
+from src.exceptions import ConfigurationError
 
 
 class TestOpenAITranscriber:
@@ -48,7 +49,7 @@ class TestOpenAITranscriber:
         logger.info("Testing OpenAITranscriber initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             OpenAITranscriber()
 
         assert "OpenAI API key is required" in str(exc_info.value)
