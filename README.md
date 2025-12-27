@@ -20,7 +20,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
 - **🔄 Live Config Sync**: GUI edits instantly push updates to the running background service—no restart required
 - **📚 Custom Glossary**: Add domain-specific terms and acronyms to improve transcription accuracy
-- **✨ Multi-Provider Text Refinement**: Improves transcription quality using OpenAI GPT or Cerebras models
+- **✨ Multi-Provider Text Refinement**: Improves transcription quality using OpenAI GPT, Cerebras, Gemini, or custom OpenAI-compatible endpoints
 - **🤖 Multi-Provider Speech-to-Text**: Choose between OpenAI Whisper or Deepgram for accurate transcription
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio (platform-aware defaults)
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
@@ -41,6 +41,8 @@ See [issues](https://github.com/yixin0829/push-to-talk/issues) for more details.
 - **Text refinement (optional)**:
   - OpenAI GPT: https://platform.openai.com/docs/api-reference/introduction
   - Cerebras: https://cerebras.ai/
+  - Google Gemini: https://ai.google.dev/
+  - Custom OpenAI-compatible endpoints (e.g., Ollama, Together AI)
 - Microphone access (for recording)
 
 ## Quick Start (GUI Application)
@@ -129,10 +131,12 @@ The application features a sophisticated real-time configuration system that app
   - **Deepgram**: nova-3 (default and recommended), nova-2, base, enhanced, whisper-medium
 
 ### Text Refinement Settings
-- **Refinement Provider**: Choose between OpenAI or Cerebras (default: Cerebras)
+- **Refinement Provider**: Choose between OpenAI, Cerebras, Gemini, or Custom (default: Cerebras)
 - **Refinement Model**: Provider-specific models:
-  - **OpenAI**: gpt-4.1-nano, gpt-4o-mini, gpt-4o
-  - **Cerebras**: llama-3.3-70b (default), llama-3.1-70b, and other Cerebras models
+  - **OpenAI**: gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, gpt-4o-mini, gpt-4o
+  - **Cerebras**: llama-3.3-70b (default), qwen-3-235b-a22b-instruct-2507, qwen-3-32b, llama3.1-8b
+  - **Gemini**: gemini-3-flash-preview (default), gemini-3-pro-preview, gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-06-05
+  - **Custom**: llama3, mistral, mixtral, gemma (or any model name for your endpoint)
 
 ### Audio Settings
 - **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
@@ -162,7 +166,7 @@ The application features a sophisticated real-time configuration system that app
 
 ## How to Use
 
-1. **Build**: Build the application using `build.bat` if first time running on Windows
+1. **Build**: Build the application using `build_script\build.bat` if first time running on Windows
 2. **Launch**: Double-click the built `PushToTalk.exe` or run `uv run python main.py`
 3. **Configure**: Use the integrated setup interface with welcome guidance
 4. **Start**: Click "Start Application" - GUI stays open with status indicators
@@ -173,7 +177,7 @@ The application features a sophisticated real-time configuration system that app
 ## Building the Application
 
 ```bash
-.\build.bat
+build_script\build.bat
 ```
 This creates `dist\PushToTalk.exe` - a standalone GUI application.
 
@@ -185,12 +189,12 @@ The application supports both GUI and file-based configuration with automatic en
 ### API Key Management
 The application supports three ways to provide API keys (checked in this order):
 1. **GUI**: Enter API keys directly in the configuration interface (stored in `push_to_talk_config.json`)
-2. **Environment Variables**: Set `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, or `CEREBRAS_API_KEY`
+2. **Environment Variables**: Set `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `CEREBRAS_API_KEY`, or `GOOGLE_API_KEY`
 3. **Configuration File**: Manually edit `push_to_talk_config.json`
 
 The required API key depends on your selected providers:
 - **STT Provider**: OpenAI requires `openai_api_key`, Deepgram requires `deepgram_api_key`
-- **Refinement Provider**: OpenAI requires `openai_api_key`, Cerebras requires `cerebras_api_key`
+- **Refinement Provider**: OpenAI requires `openai_api_key`, Cerebras requires `cerebras_api_key`, Gemini requires `gemini_api_key`, Custom requires `custom_api_key`
 
 Environment variables are checked automatically if GUI or config file values are empty.
 
@@ -213,6 +217,9 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "refinement_provider": "cerebras",
   "refinement_model": "llama-3.3-70b",
   "cerebras_api_key": "your_cerebras_key",
+  "gemini_api_key": "",
+  "custom_api_key": "",
+  "custom_endpoint": "",
   "sample_rate": 16000,
   "chunk_size": 1024,
   "channels": 1,
@@ -235,9 +242,12 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `openai_api_key` | string | `""` | Your OpenAI API key for Whisper services. Required when using OpenAI provider. Can be set via GUI, config file, or `OPENAI_API_KEY` environment variable. |
 | `deepgram_api_key` | string | `""` | Your Deepgram API key for transcription services. Required when using Deepgram provider. Can be set via GUI, config file, or `DEEPGRAM_API_KEY` environment variable. |
 | `stt_model` | string | `"nova-3"` | STT Model for speech-to-text. For OpenAI: `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`. For Deepgram: `nova-3`, `nova-2`, `base`, `enhanced`, `whisper-medium`. |
-| `refinement_provider` | string | `"cerebras"` | Text refinement provider. Options: `openai`, `cerebras`. Determines which AI service refines transcribed text. |
-| `refinement_model` | string | `"llama-3.3-70b"` | Refinement Model for text refinement. For OpenAI: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. For Cerebras: `llama-3.3-70b`, `llama-3.1-70b`, and other Cerebras-supported models. |
+| `refinement_provider` | string | `"cerebras"` | Text refinement provider. Options: `openai`, `cerebras`, `gemini`, `custom`. Determines which AI service refines transcribed text. |
+| `refinement_model` | string | `"llama-3.3-70b"` | Refinement Model for text refinement. For OpenAI: `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. For Cerebras: `llama-3.3-70b`, `qwen-3-235b-a22b-instruct-2507`, `qwen-3-32b`, `llama3.1-8b`. For Gemini: `gemini-3-flash-preview`, `gemini-3-pro-preview`, `gemini-2.5-flash-preview-05-20`, `gemini-2.5-pro-preview-06-05`. For Custom: any model name. |
 | `cerebras_api_key` | string | `""` | Your Cerebras API key for text refinement. Required when using Cerebras provider. Can be set via GUI, config file, or `CEREBRAS_API_KEY` environment variable. |
+| `gemini_api_key` | string | `""` | Your Google Gemini API key for text refinement. Required when using Gemini provider. Can be set via GUI, config file, or `GOOGLE_API_KEY` environment variable. |
+| `custom_api_key` | string | `""` | Your custom API key for text refinement. Required when using Custom provider. |
+| `custom_endpoint` | string | `""` | Custom API endpoint URL for OpenAI-compatible APIs (e.g., `http://localhost:11434/v1` for Ollama). Required when using Custom provider. |
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
@@ -278,7 +288,7 @@ You can configure different hotkey combinations for both modes. Platform-specifi
 - Windows/Linux: `ctrl+shift+space` (default), `ctrl+shift+t`
 - macOS: `cmd+shift+^` (default), `cmd+shift+t`
 
-Both hotkeys support any combination from the `keyboard` library. The application automatically uses platform-aware defaults based on your OS.
+Both hotkeys support any combination from the `pynput` library. The application automatically uses platform-aware defaults based on your OS.
 
 ### Custom Glossary
 
@@ -300,11 +310,11 @@ The application supports custom glossary terms to improve transcription accuracy
 
 The application includes clean and simple audio feedback:
 
-- **Recording Start**: A crisp high-pitched beep (880 Hz) that signals recording has begun
-- **Recording Stop**: A lower confirmation beep (660 Hz) that confirms recording completion
-- **Non-Blocking**: Audio playback runs in separate threads to avoid interfering with recording or transcription
+- **Recording Start**: A high-pitched beep sound that signals recording has begun
+- **Recording Stop**: A lower-pitched confirmation beep that confirms recording completion
+- **Non-Blocking**: Audio playback runs asynchronously to avoid interfering with recording or transcription
 - **Configurable**: Can be toggled on/off via GUI or configuration JSON file
-- **Cross-Platform**: Uses `playsound3` for audio playback - works on Windows, MacOS, and Linux
+- **Cross-Platform**: Uses `playsound3` for audio playback with pre-recorded WAV files
 
 ## Architecture
 
@@ -314,51 +324,59 @@ sequenceDiagram
     participant Hotkey as Hotkey Service Thread
     participant Worker as Worker Thread
     participant Audio as Audio Recording Thread
+    participant BG as Background Processing Thread
 
-    Note over Main,Audio: Application Startup
+    Note over Main,BG: Application Startup
     Main->>Main: Initialize GUI
     Main->>+Hotkey: Start Hotkey Service
     Hotkey-->>Main: Service running
     Main->>+Worker: Start Worker Thread
     Worker-->>Main: Worker running
 
-    Note over Main,Audio: Start Recording (User Presses Hotkey)
+    Note over Main,BG: Start Recording (User Presses Hotkey)
     Hotkey->>Worker: Queue "START_RECORDING"
     Worker->>Worker: Play start feedback (non-blocking)
     Worker->>+Audio: Start audio recording
     Audio-->>Worker: Recording started
     Audio->>Audio: Capture audio loop
 
-    Note over Main,Audio: Stop Recording (User Releases Hotkey)
+    Note over Main,BG: Stop Recording (User Releases Hotkey)
     Hotkey->>Worker: Queue "STOP_RECORDING"
     Worker->>Worker: Play stop feedback (non-blocking)
     Worker->>Audio: Stop recording
     Audio-->>Worker: Audio file returned
+    Worker->>+BG: Spawn background thread
 
-    Note over Main,Audio: Audio Processing Pipeline (in Worker)
-    Worker->>Worker: Transcribe Audio (API)
-    Worker->>Worker: Refine Text (API)
-    Worker->>Worker: Insert Text (Clipboard)
-    Worker->>Worker: Cleanup temp files
+    Note over Main,BG: Background Processing (Non-Blocking)
+    BG->>BG: Transcribe Audio (API)
+    BG->>BG: Refine Text (API)
+    BG->>BG: Insert Text (Clipboard)
+    BG->>BG: Cleanup temp files
 
-    Note over Main,Audio: Application Shutdown
+    Note over Main,BG: User Can Start New Recording Immediately
+    Hotkey->>Worker: Queue "START_RECORDING"
+    Worker->>+Audio: Start new recording
+    Note over BG: Previous transcription continues...
+
+    Note over Main,BG: Application Shutdown
     Main->>Hotkey: Stop service
     Hotkey-->>Main: Service stopped
     Main->>Worker: Queue "QUIT"
+    Main->>Main: Wait for background threads
     Worker-->>Main: Worker stopped
 ```
 
 ### Threading Model
 
-The application uses separate threads for responsiveness:
+The application uses separate threads for responsiveness and non-blocking operation:
 
 - **Main Thread**: GUI and configuration
-- **Hotkey Service**: Global keyboard detection (producer) → queues commands
-- **Worker Thread**: Audio processing pipeline (consumer) → transcribe → refine → insert text
-- **Audio Recording**: Real-time PyAudio buffering
-- **Daemon Threads**: Non-blocking API calls
+- **Hotkey Service Thread**: Global keyboard detection (producer) → queues commands
+- **Worker Thread**: Command consumer → handles start/stop recording and audio feedback
+- **Audio Recording Thread**: Real-time PyAudio buffering
+- **Background Processing Threads**: Per-recording daemon threads for transcription → refinement → text insertion
 
-**Key Design**: Hotkeys are detected instantly even during API calls because the hotkey service operates independently from the worker thread. Commands queue and process sequentially, preventing race conditions.
+**Key Design**: Each recording spawns its own background processing thread, allowing users to start a new recording immediately after stopping the previous one. The transcription and refinement API calls run in parallel in the background, reducing perceived latency from 3-5 seconds to ~100ms. Hotkeys are detected instantly even during API calls because the hotkey service operates independently from the worker thread.
 
 See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 
@@ -382,6 +400,8 @@ See [AGENTS.md](AGENTS.md) for detailed threading implementation.
    - For OpenAI STT: Need `openai_api_key`
    - For Cerebras refinement: Need `cerebras_api_key`
    - For OpenAI refinement: Need `openai_api_key`
+   - For Gemini refinement: Need `gemini_api_key`
+   - For Custom refinement: Need `custom_api_key` and `custom_endpoint`
    - Use "Test Configuration" to validate settings
    - Check that no other instance is running
 
@@ -392,35 +412,32 @@ See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 
 ### Common Issues
 
-1. **"No module named 'pyautogui' or 'pyperclip'"** (Development):
-   ```bash
-   uv add pyautogui pyperclip
-   ```
-
-2. **"Could not find PyAudio"** (Development):
+1. **"Could not find PyAudio"** (Development):
    - Install PyAudio: `uv add pyaudio`
    - On Windows, you may need Visual C++ build tools
 
-3. **Hotkey not working**:
+2. **Hotkey not working**:
    - Run as administrator (required for global hotkey detection)
    - Check if another application is using the same hotkey
    - Try a different hotkey combination in the GUI
    - Ensure the application shows "Running" status in the GUI
 
-4. **API errors or missing credentials**:
+3. **API errors or missing credentials**:
    - Use the "Test Configuration" button in the GUI to validate settings
    - Verify your API keys are valid and have sufficient credits/usage quota
    - Check that your accounts have access to the models you're using
    - For Deepgram: Verify Deepgram API key and subscription plan
    - For Cerebras: Verify Cerebras API key and account status
+   - For Gemini: Verify Google API key and Gemini API access
+   - For Custom: Verify endpoint URL is accessible and API key is valid
    - Ensure internet connectivity
    - Check `push_to_talk.log` for specific API error messages
 
-5. **Text not inserting**:
+4. **Text not inserting**:
    - Make sure the target window is active and has a text input field
    - Check Windows permissions for clipboard access
 
-6. **GUI appearance issues**:
+5. **GUI appearance issues**:
    - Try restarting the application
    - Check display scaling settings (recommended: 100-150%)
    - Ensure Windows is up to date
@@ -428,23 +445,6 @@ See [AGENTS.md](AGENTS.md) for detailed threading implementation.
 ### Logging
 
 Logs are written to `push_to_talk.log` using loguru's enhanced formatting. The GUI application logs only to file for cleaner user experience.
-
-
-## Performance Tips
-
-1. **Optimize audio settings**: Lower sample rates (8000-16000 Hz) for faster processing
-2. **Enable audio processing**: Smart silence removal and speed adjustment can significantly reduce transcription time
-3. **Disable text refinement**: For faster transcription without GPT processing
-4. **Short recordings**: Keep recordings under 30 seconds for optimal performance
-5. **Monitor via GUI**: Use the status indicators to verify application is running efficiently
-
-## Security Considerations
-
-- **API Key Security**: GUI stores API keys securely; avoid sharing configuration files
-- **Administrator Rights**: Required for global hotkey detection
-- **Microphone Access**: Application needs microphone permissions
-- **Network Access**: Required for OpenAI API calls
-- **File Permissions**: Ensure configuration files have appropriate access controls
 
 ## Testing
 

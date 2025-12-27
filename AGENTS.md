@@ -58,12 +58,15 @@ build_script/build_linux.sh     # Linux
 **Dependency Injection** - See `PushToTalkApp.__init__()` in [src/push_to_talk.py](src/push_to_talk.py)
 - Injected components preserved during lifecycle
 
-**Threading**
-1. Main: GUI control
-2. Hotkey Service: Global detection (Producer) -> Pushes commands to Queue
-3. Worker Thread: Consumes commands -> Handles Audio Recording & Feedback (Consumer)
-4. Audio Recording: PyAudio operations
-5. Transcription: Daemon processing pipeline
+**Threading Architecture (Non-Blocking)**
+1. **Main Thread**: GUI control and configuration
+2. **Hotkey Service Thread**: Global keyboard detection (Producer) → Pushes commands to Queue
+3. **Worker Thread**: Command consumer → Handles start/stop recording & audio feedback
+4. **Audio Recording Thread**: Continuous PyAudio chunk reading in a loop. Separate from Worker so Worker remains responsive to STOP commands while audio is being captured.
+5. **Background Processing Threads** (per-recording): Daemon threads for transcription → refinement → text insertion
+   - Each recording spawns a new background thread
+   - Allows immediate new recordings without waiting for API calls
+   - Reduces perceived latency from 3-5s to ~100ms
 
 ## Development Guidelines
 
