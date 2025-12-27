@@ -14,15 +14,17 @@ class TextRefinerFactory:
         api_key: str,
         model: str,
         glossary: Optional[list[str]] = None,
+        base_url: Optional[str] = None,
     ) -> TextRefinerBase:
         """
         Create a text refiner instance based on the specified provider.
 
         Args:
-            provider: The refinement provider ('openai' or 'cerebras')
+            provider: The refinement provider ('openai', 'cerebras', or 'gemini')
             api_key: API key for the provider
             model: Model name to use for refinement
             glossary: Optional list of custom glossary terms
+            base_url: Optional custom API endpoint URL (for OpenAI-compatible APIs)
 
         Returns:
             TextRefinerBase instance configured for the specified provider
@@ -31,7 +33,7 @@ class TextRefinerFactory:
             ValueError: If the provider is not supported
         """
         if provider == "openai":
-            refiner = TextRefinerOpenAI(api_key=api_key, model=model)
+            refiner = TextRefinerOpenAI(api_key=api_key, model=model, base_url=base_url)
         elif provider == "cerebras":
             refiner = CerebrasTextRefiner(api_key=api_key, model=model)
         elif provider == "gemini":

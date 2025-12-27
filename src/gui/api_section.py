@@ -276,8 +276,8 @@ class APISection:
                 "gpt-4o-mini",
                 "gpt-4o",
             ],
-            state="readonly",
-            width=20,
+            state="normal",  # Allow custom model names
+            width=30,
         )
         self.refinement_model_combo.grid(
             row=3, column=1, sticky="w", padx=(10, 0), pady=2
@@ -285,6 +285,27 @@ class APISection:
         self.refinement_model_combo.bind(
             "<<ComboboxSelected>>", self._on_refinement_model_changed
         )
+
+        # Custom API Endpoint (optional)
+        ttk.Label(self.frame, text="Custom Endpoint:").grid(
+            row=4, column=0, sticky="w", pady=2
+        )
+        self.custom_endpoint_var = tk.StringVar()
+        self.custom_endpoint_entry = ttk.Entry(
+            self.frame,
+            textvariable=self.custom_endpoint_var,
+            width=32,
+        )
+        self.custom_endpoint_entry.grid(
+            row=4, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+        # Add tooltip-style label
+        ttk.Label(
+            self.frame,
+            text="(Optional: for OpenAI-compatible APIs)",
+            font=("TkDefaultFont", 8),
+            foreground="gray",
+        ).grid(row=5, column=1, sticky="w", padx=(10, 0), pady=0)
 
         self.frame.columnconfigure(1, weight=1)
 
@@ -446,6 +467,7 @@ class APISection:
             "stt_model": self.stt_model_var.get(),
             "refinement_provider": self.refinement_provider_var.get(),
             "refinement_model": self.refinement_model_var.get(),
+            "custom_endpoint": self.custom_endpoint_var.get().strip(),
         }
 
     def set_values(
@@ -458,6 +480,7 @@ class APISection:
         stt_model: str,
         refinement_provider: str,
         refinement_model: str,
+        custom_endpoint: str = "",
     ):
         """
         Set the API configuration values.
@@ -475,12 +498,14 @@ class APISection:
             stt_model: STT model name
             refinement_provider: Refinement provider name
             refinement_model: Refinement model name
+            custom_endpoint: Custom API endpoint URL
         """
         # Set API keys
         self.openai_api_key_var.set(openai_api_key)
         self.deepgram_api_key_var.set(deepgram_api_key)
         self.cerebras_api_key_var.set(cerebras_api_key)
         self.gemini_api_key_var.set(gemini_api_key)
+        self.custom_endpoint_var.set(custom_endpoint)
 
         # Store provider-specific models BEFORE setting providers
         # This ensures the update methods will use these values

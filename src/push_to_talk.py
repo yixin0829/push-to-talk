@@ -53,6 +53,10 @@ class PushToTalkConfig(BaseModel):
     )
     cerebras_api_key: str = Field(default="", description="Cerebras API key")
     gemini_api_key: str = Field(default="", description="Gemini API key")
+    custom_endpoint: str = Field(
+        default="",
+        description="Custom API endpoint URL for OpenAI-compatible APIs",
+    )
 
     # Audio settings
     sample_rate: int = Field(default=16000, gt=0, description="Audio sample rate in Hz")
@@ -382,6 +386,7 @@ class PushToTalkApp:
                 api_key=api_key,
                 model=self.config.refinement_model,
                 glossary=self.config.custom_glossary,
+                base_url=self.config.custom_endpoint or None,
             )
         return None
 
@@ -756,6 +761,7 @@ class PushToTalkApp:
                     api_key=api_key,
                     model=self.config.refinement_model,
                     glossary=self.config.custom_glossary,
+                    base_url=self.config.custom_endpoint or None,
                 )
             else:
                 self.text_refiner = None

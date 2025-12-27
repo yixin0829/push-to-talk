@@ -353,6 +353,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             stt_model=api_values["stt_model"],
             refinement_provider=api_values["refinement_provider"],
             refinement_model=api_values["refinement_model"],
+            custom_endpoint=api_values["custom_endpoint"],
             sample_rate=audio_values["sample_rate"],
             chunk_size=audio_values["chunk_size"],
             channels=audio_values["channels"],
@@ -379,6 +380,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.stt_model,
                 config.refinement_provider,
                 config.refinement_model,
+                config.custom_endpoint,
             )
             self.audio_section.set_values(
                 config.sample_rate, config.chunk_size, config.channels
