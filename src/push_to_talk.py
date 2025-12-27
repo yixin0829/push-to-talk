@@ -60,6 +60,7 @@ class PushToTalkConfig(BaseModel):
     )
     cerebras_api_key: str = Field(default="", description="Cerebras API key")
     gemini_api_key: str = Field(default="", description="Gemini API key")
+    custom_api_key: str = Field(default="", description="Custom API key")
     custom_endpoint: str = Field(
         default="",
         description="Custom API endpoint URL for OpenAI-compatible APIs",
@@ -110,10 +111,10 @@ class PushToTalkConfig(BaseModel):
     @field_validator("refinement_provider")
     @classmethod
     def validate_refinement_provider(cls, v: str) -> str:
-        """Validate refinement provider is either 'openai' or 'cerebras' or 'gemini'."""
-        if v not in ["openai", "cerebras", "gemini"]:
+        """Validate refinement provider."""
+        if v not in ["openai", "cerebras", "gemini", "custom"]:
             raise ValueError(
-                f"refinement_provider must be 'openai' or 'cerebras' or 'gemini', got '{v}'"
+                f"refinement_provider must be 'openai', 'cerebras', 'gemini' or 'custom', got '{v}'"
             )
         return v
 
@@ -384,6 +385,8 @@ class PushToTalkApp:
                 api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
             elif self.config.refinement_provider == "gemini":
                 api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
+            elif self.config.refinement_provider == "custom":
+                api_key = self.config.custom_api_key or os.getenv("CUSTOM_API_KEY") or "placeholder"
             else:
                 raise ConfigurationError(
                     f"Unknown refinement provider: {self.config.refinement_provider}"

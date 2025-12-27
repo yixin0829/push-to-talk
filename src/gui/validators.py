@@ -73,6 +73,45 @@ def validate_openai_api_key(api_key: str) -> bool:
             raise Exception(f"ERROR - {error_msg[:60]}...")
 
 
+def validate_custom_api_key(api_key: str, base_url: str) -> bool:
+    """
+    Validate Custom API key by making a test request.
+
+    Args:
+        api_key: Custom API key to validate
+        base_url: Custom API endpoint URL
+
+    Returns:
+        True if valid, False otherwise
+
+    Raises:
+        Exception: With descriptive error message
+    """
+    if not base_url:
+        raise Exception("INVALID - Endpoint URL required")
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        # Test the API key by listing models (lightweight operation)
+        _ = client.models.list()
+        return True
+    except Exception as e:
+        error_msg = str(e)
+        # Extract the most relevant error message
+        if "401" in error_msg or "Incorrect API key" in error_msg:
+            raise Exception("INVALID - Incorrect API key")
+        elif "404" in error_msg:
+            raise Exception("INVALID - API endpoint not found")
+        elif "timeout" in error_msg.lower():
+            raise Exception("TIMEOUT - Network issue")
+        elif "connection refused" in error_msg.lower():
+            raise Exception("ERROR - Connection refused")
+        else:
+            raise Exception(f"ERROR - {error_msg[:60]}...")
+
+
 def validate_deepgram_api_key(api_key: str) -> bool:
     """
     Validate Deepgram API key by making a direct request to the auth endpoint.
