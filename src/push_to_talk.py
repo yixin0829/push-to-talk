@@ -60,6 +60,7 @@ class PushToTalkConfig(BaseModel):
     )
     cerebras_api_key: str = Field(default="", description="Cerebras API key")
     gemini_api_key: str = Field(default="", description="Gemini API key")
+    custom_api_key: str = Field(default="", description="Custom API key")
     custom_endpoint: str = Field(
         default="",
         description="Custom API endpoint URL for OpenAI-compatible APIs",
@@ -110,10 +111,10 @@ class PushToTalkConfig(BaseModel):
     @field_validator("refinement_provider")
     @classmethod
     def validate_refinement_provider(cls, v: str) -> str:
-        """Validate refinement provider is either 'openai' or 'cerebras' or 'gemini'."""
-        if v not in ["openai", "cerebras", "gemini"]:
+        """Validate refinement provider."""
+        if v not in ["openai", "cerebras", "gemini", "custom"]:
             raise ValueError(
-                f"refinement_provider must be 'openai' or 'cerebras' or 'gemini', got '{v}'"
+                f"refinement_provider must be 'openai', 'cerebras', 'gemini' or 'custom', got '{v}'"
             )
         return v
 
@@ -379,11 +380,13 @@ class PushToTalkApp:
         if self.config.enable_text_refinement:
             # Get the appropriate API key based on provider
             if self.config.refinement_provider == "openai":
-                api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+                api_key = self.config.openai_api_key or None
             elif self.config.refinement_provider == "cerebras":
-                api_key = self.config.cerebras_api_key or os.getenv("CEREBRAS_API_KEY")
+                api_key = self.config.cerebras_api_key or None
             elif self.config.refinement_provider == "gemini":
-                api_key = self.config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
+                api_key = self.config.gemini_api_key or None
+            elif self.config.refinement_provider == "custom":
+                api_key = self.config.custom_api_key or None
             else:
                 raise ConfigurationError(
                     f"Unknown refinement provider: {self.config.refinement_provider}"
@@ -391,16 +394,23 @@ class PushToTalkApp:
 
             if not api_key:
                 raise ConfigurationError(
-                    f"{self.config.refinement_provider.upper()} API key is required for text refinement. "
-                    f"Set {self.config.refinement_provider.upper()}_API_KEY environment variable or provide in config."
+                    f"{self.config.refinement_provider} API key is required for text refinement. "
+                    f"Provide in config."
                 )
+
+            # Only use custom endpoint if provider is custom
+            base_url = (
+                self.config.custom_endpoint
+                if self.config.refinement_provider == "custom"
+                else None
+            )
 
             return TextRefinerFactory.create_refiner(
                 provider=self.config.refinement_provider,
                 api_key=api_key,
                 model=self.config.refinement_model,
                 glossary=self.config.custom_glossary,
-                base_url=self.config.custom_endpoint or None,
+                base_url=base_url,
             )
         return None
 
@@ -501,11 +511,15 @@ class PushToTalkApp:
             active_threads = [t for t in self.processing_threads if t.is_alive()]
 
         if active_threads:
-            logger.info(f"Waiting for {len(active_threads)} background processing thread(s) to complete...")
+            logger.info(
+                f"Waiting for {len(active_threads)} background processing thread(s) to complete..."
+            )
             for thread in active_threads:
                 thread.join(timeout=5.0)
                 if thread.is_alive():
-                    logger.warning(f"Background thread {thread.name} did not finish in time")
+                    logger.warning(
+                        f"Background thread {thread.name} did not finish in time"
+                    )
 
         # Clear processing threads list
         with self.processing_threads_lock:
@@ -602,7 +616,9 @@ class PushToTalkApp:
         # Track the thread for graceful shutdown (before starting to avoid race condition)
         with self.processing_threads_lock:
             # Remove completed threads before adding new one to prevent memory leaks
-            self.processing_threads = [t for t in self.processing_threads if t.is_alive()]
+            self.processing_threads = [
+                t for t in self.processing_threads if t.is_alive()
+            ]
             self.processing_threads.append(processing_thread)
 
         processing_thread.start()
@@ -686,7 +702,9 @@ class PushToTalkApp:
                     os.unlink(audio_file)
                     logger.debug(f"Cleaned up audio file on error: {audio_file}")
             except Exception as cleanup_error:
-                logger.error(f"Error cleaning up audio file {audio_file}: {cleanup_error}")
+                logger.error(
+                    f"Error cleaning up audio file {audio_file}: {cleanup_error}"
+                )
 
     def _save_debug_audio(self, audio_file: str):
         """

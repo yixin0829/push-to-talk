@@ -38,10 +38,12 @@ class TextRefinerFactory:
             refiner = CerebrasTextRefiner(api_key=api_key, model=model)
         elif provider == "gemini":
             refiner = GeminiTextRefiner(api_key=api_key, model=model)
+        elif provider == "custom":
+            refiner = TextRefinerOpenAI(api_key=api_key, model=model, base_url=base_url)
         else:
             raise ValueError(
                 f"Unsupported refinement provider: {provider}. "
-                f"Supported providers: openai, cerebras, gemini"
+                f"Supported providers: openai, cerebras, gemini, custom"
             )
 
         # Set glossary if provided

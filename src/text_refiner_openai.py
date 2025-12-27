@@ -79,10 +79,17 @@ class TextRefinerOpenAI(TextRefinerBase):
             else:
                 settings["temperature"] = 0.3
 
-            response = self.client.responses.create(
+            messages = [
+                {"role": "system", "content": developer_prompt},
+                {
+                    "role": "user",
+                    "content": f"Please refine this transcribed text:\n\n{raw_text}",
+                },
+            ]
+
+            response = self.client.chat.completions.create(
                 model=self.model,
-                instructions=developer_prompt,
-                input=f"Please refine this transcribed text:\n\n{raw_text}",
+                messages=messages,
                 **settings,
             )
 
@@ -90,7 +97,7 @@ class TextRefinerOpenAI(TextRefinerBase):
             completion_time = time.time() - start_time
             logger.info(f"LLM completion finished in {completion_time:.2f} seconds")
 
-            refined_text = response.output_text
+            refined_text = response.choices[0].message.content
 
             if not refined_text:
                 logger.warning("GPT returned empty response, using original text")

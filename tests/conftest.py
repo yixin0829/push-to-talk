@@ -123,6 +123,7 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         config.deepgram_api_key,
         config.cerebras_api_key,
         config.gemini_api_key,
+        config.custom_api_key,
         config.stt_model,
         config.refinement_provider,
         config.refinement_model,
