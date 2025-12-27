@@ -579,11 +579,14 @@ class PushToTalkApp:
             daemon=True,
             name=f"AudioProcessing-{len(self.processing_threads)}",
         )
-        processing_thread.start()
 
-        # Track the thread for graceful shutdown
+        # Track the thread for graceful shutdown (before starting to avoid race condition)
         with self.processing_threads_lock:
+            # Remove completed threads before adding new one to prevent memory leaks
+            self.processing_threads = [t for t in self.processing_threads if t.is_alive()]
             self.processing_threads.append(processing_thread)
+
+        processing_thread.start()
 
         logger.info("Recording stopped, processing in background")
 
