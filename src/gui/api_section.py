@@ -600,7 +600,9 @@ class APISection:
                 openai_status = str(e)
                 openai_prefix = "[X]"
 
-        selected_marker = " (Selected)" if values["stt_provider"] == "openai" else ""
+        selected_marker = (
+            " (Selected STT Model)" if values["stt_provider"] == "openai" else ""
+        )
         status_lines.append(f"\n{openai_prefix} OpenAI{selected_marker}:")
         status_lines.append(f"  Status: {openai_status}")
         if values["openai_api_key"]:
@@ -620,7 +622,9 @@ class APISection:
                 deepgram_status = str(e)
                 deepgram_prefix = "[X]"
 
-        selected_marker = " (Selected)" if values["stt_provider"] == "deepgram" else ""
+        selected_marker = (
+            " (Selected STT Model)" if values["stt_provider"] == "deepgram" else ""
+        )
         status_lines.append(f"\n{deepgram_prefix} Deepgram{selected_marker}:")
         status_lines.append(f"  Status: {deepgram_status}")
         if values["deepgram_api_key"]:
@@ -641,7 +645,7 @@ class APISection:
                 cerebras_prefix = "[X]"
 
         selected_marker = (
-            " (Selected for refinement)"
+            " (Selected Refinement Model)"
             if values["refinement_provider"] == "cerebras"
             else ""
         )
@@ -665,7 +669,7 @@ class APISection:
                 gemini_prefix = "[X]"
 
         selected_marker = (
-            " (Selected for refinement)"
+            " (Selected Refinement Model)"
             if values["refinement_provider"] == "gemini"
             else ""
         )

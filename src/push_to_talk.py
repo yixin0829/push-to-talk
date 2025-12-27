@@ -103,10 +103,10 @@ class PushToTalkConfig(BaseModel):
     @field_validator("refinement_provider")
     @classmethod
     def validate_refinement_provider(cls, v: str) -> str:
-        """Validate refinement provider is either 'openai' or 'cerebras'."""
-        if v not in ["openai", "cerebras"]:
+        """Validate refinement provider is either 'openai' or 'cerebras' or 'gemini'."""
+        if v not in ["openai", "cerebras", "gemini"]:
             raise ValueError(
-                f"refinement_provider must be 'openai' or 'cerebras', got '{v}'"
+                f"refinement_provider must be 'openai' or 'cerebras' or 'gemini', got '{v}'"
             )
         return v
 
