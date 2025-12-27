@@ -40,7 +40,9 @@ class AudioRecorder:
             self.audio_interface = pyaudio.PyAudio()
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {e}")
-            raise AudioRecordingError(f"Failed to initialize audio interface: {e}") from e
+            raise AudioRecordingError(
+                f"Failed to initialize audio interface: {e}"
+            ) from e
 
         self.stream = None
 

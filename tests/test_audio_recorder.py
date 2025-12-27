@@ -293,7 +293,9 @@ class TestAudioRecorder:
         mock_pyaudio_class.side_effect = Exception("PyAudio initialization failed")
 
         # Should raise AudioRecordingError
-        with pytest.raises(AudioRecordingError, match="Failed to initialize audio interface"):
+        with pytest.raises(
+            AudioRecordingError, match="Failed to initialize audio interface"
+        ):
             AudioRecorder()
 
         logger.info("PyAudio initialization failure test passed")

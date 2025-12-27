@@ -151,10 +151,12 @@ class TestTextRefinerOpenAI:
         )
 
         raw_text = "this is some text that should cause an api failure"
-        result = self.refiner.refine_text(raw_text)
 
-        # Should return original text on API failure
-        assert result == raw_text.strip()
+        # Should raise TextRefinementError on generic failure
+        from src.exceptions import TextRefinementError
+
+        with pytest.raises(TextRefinementError, match="Failed to refine text"):
+            self.refiner.refine_text(raw_text)
 
         logger.info("Refine text API failure test passed")
 
@@ -624,10 +626,12 @@ class TestCerebrasTextRefiner:
         )
 
         raw_text = "this is some text that should cause an api failure"
-        result = self.refiner.refine_text(raw_text)
 
-        # Should return original text on API failure
-        assert result == raw_text.strip()
+        # Should raise TextRefinementError on generic failure
+        from src.exceptions import TextRefinementError
+
+        with pytest.raises(TextRefinementError, match="Failed to refine text"):
+            self.refiner.refine_text(raw_text)
 
         logger.info("Refine text API failure test passed")
 

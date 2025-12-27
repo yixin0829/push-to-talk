@@ -20,11 +20,9 @@ from src.hotkey_service import HotkeyService
 from src.utils import play_start_feedback, play_stop_feedback
 from src.exceptions import (
     ConfigurationError,
-    AudioRecordingError,
     TranscriptionError,
     TextRefinementError,
     TextInsertionError,
-    HotkeyError,
     APIError,
 )
 
@@ -224,7 +222,9 @@ class PushToTalkApp:
                         "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
                     )
         else:
-            raise ConfigurationError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(
+                f"Unknown STT provider: {self.config.stt_provider}"
+            )
 
         # Use injected dependencies or initialize to None (will be created in _initialize_components)
         self.audio_recorder = audio_recorder
@@ -354,7 +354,9 @@ class PushToTalkApp:
         elif self.config.stt_provider == "deepgram":
             api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
         else:
-            raise ConfigurationError(f"Unknown STT provider: {self.config.stt_provider}")
+            raise ConfigurationError(
+                f"Unknown STT provider: {self.config.stt_provider}"
+            )
 
         # Create transcriber using factory with glossary
         return TranscriberFactory.create_transcriber(
@@ -612,7 +614,9 @@ class PushToTalkApp:
                         final_text = refined_text
                         logger.info(f"Refined: {final_text}")
                 except (TextRefinementError, APIError) as e:
-                    logger.error(f"Text refinement failed, using original transcription: {e}")
+                    logger.error(
+                        f"Text refinement failed, using original transcription: {e}"
+                    )
                     final_text = transcribed_text
 
             # Insert text into active window
@@ -636,7 +640,9 @@ class PushToTalkApp:
                         os.unlink(audio_file)
                 except Exception as cleanup_error:
                     # Ignore cleanup errors during error handling
-                    logger.error(f"Error cleaning up audio file {audio_file}: {cleanup_error}")
+                    logger.error(
+                        f"Error cleaning up audio file {audio_file}: {cleanup_error}"
+                    )
 
     def _save_debug_audio(self, audio_file: str):
         """

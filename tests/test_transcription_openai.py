@@ -275,7 +275,11 @@ class TestOpenAITranscriber:
         from openai import APIError as OpenAIAPIError
 
         # Mock OpenAI API error with status_code
-        api_error = OpenAIAPIError("API rate limit exceeded", response=None, body=None)
+        # APIError(message, request, body)
+        mock_request = MagicMock()
+        api_error = OpenAIAPIError(
+            "API rate limit exceeded", request=mock_request, body=None
+        )
         api_error.status_code = 429
         self.transcriber.client.audio.transcriptions.create = MagicMock(
             side_effect=api_error
