@@ -26,6 +26,7 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
 ## Demos
+- v0.5.0: https://app.canvid.com/share/fi_01KDGEDBA86537CP18E9XDDJY8
 - v0.3.0 - v0.4.0: https://www.loom.com/share/71ecc05d4bb440ecb708d980505b9000
 - v0.2.0: https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6
 
