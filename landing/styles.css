@@ -469,14 +469,15 @@ ul {
     width: 280px;
     max-width: 80vw;
     height: 100vh;
-    background: rgba(15, 18, 25, 0.98);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-    padding: calc(80px + var(--spacing-lg)) var(--spacing-lg) var(--spacing-lg);
+    background: rgba(12, 15, 20, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    padding: calc(80px + var(--spacing-xl)) var(--spacing-md) var(--spacing-xl);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    justify-content: center;
+    gap: var(--spacing-xl);
     transform: translateX(100%);
     transition: transform 0.3s ease;
 }
@@ -488,18 +489,21 @@ ul {
 .mobile-menu-links {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex: 1;
 }
 
 .mobile-menu-links li {
     opacity: 0;
-    transform: translateX(20px);
-    transition: all 0.3s ease;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
 }
 
 .mobile-menu.active .mobile-menu-links li {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
 }
 
 .mobile-menu.active .mobile-menu-links li:nth-child(1) { transition-delay: 0.1s; }
@@ -509,22 +513,41 @@ ul {
 
 .mobile-menu-links a {
     display: block;
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-family: var(--font-family-display);
+    font-size: clamp(1.5rem, 5vw, 2rem);
     font-weight: 500;
+    letter-spacing: -0.02em;
     color: var(--color-text-secondary);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    text-align: center;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
-.mobile-menu-links a:hover,
-.mobile-menu-links a.active {
+.mobile-menu-links a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+    border-radius: 1px;
+    transition: width 0.3s ease;
+}
+
+.mobile-menu-links a:active {
     color: var(--color-text-primary);
-    background: rgba(255, 255, 255, 0.05);
+    transform: scale(0.95);
 }
 
 .mobile-menu-links a.active {
     color: var(--color-accent);
+}
+
+.mobile-menu-links a.active::after {
+    width: 40px;
 }
 
 .mobile-menu-cta {
@@ -532,22 +555,21 @@ ul {
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-md);
-    font-size: var(--font-size-base);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--color-text-primary);
     background: linear-gradient(
         165deg,
-        rgba(255, 255, 255, 0.12) 0%,
-        rgba(255, 255, 255, 0.05) 40%,
-        rgba(255, 255, 255, 0.02) 100%
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.03) 100%
     );
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-lg);
-    margin-top: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .mobile-menu.active .mobile-menu-cta {
@@ -557,13 +579,20 @@ ul {
 }
 
 .mobile-menu-cta:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(
+        165deg,
+        rgba(245, 120, 74, 0.15) 0%,
+        rgba(255, 255, 255, 0.08) 100%
+    );
+    border-color: rgba(245, 120, 74, 0.3);
+    box-shadow: 0 0 24px rgba(245, 120, 74, 0.2);
+    transform: translateY(-2px);
 }
 
 .mobile-menu-cta .icon-download {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
 }
 
 /* ============================================
