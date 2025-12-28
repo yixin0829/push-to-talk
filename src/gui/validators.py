@@ -206,11 +206,11 @@ def validate_gemini_api_key(api_key: str) -> bool:
         Exception: With descriptive error message
     """
     try:
-        import google.generativeai as genai
+        from google import genai
 
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         # Test the API key by listing models (lightweight operation)
-        _ = list(genai.list_models())
+        _ = list(client.models.list())
         return True
     except Exception as e:
         error_msg = str(e)

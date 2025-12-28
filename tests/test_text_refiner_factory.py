@@ -240,8 +240,8 @@ class TestTextRefinerFactory:
         logger.info("Testing factory creates Gemini refiner")
 
         mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "test-gemini-key"})
-        mock_genai = MagicMock()
-        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+        mock_client = MagicMock()
+        mocker.patch("src.text_refiner_gemini.genai.Client", return_value=mock_client)
 
         refiner = TextRefinerFactory.create_refiner(
             provider="gemini", api_key="test-gemini-key", model="gemini-3-flash-preview"
@@ -259,8 +259,8 @@ class TestTextRefinerFactory:
         logger.info("Testing factory creates Gemini refiner with custom model")
 
         mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"})
-        mock_genai = MagicMock()
-        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+        mock_client = MagicMock()
+        mocker.patch("src.text_refiner_gemini.genai.Client", return_value=mock_client)
 
         refiner = TextRefinerFactory.create_refiner(
             provider="gemini", api_key="test-key", model="gemini-2.5-pro-preview-06-05"
@@ -320,8 +320,10 @@ class TestTextRefinerFactory:
         mocker.patch(
             "src.text_refiner_cerebras.Cerebras", return_value=mock_cerebras_client
         )
-        mock_genai = MagicMock()
-        mocker.patch("src.text_refiner_gemini.genai", mock_genai)
+        mock_gemini_client = MagicMock()
+        mocker.patch(
+            "src.text_refiner_gemini.genai.Client", return_value=mock_gemini_client
+        )
 
         openai_refiner = TextRefinerFactory.create_refiner(
             provider="openai", api_key="test-key", model="gpt-4o-mini"
