@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PushToTalk - AI-powered speech-to-text dictation tool for Windows. Transform your voice into polished, publication-ready text with sub-100ms latency.">
+    <meta name="keywords" content="speech-to-text, dictation, AI, transcription, voice typing, Windows">
+    <meta name="author" content="PushToTalk">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PushToTalk - AI Refined Speech-to-Text Dictation">
+    <meta property="og:description" content="Transform your voice into polished, publication-ready text with AI-powered dictation.">
+    <meta property="og:type" content="website">
+
+    <title>PushToTalk - AI Refined Speech-to-Text Dictation</title>
+    <link rel="icon" href="../icon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Google Fonts - Space Grotesk for headlines, Inter for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated dot grid background with noise waves -->
+    <canvas id="dot-grid-canvas" aria-hidden="true"></canvas>
+
+    <!-- Radial vignette overlay - softens center, reveals edges -->
+    <div class="hero-vignette" aria-hidden="true"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="navbar-brand">
+                <img src="../icon.ico" alt="PushToTalk" class="navbar-logo">
+                <span class="navbar-title">PushToTalk</span>
+            </a>
+            <ul class="navbar-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="https://github.com/yixin0829/push-to-talk#readme" target="_blank" rel="noopener">Docs</a></li>
+                <li><a href="https://github.com/yixin0829/push-to-talk" target="_blank" rel="noopener">GitHub</a></li>
+            </ul>
+            <a href="https://github.com/yixin0829/push-to-talk/releases/latest" class="navbar-cta" target="_blank" rel="noopener">
+                Download
+                <svg class="icon-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="hero">
+        <div class="hero-container">
+            <!-- Announcement Badge -->
+            <a href="https://github.com/yixin0829/push-to-talk/releases/tag/v0.5.0" class="announcement-badge" target="_blank" rel="noopener">
+                <span class="badge-dot"></span>
+                <span class="badge-text">New release: PushToTalk v0.5.0</span>
+            </a>
+
+            <!-- Headline - mixed white/gray styling -->
+            <h1 class="hero-headline">
+                <span class="text-white">Transform</span> <span class="text-highlight">your voice</span><br>
+                <span class="text-muted">into polished ideas</span><br>
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="hero-subtitle">
+                The essential tool for frictionless dictation. From quick notes to polished text with sub-100ms latency.
+            </p>
+
+            <!-- CTA Button with Animated Border -->
+            <div class="cta-wrapper">
+                <div class="cta-glow"></div>
+                <a href="https://github.com/yixin0829/push-to-talk/releases/latest" class="cta-button" target="_blank" rel="noopener">
+                    <span class="cta-border-animation"></span>
+                    <span class="cta-button-inner">
+                        <svg class="cta-icon-windows" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851"/>
+                        </svg>
+                        Download for Windows
+                        <svg class="cta-icon-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </a>
+            </div>
+
+            <!-- Secondary Info with GitHub Stars -->
+            <div class="hero-secondary-info">
+                <a href="https://github.com/yixin0829/push-to-talk" class="info-badge" target="_blank" rel="noopener">
+                    <svg class="info-badge-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <span class="info-badge-text">GitHub Stars</span>
+                    <span class="info-badge-count" id="github-stars">—</span>
+                </a>
+                <span class="separator">|</span>
+                <span class="info-item">Free & Open Source</span>
+                <span class="separator">|</span>
+                <span class="info-item">No account required</span>
+            </div>
+        </div>
+
+        <!-- Brand/Partner Carousel - Infinite scroll -->
+        <section class="partners-section" aria-labelledby="partners-heading">
+            <h2 id="partners-heading" class="partners-label">Powered by leading AI providers</h2>
+            <div class="partners-carousel">
+                <!-- Two identical tracks for seamless infinite loop -->
+                <div class="partners-track">
+                    <span class="partner-logo">OpenAI</span>
+                    <span class="partner-logo">Deepgram</span>
+                    <span class="partner-logo">Cerebras</span>
+                    <span class="partner-logo">Google</span>
+                    <span class="partner-logo">OpenAI</span>
+                    <span class="partner-logo">Deepgram</span>
+                    <span class="partner-logo">Cerebras</span>
+                    <span class="partner-logo">Google</span>
+                </div>
+                <div class="partners-track" aria-hidden="true">
+                    <span class="partner-logo">OpenAI</span>
+                    <span class="partner-logo">Deepgram</span>
+                    <span class="partner-logo">Cerebras</span>
+                    <span class="partner-logo">Google</span>
+                    <span class="partner-logo">OpenAI</span>
+                    <span class="partner-logo">Deepgram</span>
+                    <span class="partner-logo">Cerebras</span>
+                    <span class="partner-logo">Google</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Everything you need for<br><span class="text-highlight">effortless dictation</span></h2>
+                <p class="section-subtitle">Powerful features designed to transform how you capture ideas</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1: Multi-Provider STT -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multi-Provider STT</h3>
+                    <p class="feature-description">Choose between OpenAI Whisper or Deepgram Nova for accurate speech-to-text transcription.</p>
+                </div>
+
+                <!-- Feature 2: AI Text Refinement -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z"/>
+                            <path d="M12 12L20 7.5"/>
+                            <path d="M12 12V21"/>
+                            <path d="M12 12L4 7.5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">AI Text Refinement</h3>
+                    <p class="feature-description">Smart cleanup using OpenAI GPT, Cerebras, Google Gemini, or custom endpoints.</p>
+                </div>
+
+                <!-- Feature 3: Custom Glossary -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                            <path d="M8 7h6"/>
+                            <path d="M8 11h8"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Custom Glossary</h3>
+                    <p class="feature-description">Add domain-specific terms, acronyms, and proper names for improved accuracy.</p>
+                </div>
+
+                <!-- Feature 4: Live Config -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Live Config Sync</h3>
+                    <p class="feature-description">Edit settings while running—changes apply instantly without restart.</p>
+                </div>
+
+                <!-- Feature 5: Flexible Recording -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M9 12h6"/>
+                            <path d="M12 9v6"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Flexible Recording</h3>
+                    <p class="feature-description">Push-to-talk (hold) or toggle mode (press once). Fully customizable hotkeys.</p>
+                </div>
+
+                <!-- Feature 6: Auto Insert -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14"/>
+                            <path d="m12 5 7 7-7 7"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Auto Text Insertion</h3>
+                    <p class="feature-description">Refined text is automatically inserted into your active window. No copy-paste needed.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">How it works</h2>
+                <p class="section-subtitle">From speech to polished text in seconds</p>
+            </div>
+
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Record</h3>
+                        <p class="step-description">Hold your hotkey and speak naturally. Release when done.</p>
+                    </div>
+                </div>
+
+                <div class="step-connector"></div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Transcribe</h3>
+                        <p class="step-description">AI converts your speech to text using leading STT providers.</p>
+                    </div>
+                </div>
+
+                <div class="step-connector"></div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Refine</h3>
+                        <p class="step-description">Smart cleanup fixes grammar, punctuation, and formatting.</p>
+                    </div>
+                </div>
+
+                <div class="step-connector"></div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Insert</h3>
+                        <p class="step-description">Polished text appears instantly in your active application.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta-section">
+        <div class="section-container">
+            <h2 class="final-cta-title">Ready to transform your workflow?</h2>
+            <p class="final-cta-subtitle">Start dictating smarter today. Free and open source.</p>
+
+            <div class="cta-wrapper">
+                <div class="cta-glow"></div>
+                <a href="https://github.com/yixin0829/push-to-talk/releases/latest" class="cta-button" target="_blank" rel="noopener">
+                    <span class="cta-border-animation"></span>
+                    <span class="cta-button-inner">
+                        <svg class="cta-icon-windows" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851"/>
+                        </svg>
+                        Download for Windows
+                        <svg class="cta-icon-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </a>
+            </div>
+
+            <p class="final-cta-note">Windows 10/11 • No account required • ~15MB download</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <img src="../icon.ico" alt="PushToTalk" class="footer-logo">
+                <span class="footer-title">PushToTalk</span>
+            </div>
+
+            <div class="footer-links">
+                <a href="https://github.com/yixin0829/push-to-talk" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/yixin0829/push-to-talk#readme" target="_blank" rel="noopener">Documentation</a>
+                <a href="https://github.com/yixin0829/push-to-talk/issues" target="_blank" rel="noopener">Report Issue</a>
+                <a href="https://github.com/yixin0829/push-to-talk/releases" target="_blank" rel="noopener">Releases</a>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2024 PushToTalk. Open source under MIT License.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Animations Script -->
+    <script src="script.js"></script>
+</body>
+</html>
