@@ -2,7 +2,8 @@ import os
 from loguru import logger
 import time
 from typing import Optional
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from src.text_refiner_base import TextRefinerBase
 
 
@@ -26,8 +27,7 @@ class GeminiTextRefiner(TextRefinerBase):
             )
 
         self.model = model
-        genai.configure(api_key=self.api_key)
-        self.client = genai.GenerativeModel(model_name=self.model)
+        self.client = genai.Client(api_key=self.api_key)
 
     def refine_text(self, raw_text: str) -> Optional[str]:
         """
@@ -63,9 +63,10 @@ class GeminiTextRefiner(TextRefinerBase):
                 f"{system_prompt}\n\nPlease refine this transcribed text:\n\n{raw_text}"
             )
 
-            response = self.client.generate_content(
-                full_prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
                     temperature=0.3,
                     max_output_tokens=2048,
                 ),
