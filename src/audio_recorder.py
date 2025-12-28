@@ -2,7 +2,6 @@ import pyaudio
 import wave
 import threading
 import tempfile
-import time
 from typing import Optional
 from loguru import logger
 
