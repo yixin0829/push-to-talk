@@ -362,12 +362,12 @@ class TestTextRefinerOpenAI:
         default_prompt = self.refiner._get_default_developer_prompt()
 
         # Check for key elements of the default prompt
-        assert "Role and Objective" in default_prompt
-        assert "Instructions" in default_prompt
+        assert "Goal" in default_prompt
+        assert "Positive Instructions" in default_prompt
+        assert "Contrastive Instructions" in default_prompt
         assert "Output Format" in default_prompt
-        assert "Refine transcribed speech-to-text outputs" in default_prompt
-        assert "Preserve the original meaning and intent" in default_prompt
-        assert "formatting compliance" in default_prompt
+        assert "Refine raw speech-to-text transcripts" in default_prompt
+        assert "Clean and Polish" in default_prompt
 
         logger.info("Default prompt content test passed")
 
