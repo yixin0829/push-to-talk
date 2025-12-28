@@ -319,14 +319,193 @@
         }
     }
 
+    /**
+     * Initialize FAQ accordion
+     */
+    function initFAQ() {
+        const faqItems = document.querySelectorAll('.faq-item');
+
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+
+            question.addEventListener('click', () => {
+                const isActive = item.classList.contains('active');
+
+                // Close all other items (accordion behavior)
+                faqItems.forEach(otherItem => {
+                    otherItem.classList.remove('active');
+                    otherItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+                });
+
+                // Toggle current item
+                if (!isActive) {
+                    item.classList.add('active');
+                    question.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+    }
+
+    // ============================================
+    // Mobile Menu
+    // ============================================
+
+    function initMobileMenu() {
+        const menuBtn = document.getElementById('navbar-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const overlay = document.getElementById('mobile-menu-overlay');
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+
+        if (!menuBtn || !mobileMenu) return;
+
+        function openMenu() {
+            menuBtn.classList.add('active');
+            menuBtn.setAttribute('aria-expanded', 'true');
+            mobileMenu.classList.add('active');
+            mobileMenu.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+            menuBtn.classList.remove('active');
+            menuBtn.setAttribute('aria-expanded', 'false');
+            mobileMenu.classList.remove('active');
+            mobileMenu.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        menuBtn.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('active')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        });
+
+        // Close on overlay click
+        overlay.addEventListener('click', closeMenu);
+
+        // Close on link click
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', closeMenu);
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                closeMenu();
+            }
+        });
+    }
+
+    // ============================================
+    // Navbar Scroll Behavior
+    // ============================================
+
+    function initNavbarScroll() {
+        const navbar = document.getElementById('navbar');
+        if (!navbar) return;
+
+        let lastScrollY = 0;
+        let ticking = false;
+        const hideThreshold = 300; // Pixels before hide/show kicks in
+
+        function updateNavbar() {
+            const currentScrollY = window.scrollY;
+
+            // Hide/show navbar based on scroll direction
+            if (currentScrollY > hideThreshold) {
+                if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 10) {
+                    // Scrolling down - hide navbar
+                    navbar.classList.add('hidden');
+                } else if (lastScrollY > currentScrollY && lastScrollY - currentScrollY > 10) {
+                    // Scrolling up - show navbar
+                    navbar.classList.remove('hidden');
+                }
+            } else {
+                navbar.classList.remove('hidden');
+            }
+
+            lastScrollY = currentScrollY;
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateNavbar);
+                ticking = true;
+            }
+        }, { passive: true });
+
+        // Initial call
+        updateNavbar();
+    }
+
+    // ============================================
+    // Scroll Spy - Active Section Highlighting
+    // ============================================
+
+    function initScrollSpy() {
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.navbar-links a[data-section], .mobile-menu-links a[data-section]');
+
+        if (sections.length === 0 || navLinks.length === 0) return;
+
+        function updateActiveLink() {
+            const scrollY = window.scrollY;
+            const windowHeight = window.innerHeight;
+
+            let currentSection = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 150;
+                const sectionHeight = section.offsetHeight;
+
+                if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+
+            // If near top of page, no section is active
+            if (scrollY < 300) {
+                currentSection = '';
+            }
+
+            // If near bottom, activate FAQ
+            if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 100) {
+                currentSection = 'faq';
+            }
+
+            navLinks.forEach(link => {
+                const linkSection = link.getAttribute('data-section');
+                if (linkSection === currentSection) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', debounce(updateActiveLink, 50), { passive: true });
+        updateActiveLink();
+    }
+
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             init();
             fetchGitHubStars();
+            initFAQ();
+            initMobileMenu();
+            initNavbarScroll();
+            initScrollSpy();
         });
     } else {
         init();
         fetchGitHubStars();
+        initFAQ();
+        initMobileMenu();
+        initNavbarScroll();
+        initScrollSpy();
     }
 })();
