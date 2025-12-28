@@ -15,6 +15,21 @@
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
+**One-Minute Demo:** https://app.canvid.com/share/fi_01KDGH98PTEFSV7J99K31X0SXT
+
+## 🏆 Why PushToTalk?
+
+**Compared to Wispr Flow ($14.40/month) and Superwhisper ($8.49/month), PushToTalk delivers:**
+
+| Feature | PushToTalk | Others |
+|---------|-----------|--------|
+| **Cost** | **FREE** + pay-as-you-go API | $102-216/year subscription |
+| **STT Speed** | **Ultra-fast** (Deepgram Nova-3 and Cerebras) | Standard latency |
+| **Customization** | Multi-provider choice, custom glossary, custom prompts | Limited vendor lock-in |
+| **Privacy** | Full inference provider control, choose your API including Ollama | Proprietary ecosystem |
+
+**For power users, developers, and privacy-conscious teams: PushToTalk is the most customizable, fastest, and nearly free alternative to existing AI dictation tools.**
+
 ## Features
 
 - **🎯 GUI Interface**: Integrated configuration control and application status monitoring in one window
@@ -25,7 +40,8 @@ A Python application that provides push-to-talk speech-to-text functionality wit
 - **🎤 Push-to-Talk Recording**: Hold a customizable hotkey to record audio (platform-aware defaults)
 - **📝 Auto Text Insertion**: Automatically inserts refined text into the active window
 
-## Demos
+## Release Demos
+- v0.5.0: https://app.canvid.com/share/fi_01KDGEDBA86537CP18E9XDDJY8
 - v0.3.0 - v0.4.0: https://www.loom.com/share/71ecc05d4bb440ecb708d980505b9000
 - v0.2.0: https://www.loom.com/share/fbabb2da83c249d3a0a09b3adcc4a4e6
 
