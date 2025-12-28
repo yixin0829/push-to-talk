@@ -67,6 +67,7 @@ build_script/build_linux.sh     # Linux
    - Each recording spawns a new background thread
    - Allows immediate new recordings without waiting for API calls
    - Reduces perceived latency from 3-5s to ~100ms
+6. **Initialization Threads**: Heavy components (like PyAudio) initialize in background daemon threads to prevent blocking application startup.
 
 ## Development Guidelines
 

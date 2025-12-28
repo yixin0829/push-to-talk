@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - ⭐ Implemented non-blocking transcription with background processing
   - Worker thread spawns background threads for STT processing recording, transcription, refinement and text insertion
   - Reduce latency from 3-5 seconds to 100ms (user may start recording right after finishing the previous recording)
+- **Optimized Application Startup**: Asynchronous initialization of audio components
+  - `AudioRecorder` initializes PyAudio in a background thread to prevent GUI freezing during startup
+  - Ensures immediate application responsiveness while audio drivers load in parallel
+  - Implemented thread-safe synchronization to handle recording requests during initialization
 
 ### Documentation
 ### Security

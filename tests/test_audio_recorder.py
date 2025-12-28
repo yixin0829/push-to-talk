@@ -2,6 +2,7 @@ import pytest
 import threading
 from loguru import logger
 from unittest.mock import MagicMock
+import time
 
 from src.audio_recorder import AudioRecorder
 from src.exceptions import AudioRecordingError
@@ -19,11 +20,17 @@ class TestAudioRecorder:
         self.mock_pyaudio.return_value = self.mock_audio_interface
 
         self.recorder = AudioRecorder(sample_rate=16000, chunk_size=1024, channels=1)
+
+        # Wait for background initialization to complete (usually instant with mock)
+        if self.recorder._init_thread:
+            self.recorder._init_thread.join(timeout=1.0)
+
         yield
         # Cleanup after test
         logger.info("Tearing down AudioRecorder test")
         if hasattr(self.recorder, "is_recording") and self.recorder.is_recording:
             self.recorder.stop_recording()
+        self.recorder.shutdown()
 
     def test_initialization(self):
         """Test AudioRecorder initialization"""
@@ -46,9 +53,15 @@ class TestAudioRecorder:
 
         custom_recorder = AudioRecorder(sample_rate=44100, chunk_size=2048, channels=2)
 
+        # Wait for init
+        if custom_recorder._init_thread:
+            custom_recorder._init_thread.join(timeout=1.0)
+
         assert custom_recorder.sample_rate == 44100
         assert custom_recorder.chunk_size == 2048
         assert custom_recorder.channels == 2
+
+        custom_recorder.shutdown()
 
         logger.info("AudioRecorder custom initialization test passed")
 
@@ -285,17 +298,26 @@ class TestAudioRecorder:
         logger.info("Sample width fallback test passed")
 
     def test_pyaudio_initialization_failure(self, mocker):
-        """Test AudioRecordingError is raised when PyAudio initialization fails"""
-        logger.info("Testing PyAudio initialization failure raises AudioRecordingError")
+        """Test initialization failure handling"""
+        logger.info("Testing PyAudio initialization failure")
 
         # Mock PyAudio to fail on initialization
         mock_pyaudio_class = mocker.patch("pyaudio.PyAudio")
         mock_pyaudio_class.side_effect = Exception("PyAudio initialization failed")
 
-        # Should raise AudioRecordingError
-        with pytest.raises(
-            AudioRecordingError, match="Failed to initialize audio interface"
-        ):
-            AudioRecorder()
+        # Should NOT raise exception during init
+        recorder = AudioRecorder()
+
+        # Wait for thread
+        if recorder._init_thread:
+            recorder._init_thread.join(timeout=1.0)
+
+        assert recorder.audio_interface is None
+        assert recorder._init_error is not None
+
+        # Should return False when trying to start recording
+        assert recorder.start_recording() is False
+
+        recorder.shutdown()
 
         logger.info("PyAudio initialization failure test passed")
