@@ -318,62 +318,48 @@ ul {
     color: var(--color-text-primary);
     letter-spacing: 0.02em;
 
-    /* Liquid glass background */
+    /* Liquid glass background (Unified with .cta-button) */
     background: linear-gradient(
-        180deg,
+        165deg,
         rgba(255, 255, 255, 0.12) 0%,
-        rgba(255, 255, 255, 0.04) 50%,
+        rgba(255, 255, 255, 0.05) 40%,
         rgba(255, 255, 255, 0.02) 100%
     );
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 
-    /* Glass border - brighter on top */
+    /* Glass border */
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-top-color: rgba(255, 255, 255, 0.3);
     border-radius: var(--radius-full);
 
     /* Inner glow and depth */
     box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-        0 2px 8px rgba(0, 0, 0, 0.15);
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2);
 
     transition: all var(--transition-base);
     overflow: hidden;
 }
 
-/* Top highlight shine */
-.navbar-cta::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 1px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.5) 50%,
-        transparent 100%
-    );
-}
+/* Removed redundant ::before shine to match .cta-button style */
 
 .navbar-cta:hover {
     background: linear-gradient(
-        180deg,
+        165deg,
         rgba(255, 255, 255, 0.18) 0%,
-        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.08) 40%,
         rgba(255, 255, 255, 0.04) 100%
     );
     border-color: rgba(255, 255, 255, 0.25);
-    border-top-color: rgba(255, 255, 255, 0.4);
     color: #ffffff;
     box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.25),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+        0 12px 40px rgba(0, 0, 0, 0.35),
         0 4px 12px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
 .navbar-cta .icon-download {
@@ -560,13 +546,25 @@ ul {
     font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--color-text-primary);
+
+    /* Liquid Glass (Unified) */
     background: linear-gradient(
         165deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.03) 100%
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        rgba(255, 255, 255, 0.02) 100%
     );
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: var(--radius-full);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2);
+
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease;
@@ -582,11 +580,17 @@ ul {
 .mobile-menu-cta:hover {
     background: linear-gradient(
         165deg,
-        rgba(245, 120, 74, 0.15) 0%,
-        rgba(255, 255, 255, 0.08) 100%
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.08) 40%,
+        rgba(255, 255, 255, 0.04) 100%
     );
-    border-color: rgba(245, 120, 74, 0.3);
-    box-shadow: 0 0 24px rgba(245, 120, 74, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.25),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+        0 12px 40px rgba(0, 0, 0, 0.35),
+        0 4px 12px rgba(0, 0, 0, 0.2);
     transform: translateY(-2px);
 }
 
@@ -1124,11 +1128,23 @@ ul {
 
 @media (max-width: 768px) {
     .navbar {
-        padding: 0.5rem 0.5rem 0.5rem 1rem;
+        /* Reduced padding for mobile to prevent overlap */
+        padding: 0.5rem 0.5rem 0.5rem 0.8rem;
     }
 
     .navbar-container {
-        gap: var(--spacing-sm);
+        /* Tighter gap for mobile */
+        gap: 0.5rem;
+    }
+
+    .navbar-brand {
+        /* Ensure brand doesn't shrink, but let title shrink if needed */
+        flex-shrink: 0;
+    }
+
+    .navbar-menu-btn {
+        /* Prevent button from squashing */
+        flex-shrink: 0;
     }
 
     .navbar-links {
@@ -1176,6 +1192,11 @@ ul {
 
 /* Responsive: Features Bento Grid */
 @media (max-width: 900px) {
+    /* Fix for overcrowding on mobile/tablet: Force Why grid to 1 column */
+    .why-grid {
+        grid-template-columns: 1fr;
+    }
+
     .features-grid {
         grid-template-columns: repeat(2, 1fr);
     }
