@@ -35,6 +35,7 @@
     /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-family-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-hero: 'Cormorant Garamond', serif;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -668,11 +669,11 @@ ul {
 
 /* Headline - Large, thin, modern with gradient */
 .hero-headline {
-    font-family: var(--font-family-display);
-    font-size: clamp(2.5rem, 8vw, 5rem);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
+    font-family: var(--font-family-hero);
+    font-size: clamp(3.5rem, 9vw, 6.5rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
 }
 
 /* White text with vertical gradient (bright top, fades down) */
@@ -796,6 +797,89 @@ ul {
 .cta-wrapper {
     position: relative;
     display: inline-flex;
+}
+
+/* Hero CTA cluster (primary + secondary) */
+.hero-cta-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.hero-cta-secondary {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    overflow: hidden;
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        0 2px 8px rgba(0, 0, 0, 0.18);
+    transition: all var(--transition-base);
+}
+
+.hero-cta-secondary .cta-border-animation {
+    top: 0;
+    left: 18%;
+    right: 18%;
+    height: 1px;
+    opacity: 0.75;
+    animation-duration: 3s;
+}
+
+.hero-cta-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hero-cta-secondary-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.hero-cta-links {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-top: -0.25rem;
+}
+
+.hero-cta-links a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.hero-cta-links a:hover {
+    color: var(--color-accent);
+}
+
+.hero-cta-links .separator {
+    opacity: 0.35;
 }
 
 /* Subtle ambient glow - only visible on hover */
@@ -1114,6 +1198,15 @@ ul {
         padding: 0 var(--spacing-sm);
     }
 
+    .why-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .why-card {
+        padding: var(--spacing-md);
+    }
+
     .features-grid {
         grid-template-columns: 1fr !important;
         gap: var(--spacing-sm);
@@ -1181,6 +1274,10 @@ ul {
     }
 
     /* FAQ adjustments */
+    .faq-list {
+        grid-template-columns: 1fr;
+    }
+
     .faq-question {
         padding: var(--spacing-sm) var(--spacing-md);
         font-size: var(--font-size-sm);
@@ -1344,6 +1441,55 @@ button:focus-visible {
    Features Section
    ============================================ */
 
+.why-section {
+    padding: var(--spacing-2xl) 0;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.why-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-md);
+}
+
+.why-card {
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        rgba(255, 255, 255, 0.01) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-base);
+}
+
+.why-card:hover {
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    border-color: rgba(245, 120, 74, 0.25);
+    transform: translateY(-3px);
+    box-shadow:
+        0 8px 32px rgba(245, 120, 74, 0.12),
+        0 0 0 1px rgba(245, 120, 74, 0.08);
+}
+
+.why-title {
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.why-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
 .features-section {
     padding: var(--spacing-2xl) 0;
     position: relative;
@@ -1459,6 +1605,47 @@ button:focus-visible {
     line-height: 1.6;
 }
 
+/* Use cases (chips) */
+.use-cases {
+    margin-top: var(--spacing-2xl);
+    text-align: center;
+}
+
+.use-cases-title {
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.use-cases-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.use-case-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all var(--transition-fast);
+}
+
+.use-case-chip:hover {
+    color: var(--color-text-primary);
+    border-color: rgba(245, 120, 74, 0.25);
+    background: rgba(255, 255, 255, 0.06);
+}
+
 /* ============================================
    How It Works Section
    ============================================ */
@@ -1559,12 +1746,40 @@ button:focus-visible {
     position: relative;
 }
 
+.faq-trust {
+    max-width: 1100px;
+    margin: 0 auto var(--spacing-lg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        rgba(255, 255, 255, 0.01) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+}
+
+.faq-trust-title {
+    font-family: var(--font-family-display);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.faq-trust-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+}
+
 .faq-list {
-    max-width: 800px;
+    max-width: 1100px;
     margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    align-items: start;
 }
 
 .faq-item {
@@ -1576,6 +1791,7 @@ button:focus-visible {
     border-radius: var(--radius-lg);
     overflow: hidden;
     transition: all var(--transition-base);
+    height: fit-content;
 }
 
 .faq-item:hover {
@@ -1628,7 +1844,7 @@ button:focus-visible {
 }
 
 .faq-item.active .faq-answer {
-    max-height: 300px;
+    max-height: 520px;
 }
 
 .faq-answer p {

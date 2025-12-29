@@ -19,7 +19,7 @@
     <!-- Google Fonts - Space Grotesk for headlines, Inter for body -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Animated dot grid background with noise waves -->
@@ -89,28 +89,38 @@
             <!-- Headline - mixed white/gray styling -->
             <h1 class="hero-headline">
                 <span class="text-white">Transform</span> <span class="text-highlight">your voice</span><br>
-                <span class="text-muted">into polished ideas</span><br>
+                <span class="text-muted">into polished ideas.</span><br>
             </h1>
 
             <!-- Subtitle -->
             <p class="hero-subtitle">
-                The essential tool for frictionless dictation. From quick notes to polished text with near-instant transcription.
+                Open-source AI dictation tool for knowledge workers. Set up in minutes and start dictating your ideas in seconds.
             </p>
 
-            <!-- CTA Button with Animated Border -->
-            <div class="cta-wrapper">
-                <div class="cta-glow"></div>
-                <a href="https://github.com/yixin0829/push-to-talk/releases/latest" class="cta-button" target="_blank" rel="noopener">
-                    <span class="cta-border-animation"></span>
-                    <span class="cta-button-inner">
-                        <svg class="cta-icon-windows" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851"/>
-                        </svg>
-                        Download for Windows
-                        <svg class="cta-icon-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-                        </svg>
-                    </span>
+            <!-- Primary + Secondary CTAs -->
+            <div class="hero-cta-group">
+                <div class="cta-wrapper">
+                    <div class="cta-glow"></div>
+                    <a href="https://github.com/yixin0829/push-to-talk/releases/latest" class="cta-button" target="_blank" rel="noopener">
+                        <span class="cta-border-animation"></span>
+                        <span class="cta-button-inner">
+                            <svg class="cta-icon-windows" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851"/>
+                            </svg>
+                            Download for Windows
+                            <svg class="cta-icon-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </a>
+                </div>
+
+                <a class="hero-cta-secondary" href="https://app.canvid.com/share/fi_01KDGH98PTEFSV7J99K31X0SXT" target="_blank" rel="noopener">
+                    <span class="cta-border-animation" aria-hidden="true"></span>
+                    <svg class="hero-cta-secondary-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M6.5 5.75a.75.75 0 0 1 1.14-.64l6.5 4.25a.75.75 0 0 1 0 1.28l-6.5 4.25A.75.75 0 0 1 6.5 14.5v-8.75z"/>
+                    </svg>
+                    Watch 60s demo
                 </a>
             </div>
 
@@ -126,13 +136,15 @@
                 <span class="separator">|</span>
                 <span class="info-item">Free & Open Source</span>
                 <span class="separator">|</span>
+                <span class="info-item">Bring your own API keys</span>
+                <span class="separator">|</span>
                 <span class="info-item">No account required</span>
             </div>
         </div>
 
         <!-- Brand/Partner Carousel - Infinite scroll -->
         <section class="partners-section" aria-labelledby="partners-heading">
-            <h2 id="partners-heading" class="partners-label">Powered by leading AI providers</h2>
+            <h2 id="partners-heading" class="partners-label">Powered by AI providers you trust</h2>
             <div class="partners-carousel">
                 <!-- Two identical tracks for seamless infinite loop -->
                 <div class="partners-track">
@@ -141,11 +153,15 @@
                     <span class="partner-logo"><img src="assets/cerebras.svg" alt="Cerebras"><span class="partner-name">Cerebras</span></span>
                     <span class="partner-logo"><img src="assets/gemini.svg" alt="Google Gemini"><span class="partner-name">Gemini</span></span>
                     <span class="partner-logo"><img src="assets/ollama.svg" alt="Ollama"><span class="partner-name">Ollama</span></span>
+                    <span class="partner-logo"><img src="assets/together.svg" alt="Together AI"><span class="partner-name">Together AI</span></span>
                     <span class="partner-logo"><img src="assets/openai.svg" alt="OpenAI"><span class="partner-name">OpenAI</span></span>
                     <span class="partner-logo"><img src="assets/deepgram.svg" alt="Deepgram"><span class="partner-name">Deepgram</span></span>
                     <span class="partner-logo"><img src="assets/cerebras.svg" alt="Cerebras"><span class="partner-name">Cerebras</span></span>
                     <span class="partner-logo"><img src="assets/gemini.svg" alt="Google Gemini"><span class="partner-name">Gemini</span></span>
                     <span class="partner-logo"><img src="assets/ollama.svg" alt="Ollama"><span class="partner-name">Ollama</span></span>
+                    <span class="partner-logo"><img src="assets/together.svg" alt="Together AI"><span class="partner-name">Together AI</span></span>
+                    <span class="partner-logo"><img src="assets/openai.svg" alt="OpenAI"><span class="partner-name">OpenAI</span></span>
+                    <span class="partner-logo"><img src="assets/deepgram.svg" alt="Deepgram"><span class="partner-name">Deepgram</span></span>
                 </div>
                 <div class="partners-track" aria-hidden="true">
                     <span class="partner-logo"><img src="assets/openai.svg" alt="OpenAI"><span class="partner-name">OpenAI</span></span>
@@ -153,22 +169,55 @@
                     <span class="partner-logo"><img src="assets/cerebras.svg" alt="Cerebras"><span class="partner-name">Cerebras</span></span>
                     <span class="partner-logo"><img src="assets/gemini.svg" alt="Google Gemini"><span class="partner-name">Gemini</span></span>
                     <span class="partner-logo"><img src="assets/ollama.svg" alt="Ollama"><span class="partner-name">Ollama</span></span>
+                    <span class="partner-logo"><img src="assets/together.svg" alt="Together AI"><span class="partner-name">Together AI</span></span>
                     <span class="partner-logo"><img src="assets/openai.svg" alt="OpenAI"><span class="partner-name">OpenAI</span></span>
                     <span class="partner-logo"><img src="assets/deepgram.svg" alt="Deepgram"><span class="partner-name">Deepgram</span></span>
                     <span class="partner-logo"><img src="assets/cerebras.svg" alt="Cerebras"><span class="partner-name">Cerebras</span></span>
                     <span class="partner-logo"><img src="assets/gemini.svg" alt="Google Gemini"><span class="partner-name">Gemini</span></span>
                     <span class="partner-logo"><img src="assets/ollama.svg" alt="Ollama"><span class="partner-name">Ollama</span></span>
+                    <span class="partner-logo"><img src="assets/together.svg" alt="Together AI"><span class="partner-name">Together AI</span></span>
+                    <span class="partner-logo"><img src="assets/openai.svg" alt="OpenAI"><span class="partner-name">OpenAI</span></span>
+                    <span class="partner-logo"><img src="assets/deepgram.svg" alt="Deepgram"><span class="partner-name">Deepgram</span></span>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- Why Section -->
+    <section id="why" class="why-section">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Why PushToTalk?</h2>
+                <p class="section-subtitle">Built for power users who want speed, control, and an app that stays out of the way.</p>
+            </div>
+
+            <div class="why-grid">
+                <div class="why-card">
+                    <h3 class="why-title">Free app, pay-as-you-go APIs</h3>
+                    <p class="why-description">No subscription. Use your own provider keys and pay only for what you transcribe/refine.</p>
+                </div>
+                <div class="why-card">
+                    <h3 class="why-title">Provider choice (no lock-in)</h3>
+                    <p class="why-description">Pick Deepgram for ultra-fast transcription or OpenAI Whisper for accuracy. Switch anytime. Support additional AI refinment using OpenAI, Gemini, Cerebras, Ollama, or custom providers.</p>
+                </div>
+                <div class="why-card">
+                    <h3 class="why-title">Customization that actually sticks</h3>
+                    <p class="why-description">Glossary + custom prompts keep product names, acronyms, and formatting consistent across sessions.</p>
+                </div>
+                <div class="why-card">
+                    <h3 class="why-title">Stay in flow</h3>
+                    <p class="why-description">Hold-to-talk or toggle, global hotkeys, and live config updates—direct dictated text insertion into the active app without ever breaking the flow.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Features Section -->
     <section id="features" class="features-section">
         <div class="section-container">
             <div class="section-header">
-                <h2 class="section-title">Everything you need for<br><span class="text-highlight">effortless dictation</span></h2>
-                <p class="section-subtitle">Powerful features designed to transform how you capture ideas</p>
+                <h2 class="section-title">Dictation that fits your<br><span class="text-highlight">knowledge workflow</span></h2>
+                <p class="section-subtitle">Turn spoken thoughts into clean emails, prompts, tickets, and docs without leaving your editor</p>
             </div>
 
             <div class="features-grid">
@@ -182,7 +231,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Multi-Provider STT</h3>
-                    <p class="feature-description">Choose between OpenAI Whisper or Deepgram Nova for accurate speech-to-text transcription.</p>
+                    <p class="feature-description">Optimize for speed (Deepgram Nova-3) or accuracy (OpenAI Whisper) depending on the task.</p>
                 </div>
 
                 <!-- Feature 2: AI Text Refinement -->
@@ -196,7 +245,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">AI Text Refinement</h3>
-                    <p class="feature-description">Smart cleanup using OpenAI GPT, Cerebras, Google Gemini, or custom endpoints.</p>
+                    <p class="feature-description">Turn messy speech into professional-grade bullet points, emails, and PRDs with LLM refinement.</p>
                 </div>
 
                 <!-- Feature 3: Custom Glossary -->
@@ -209,7 +258,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Custom Glossary</h3>
-                    <p class="feature-description">Add domain-specific terms, acronyms, and proper names for improved accuracy.</p>
+                    <p class="feature-description">Stop acronyms, repo names, and product terms from getting mangled. Your vocabulary, preserved.</p>
                 </div>
 
                 <!-- Feature 4: Live Config -->
@@ -221,7 +270,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Live Config Sync</h3>
-                    <p class="feature-description">Edit settings while running—changes apply instantly without restart.</p>
+                    <p class="feature-description">Tweak hotkeys, providers, and models while running—changes apply instantly, no restart.</p>
                 </div>
 
                 <!-- Feature 5: Flexible Recording -->
@@ -234,7 +283,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Flexible Recording</h3>
-                    <p class="feature-description">Push-to-talk (hold) or toggle mode (press once). Fully customizable hotkeys.</p>
+                    <p class="feature-description">Hold-to-talk for quick thoughts, or toggle for longer brain-dumps. Fully customizable hotkeys.</p>
                 </div>
 
                 <!-- Feature 6: Auto Insert -->
@@ -246,7 +295,21 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Auto Text Insertion</h3>
-                    <p class="feature-description">Refined text is automatically inserted into your active window. No copy-paste needed.</p>
+                    <p class="feature-description">Results paste into whatever you’re typing in—issue tracker, doc, IDE comment—no copy/paste.</p>
+                </div>
+            </div>
+
+            <div class="use-cases">
+                <h3 class="use-cases-title">Common Use Cases</h3>
+                <div class="use-cases-chips" aria-label="Use cases">
+                    <span class="use-case-chip">Slack messages</span>
+                    <span class="use-case-chip">Jira tickets</span>
+                    <span class="use-case-chip">Standup notes</span>
+                    <span class="use-case-chip">PRDs & specs</span>
+                    <span class="use-case-chip">Meeting follow-ups</span>
+                    <span class="use-case-chip">Code review comments</span>
+                    <span class="use-case-chip">Release notes</span>
+                    <span class="use-case-chip">Design docs</span>
                 </div>
             </div>
         </div>
@@ -331,7 +394,12 @@
         <div class="section-container">
             <div class="section-header">
                 <h2 class="section-title">Frequently asked questions</h2>
-                <p class="section-subtitle">Everything you need to know about PushToTalk</p>
+                <p class="section-subtitle">Quick answers on setup, privacy, and cost</p>
+            </div>
+
+            <div class="faq-trust" aria-label="Privacy and control">
+                <h3 class="faq-trust-title">Privacy & control</h3>
+                <p class="faq-trust-text">PushToTalk is a local desktop app. Your audio/text is sent directly from your machine to the providers you configure for transcription/refinement—there’s no PushToTalk backend.</p>
             </div>
 
             <div class="faq-list">
@@ -343,7 +411,19 @@
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>You'll need at least one speech-to-text API key (OpenAI or Deepgram). For text refinement, you can optionally add keys for OpenAI GPT, Cerebras, or Google Gemini. All providers offer free tiers or credits to get started.</p>
+                        <p>You'll need an API key for your chosen speech-to-text provider (OpenAI or Deepgram). Text refinement is optional (currently supported: OpenAI GPT, Cerebras, Gemini, Ollama, custom providers like Together AI). You don't need a PushToTalk account—just your provider API key(s).</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Do I need to create an account?</span>
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No PushToTalk account. You'll need an account with whichever provider(s) you use (OpenAI, Deepgram, Cerebras) to obtain API keys.</p>
                     </div>
                 </div>
 
@@ -355,7 +435,7 @@
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes! PushToTalk is completely free and open source under the MIT license. However, you'll pay for API usage with your chosen providers (OpenAI, Deepgram, etc.). Most providers offer generous free tiers.</p>
+                        <p>Yes—PushToTalk is free and open source (MIT). You’ll pay your providers directly for transcription/refinement usage (pay-as-you-go), and many offer free tiers to start. In the upcoming version (v0.6.0), you can also use your own custom endpoints or local LLM models for text refinement.</p>
                     </div>
                 </div>
 
@@ -367,7 +447,19 @@
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>No, PushToTalk requires an internet connection to communicate with AI providers for transcription and text refinement. All processing happens in the cloud through your chosen API providers.</p>
+                        <p>Not currently. PushToTalk requires an internet connection to call your configured AI providers for transcription and text refinement (optional).</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Do global hotkeys require admin privileges?</span>
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Sometimes, yes. If your hotkey doesn't trigger recording, try running PushToTalk as admin or choose a different hotkey combo that doesn't conflict with other apps.</p>
                     </div>
                 </div>
 
@@ -391,7 +483,7 @@
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>PushToTalk doesn't store any of your audio data. Recordings are sent directly to your chosen API provider and immediately discarded after transcription. Your data handling is governed by your provider's privacy policy.</p>
+                        <p>PushToTalk doesn't run a backend or upload your data anywhere except to the provider(s) you configure. By default it doesn't keep audio; in debug mode it may save recordings locally for troubleshooting. Provider retention/privacy policies still apply.</p>
                     </div>
                 </div>
 
@@ -403,7 +495,7 @@
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes! You can create custom system prompts and use a personal glossary to ensure proper spelling of names, technical terms, and acronyms. Changes apply instantly without restarting the app.</p>
+                        <p>Yes. Use custom system prompts and a glossary to control tone, formatting, and terminology. You can tweak settings while running and changes apply instantly.</p>
                     </div>
                 </div>
             </div>
@@ -432,7 +524,7 @@
                 </a>
             </div>
 
-            <p class="final-cta-note">Windows 10/11 • No account required • ~15MB download</p>
+            <p class="final-cta-note">Windows 10/11 • Bring your own API key • Hotkeys may require admin • ~15MB download</p>
         </div>
     </section>
 
@@ -452,7 +544,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p class="footer-copyright">© 2024 PushToTalk. Open source under MIT License.</p>
+                <p class="footer-copyright">© 2025 PushToTalk. Open source under MIT License.</p>
             </div>
         </div>
     </footer>
