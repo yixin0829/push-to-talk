@@ -813,22 +813,35 @@ ul {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-xl);
     border-radius: var(--radius-full);
     font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--color-text-primary);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    overflow: hidden;
+    letter-spacing: 0.01em;
+
+    /* Liquid Glass: translucent background (matches .cta-button) */
+    background: linear-gradient(
+        165deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    /* Glass border with highlight (matches .cta-button) */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* Inner glow and depth (matches .cta-button) */
     box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-        0 8px 32px rgba(0, 0, 0, 0.25),
-        0 2px 8px rgba(0, 0, 0, 0.18);
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2);
+
+    overflow: hidden;
     transition: all var(--transition-base);
 }
 
@@ -842,13 +855,19 @@ ul {
 }
 
 .hero-cta-secondary:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.22);
+    background: linear-gradient(
+        165deg,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.08) 40%,
+        rgba(255, 255, 255, 0.04) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
     transform: translateY(-2px);
     box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.25),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 12px 40px rgba(0, 0, 0, 0.35),
         0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -1141,9 +1160,47 @@ ul {
 
     .navbar-menu-btn {
         display: flex;
+        flex-shrink: 0;
+    }
+
+    .navbar-brand {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
+    .navbar-title {
+        font-size: var(--font-size-base);
+    }
+}
+
+@media (max-width: 420px) {
+    .navbar {
+        padding: 0.5rem 0.75rem 0.5rem 1rem;
+    }
+
+    .navbar-container {
+        gap: var(--spacing-sm);
+    }
+
+    .navbar-title {
+        font-size: var(--font-size-sm);
+    }
+
+    .navbar-logo {
+        width: 24px;
+        height: 24px;
+    }
+
+    .navbar-brand {
+        gap: var(--spacing-xs);
     }
 
     .cta-button-inner {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: var(--font-size-sm);
+    }
+
+    .hero-cta-secondary {
         padding: var(--spacing-sm) var(--spacing-lg);
         font-size: var(--font-size-sm);
     }
@@ -1166,6 +1223,16 @@ ul {
     .cta-button-inner {
         padding: var(--spacing-sm) var(--spacing-md);
         gap: var(--spacing-xs);
+    }
+
+    .hero-cta-secondary {
+        padding: var(--spacing-sm) var(--spacing-md);
+        gap: var(--spacing-xs);
+    }
+
+    .hero-cta-secondary-icon {
+        width: 16px;
+        height: 16px;
     }
 
     .cta-icon-windows {
@@ -1196,15 +1263,6 @@ ul {
 @media (max-width: 600px) {
     .section-container {
         padding: 0 var(--spacing-sm);
-    }
-
-    .why-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
-    }
-
-    .why-card {
-        padding: var(--spacing-md);
     }
 
     .features-grid {
@@ -1294,6 +1352,7 @@ ul {
         gap: var(--spacing-sm);
     }
 }
+
 
 /* ============================================
    Accessibility - Reduced Motion (DISABLED FOR TESTING)
@@ -1488,6 +1547,18 @@ button:focus-visible {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     line-height: 1.6;
+}
+
+/* Mobile phones (iPhone) - single column for Why section */
+@media (max-width: 480px) {
+    .why-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .why-card {
+        padding: var(--spacing-md);
+    }
 }
 
 .features-section {
@@ -1852,6 +1923,22 @@ button:focus-visible {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     line-height: 1.7;
+}
+
+/* Mobile phones (iPhone) - single column for FAQ section */
+@media (max-width: 480px) {
+    .faq-list {
+        grid-template-columns: 1fr;
+    }
+
+    .faq-question {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+    }
+
+    .faq-answer p {
+        padding: 0 var(--spacing-md) var(--spacing-md);
+    }
 }
 
 /* ============================================
