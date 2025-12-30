@@ -15,7 +15,8 @@
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
-**One-Minute Demo:** https://app.canvid.com/share/fi_01KDGH98PTEFSV7J99K31X0SXT
+**Watch 60s Demo:** https://www.youtube.com/watch?v=PIqToMHP-c4
+**How to download (FOR FREE):** https://www.youtube.com/watch?v=CjbcRMQE3jE
 
 ## 🏆 Why PushToTalk?
 
