@@ -65,6 +65,40 @@ class APISection:
 
         self._create_widgets()
 
+    def _sync_stt_model_to_cache(self):
+        """Sync current STT model value to the appropriate provider cache.
+
+        This ensures the provider-specific cache stays in sync with the GUI,
+        regardless of whether the value was set via dropdown selection or typing.
+        """
+        provider = self.stt_provider_var.get()
+        model = self.stt_model_var.get()
+        if not model:  # Don't cache empty values
+            return
+        if provider == "openai":
+            self.openai_stt_model = model
+        elif provider == "deepgram":
+            self.deepgram_stt_model = model
+
+    def _sync_refinement_model_to_cache(self):
+        """Sync current refinement model value to the appropriate provider cache.
+
+        This ensures the provider-specific cache stays in sync with the GUI,
+        regardless of whether the value was set via dropdown selection or typing.
+        """
+        provider = self.refinement_provider_var.get()
+        model = self.refinement_model_var.get()
+        if not model:  # Don't cache empty values
+            return
+        if provider == "openai":
+            self.openai_refinement_model = model
+        elif provider == "cerebras":
+            self.cerebras_refinement_model = model
+        elif provider == "gemini":
+            self.gemini_refinement_model = model
+        elif provider == "custom":
+            self.custom_refinement_model = model
+
     def _create_widgets(self):
         """Create the API section widgets."""
         # === API Keys Section ===
@@ -367,14 +401,7 @@ class APISection:
 
     def _on_stt_model_changed(self, event=None):
         """Handle STT model changes - save to provider-specific variable."""
-        provider_value = self.stt_provider_var.get()
-        current_model = self.stt_model_var.get()
-
-        # Save the model selection to the appropriate provider-specific variable
-        if provider_value == "openai":
-            self.openai_stt_model = current_model
-        elif provider_value == "deepgram":
-            self.deepgram_stt_model = current_model
+        self._sync_stt_model_to_cache()
 
     def _on_refinement_provider_changed(self, event=None):
         """Handle refinement provider changes - update model options."""
@@ -393,21 +420,17 @@ class APISection:
 
     def _on_refinement_model_changed(self, event=None):
         """Handle refinement model changes - save to provider-specific variable."""
-        provider_value = self.refinement_provider_var.get()
-        current_model = self.refinement_model_var.get()
-
-        # Save the model selection to the appropriate provider-specific variable
-        if provider_value == "openai":
-            self.openai_refinement_model = current_model
-        elif provider_value == "cerebras":
-            self.cerebras_refinement_model = current_model
-        elif provider_value == "gemini":
-            self.gemini_refinement_model = current_model
-        elif provider_value == "custom":
-            self.custom_refinement_model = current_model
+        self._sync_refinement_model_to_cache()
 
     def _update_stt_model_options(self):
-        """Update STT model options based on selected provider."""
+        """Update STT model options based on selected provider.
+
+        This method is called when the STT provider changes. It:
+        1. First saves the current model to the PREVIOUS provider's cache
+           (using list membership to determine which provider it belongs to)
+        2. Updates the dropdown options for the new provider
+        3. Restores the cached model for the new provider
+        """
         if not self.stt_model_combo:
             return
 
@@ -418,35 +441,50 @@ class APISection:
         openai_models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
         deepgram_models = ["nova-3", "nova-2", "base", "enhanced", "whisper-medium"]
 
-        # Save the current model to the appropriate provider-specific variable
-        # This preserves the selection before we change providers
-        if current_model in openai_models:
-            self.openai_stt_model = current_model
-        elif current_model in deepgram_models:
-            self.deepgram_stt_model = current_model
+        # Save the current model to the PREVIOUS provider's cache
+        # We use list membership to determine which provider, because at this point
+        # the provider_var has already been updated to the NEW provider.
+        # This preserves the model selection when switching back.
+        if current_model:
+            if current_model in openai_models:
+                self.openai_stt_model = current_model
+            elif current_model in deepgram_models:
+                self.deepgram_stt_model = current_model
+            # For custom/non-listed models, we can't determine which provider
+            # they belonged to, so we don't update any cache here.
+            # The sync methods handle this case when model is selected.
 
         # Update model options and restore provider-specific selection
         if provider_value == "openai":
             models = openai_models
-            # Restore the previously selected OpenAI model
-            if self.openai_stt_model in models:
-                self.stt_model_var.set(self.openai_stt_model)
-            else:
-                self.stt_model_var.set(models[0])
+            cached_model = self.openai_stt_model
         elif provider_value == "deepgram":
             models = deepgram_models
-            # Restore the previously selected Deepgram model
-            if self.deepgram_stt_model in models:
-                self.stt_model_var.set(self.deepgram_stt_model)
-            else:
-                self.stt_model_var.set(models[0])
+            cached_model = self.deepgram_stt_model
         else:
             models = []
+            cached_model = ""
 
+        # Update dropdown options
         self.stt_model_combo["values"] = models
 
+        # Restore from cache - use cached value directly without list validation
+        # This preserves custom/non-listed models
+        if cached_model:
+            self.stt_model_var.set(cached_model)
+        elif models:
+            # Only fall back to first item if no cached value at all
+            self.stt_model_var.set(models[0])
+
     def _update_refinement_model_options(self):
-        """Update refinement model options based on selected provider."""
+        """Update refinement model options based on selected provider.
+
+        This method is called when the refinement provider changes. It:
+        1. First saves the current model to the PREVIOUS provider's cache
+           (using list membership to determine which provider it belongs to)
+        2. Updates the dropdown options for the new provider
+        3. Restores the cached model for the new provider
+        """
         if not self.refinement_model_combo:
             return
 
@@ -483,49 +521,52 @@ class APISection:
             "gemma",
         ]
 
-        # Save the current model to the appropriate provider-specific variable
-        if current_model in openai_models:
-            self.openai_refinement_model = current_model
-        elif current_model in cerebras_models:
-            self.cerebras_refinement_model = current_model
-        elif current_model in gemini_models:
-            self.gemini_refinement_model = current_model
-        elif current_model in custom_models:
-            self.custom_refinement_model = current_model
+        # Save the current model to the PREVIOUS provider's cache
+        # We use list membership to determine which provider, because at this point
+        # the provider_var has already been updated to the NEW provider.
+        # This preserves the model selection when switching back.
+        # Note: For typed custom values not in any list, _sync_refinement_model_to_cache()
+        # is called by _on_refinement_model_changed() when user types or selects.
+        if current_model:
+            if current_model in openai_models:
+                self.openai_refinement_model = current_model
+            elif current_model in cerebras_models:
+                self.cerebras_refinement_model = current_model
+            elif current_model in gemini_models:
+                self.gemini_refinement_model = current_model
+            elif current_model in custom_models:
+                self.custom_refinement_model = current_model
+            # For typed custom models not in any list, we can't determine which provider
+            # they belonged to here. The sync methods handle this when model is selected/typed.
 
         # Update model options and restore provider-specific selection
         if provider_value == "openai":
             models = openai_models
-            # Restore the previously selected OpenAI model
-            if self.openai_refinement_model in models:
-                self.refinement_model_var.set(self.openai_refinement_model)
-            else:
-                self.refinement_model_var.set(models[0])
+            cached_model = self.openai_refinement_model
         elif provider_value == "cerebras":
             models = cerebras_models
-            # Restore the previously selected Cerebras model
-            if self.cerebras_refinement_model in models:
-                self.refinement_model_var.set(self.cerebras_refinement_model)
-            else:
-                self.refinement_model_var.set(models[0])
+            cached_model = self.cerebras_refinement_model
         elif provider_value == "gemini":
             models = gemini_models
-            # Restore the previously selected Gemini model
-            if self.gemini_refinement_model in models:
-                self.refinement_model_var.set(self.gemini_refinement_model)
-            else:
-                self.refinement_model_var.set(models[0])
+            cached_model = self.gemini_refinement_model
         elif provider_value == "custom":
             models = custom_models
-            # Restore the previously selected Custom model
-            if self.custom_refinement_model in models:
-                self.refinement_model_var.set(self.custom_refinement_model)
-            else:
-                self.refinement_model_var.set(models[0])
+            cached_model = self.custom_refinement_model
         else:
             models = []
+            cached_model = ""
 
+        # Update dropdown options
         self.refinement_model_combo["values"] = models
+
+        # Restore from cache - use cached value directly without list validation
+        # This preserves custom/non-listed models (especially important for refinement
+        # where users can type custom model names)
+        if cached_model:
+            self.refinement_model_var.set(cached_model)
+        elif models:
+            # Only fall back to first item if no cached value at all
+            self.refinement_model_var.set(models[0])
 
     def get_values(self) -> dict[str, str]:
         """
@@ -617,6 +658,11 @@ class APISection:
         # This must happen AFTER the combobox options are updated
         self.stt_model_var.set(stt_model)
         self.refinement_model_var.set(refinement_model)
+
+        # Sync the model values to cache to ensure cache is in sync with GUI
+        # This handles the case where the config has a model not in the dropdown list
+        self._sync_stt_model_to_cache()
+        self._sync_refinement_model_to_cache()
 
     def _update_combobox_options_only(self):
         """Update combobox dropdown options without changing selected values."""
