@@ -253,16 +253,20 @@
             const normalizedNoise = (noiseValue + 1) / 2;
 
             // Calculate base dot properties from noise
-            const intensity = Math.pow(normalizedNoise, 1.5) * CONFIG.waveIntensity;
+            // Optimization: x * sqrt(x) is faster than Math.pow(x, 1.5)
+            const intensity = (normalizedNoise * Math.sqrt(normalizedNoise)) * CONFIG.waveIntensity;
             let size = CONFIG.baseSize + (CONFIG.maxSize - CONFIG.baseSize) * intensity;
             let opacity = CONFIG.baseOpacity + (CONFIG.maxOpacity - CONFIG.baseOpacity) * intensity;
 
             // Calculate cursor influence
             const dx = dot.x - smoothMouse.x;
             const dy = dot.y - smoothMouse.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            // Optimization: Compare squared distance to avoid expensive Math.sqrt in the common case
+            const distSq = dx * dx + dy * dy;
+            const radiusSq = CONFIG.cursor.radius * CONFIG.cursor.radius;
 
-            if (distance < CONFIG.cursor.radius) {
+            if (distSq < radiusSq) {
+                const distance = Math.sqrt(distSq);
                 // Smooth falloff using cosine interpolation
                 const cursorInfluence = Math.pow(1 - distance / CONFIG.cursor.radius, 2);
 
