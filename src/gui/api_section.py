@@ -1,5 +1,6 @@
 """API configuration section for PushToTalk configuration GUI."""
 
+import threading
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable
@@ -92,9 +93,22 @@ class APISection:
             self.openai_widgets["frame"],
             text="Show",
             command=toggle_openai_key_visibility,
-            width=8,
+            width=6,
         )
-        openai_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        openai_show_hide_btn.grid(row=0, column=2, padx=(5, 0), pady=2)
+
+        openai_status = ttk.Label(self.openai_widgets["frame"], text="", width=12)
+        openai_status.grid(row=0, column=4, padx=5)
+
+        ttk.Button(
+            self.openai_widgets["frame"],
+            text="Verify",
+            width=6,
+            command=lambda: self._verify_key(
+                self.openai_api_key_var, validate_openai_api_key, openai_status
+            ),
+        ).grid(row=0, column=3, padx=(5, 0), pady=2)
+
         self.openai_widgets["frame"].columnconfigure(1, weight=1)
 
         # Deepgram API Key Frame
@@ -113,7 +127,7 @@ class APISection:
             width=50,
         )
         deepgram_api_key_entry.grid(
-            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+            row=0, column=1, sticky="ew", padx=(10, 0), pady=2
         )
 
         # Deepgram Show/Hide API Key button
@@ -129,9 +143,22 @@ class APISection:
             self.deepgram_widgets["frame"],
             text="Show",
             command=toggle_deepgram_key_visibility,
-            width=8,
+            width=6,
         )
-        deepgram_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        deepgram_show_hide_btn.grid(row=0, column=2, padx=(5, 0), pady=2)
+
+        deepgram_status = ttk.Label(self.deepgram_widgets["frame"], text="", width=12)
+        deepgram_status.grid(row=0, column=4, padx=5)
+
+        ttk.Button(
+            self.deepgram_widgets["frame"],
+            text="Verify",
+            width=6,
+            command=lambda: self._verify_key(
+                self.deepgram_api_key_var, validate_deepgram_api_key, deepgram_status
+            ),
+        ).grid(row=0, column=3, padx=(5, 0), pady=2)
+
         self.deepgram_widgets["frame"].columnconfigure(1, weight=1)
 
         # Cerebras API Key Frame
@@ -150,7 +177,7 @@ class APISection:
             width=50,
         )
         cerebras_api_key_entry.grid(
-            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+            row=0, column=1, sticky="ew", padx=(10, 0), pady=2
         )
 
         # Cerebras Show/Hide API Key button
@@ -166,9 +193,21 @@ class APISection:
             self.cerebras_widgets["frame"],
             text="Show",
             command=toggle_cerebras_key_visibility,
-            width=8,
+            width=6,
         )
-        cerebras_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        cerebras_show_hide_btn.grid(row=0, column=2, padx=(5, 0), pady=2)
+
+        cerebras_status = ttk.Label(self.cerebras_widgets["frame"], text="", width=12)
+        cerebras_status.grid(row=0, column=4, padx=5)
+
+        ttk.Button(
+            self.cerebras_widgets["frame"],
+            text="Verify",
+            width=6,
+            command=lambda: self._verify_key(
+                self.cerebras_api_key_var, validate_cerebras_api_key, cerebras_status
+            ),
+        ).grid(row=0, column=3, padx=(5, 0), pady=2)
         self.cerebras_widgets["frame"].columnconfigure(1, weight=1)
 
         # === Speech-to-Text Settings Section ===
@@ -584,3 +623,35 @@ class APISection:
             )
 
         return "\n".join(status_lines)
+    def _verify_key(
+        self,
+        key_var: tk.StringVar,
+        validator: Callable[[str], bool],
+        status_label: ttk.Label,
+    ):
+        """Verify API key in a background thread."""
+        key = key_var.get().strip()
+        if not key:
+            status_label.config(text="Missing", foreground="orange")
+            return
+
+        status_label.config(text="Checking...", foreground="blue")
+
+        def check():
+            is_valid = False
+            try:
+                is_valid = validator(key)
+            except Exception:
+                is_valid = False
+
+            # Schedule UI update on main thread
+            if is_valid:
+                status_label.after(
+                    0, lambda: status_label.config(text="✓ Valid", foreground="green")
+                )
+            else:
+                status_label.after(
+                    0, lambda: status_label.config(text="✗ Invalid", foreground="red")
+                )
+
+        threading.Thread(target=check, daemon=True).start()
