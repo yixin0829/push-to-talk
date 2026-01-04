@@ -59,11 +59,12 @@ build_script/build_linux.sh     # Linux
 - Injected components preserved during lifecycle
 
 **Threading**
-1. Main: GUI control
-2. Hotkey Service: Global detection (Producer) -> Pushes commands to Queue
-3. Worker Thread: Consumes commands -> Handles Audio Recording & Feedback (Consumer)
-4. Audio Recording: PyAudio operations
-5. Transcription: Daemon processing pipeline
+1. **Main Thread**: GUI control (Tkinter event loop)
+2. **Hotkey Service**: Global keyboard detection (Producer) -> Pushes commands to Queue
+3. **Worker Thread**: Long-running consumer thread
+   - Handles `START_RECORDING` / `STOP_RECORDING` commands
+   - Orchestrates the audio processing pipeline sequentially (Transcription -> Refinement -> Insertion)
+4. **Audio Recording**: Transient thread spawned by `AudioRecorder` to capture audio stream without blocking
 
 ## Development Guidelines
 
