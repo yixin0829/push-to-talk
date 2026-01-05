@@ -149,6 +149,7 @@
         // Cursor interaction settings
         cursor: {
             radius: 150,           // Radius of cursor influence (pixels)
+            radiusSq: 22500,       // Radius squared (pre-calculated for optimization)
             sizeMultiplier: 2.5,   // How much bigger dots get near cursor
             opacityMultiplier: 2,  // How much brighter dots get near cursor
             smoothing: 0.15        // Cursor position smoothing (0-1, lower = smoother)
@@ -260,9 +261,11 @@
             // Calculate cursor influence
             const dx = dot.x - smoothMouse.x;
             const dy = dot.y - smoothMouse.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distSq = dx * dx + dy * dy;
 
-            if (distance < CONFIG.cursor.radius) {
+            if (distSq < CONFIG.cursor.radiusSq) {
+                const distance = Math.sqrt(distSq);
+
                 // Smooth falloff using cosine interpolation
                 const cursorInfluence = Math.pow(1 - distance / CONFIG.cursor.radius, 2);
 
