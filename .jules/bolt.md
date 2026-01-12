@@ -1,0 +1,3 @@
+## 2024-05-23 - Async Hardware Initialization
+**Learning:** Initializing hardware interfaces (like `PyAudio`) in the main thread's constructor is a major performance bottleneck, as device scanning can take 500ms+ and freeze the GUI startup.
+**Action:** Move hardware initialization to a background thread (`threading.Thread`) and ensure the main logic (like `start_recording`) waits for it (`join` with timeout) if called before initialization completes. Use the "Wait-for-Resource" pattern.
