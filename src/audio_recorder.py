@@ -34,20 +34,35 @@ class AudioRecorder:
         self.audio_data = []
         self.recording_thread: Optional[threading.Thread] = None
 
-        # Initialize PyAudio once at startup
+        self.audio_interface = None
+        self.stream = None
+
+        # Initialize PyAudio asynchronously to avoid blocking startup
+        self._initialization_thread = threading.Thread(
+            target=self._initialize_audio_interface, daemon=True
+        )
+        self._initialization_thread.start()
+
+    def _initialize_audio_interface(self):
+        """Initialize PyAudio interface in a background thread."""
         try:
+            # PyAudio initialization can be slow (scanning devices)
             self.audio_interface = pyaudio.PyAudio()
+            logger.debug("PyAudio interface initialized asynchronously")
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {e}")
             self.audio_interface = None
-
-        self.stream = None
 
     def start_recording(self) -> bool:
         """Start recording audio."""
         if self.is_recording:
             logger.warning("Recording is already in progress")
             return False
+
+        # Wait for initialization if it's still running
+        if self._initialization_thread and self._initialization_thread.is_alive():
+            logger.debug("Waiting for audio interface initialization...")
+            self._initialization_thread.join(timeout=5.0)
 
         if not self.audio_interface:
             logger.error("Audio interface not initialized")
@@ -168,6 +183,17 @@ class AudioRecorder:
 
     def shutdown(self):
         """Terminate audio interface."""
+        # Wait for initialization if it's still running (to avoid race conditions)
+        if (
+            hasattr(self, "_initialization_thread")
+            and self._initialization_thread
+            and self._initialization_thread.is_alive()
+        ):
+            try:
+                self._initialization_thread.join(timeout=1.0)
+            except Exception as e:
+                logger.error(f"Error waiting for initialization thread during shutdown: {e}")
+
         self._cleanup_stream()
         try:
             if self.audio_interface:
