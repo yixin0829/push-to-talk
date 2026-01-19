@@ -155,6 +155,21 @@
         }
     };
 
+    // Optimization: Batch rendering by opacity to reduce draw calls
+    const BUCKET_COUNT = 50;
+    const buckets = Array.from({ length: BUCKET_COUNT }, () => ({
+        count: 0,
+        xs: [], // Using simple arrays for flexibility
+        ys: [],
+        sizes: []
+    }));
+
+    // Pre-calculate colors for each bucket
+    const bucketColors = Array.from({ length: BUCKET_COUNT }, (_, i) => {
+        const opacity = i / (BUCKET_COUNT - 1);
+        return `rgba(${CONFIG.color.r}, ${CONFIG.color.g}, ${CONFIG.color.b}, ${opacity})`;
+    });
+
     let canvas, ctx;
     let noise;
     let dots = [];
@@ -239,6 +254,12 @@
 
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
+        // Reset buckets
+        for (let b = 0; b < BUCKET_COUNT; b++) {
+            buckets[b].count = 0;
+        }
+
+        // 1. Calculate and bucket
         for (let i = 0; i < dots.length; i++) {
             const dot = dots[i];
 
@@ -271,10 +292,38 @@
                 opacity = Math.min(1, opacity * (1 + (CONFIG.cursor.opacityMultiplier - 1) * cursorInfluence));
             }
 
-            // Draw dot
+            // Quantize opacity and add to bucket
+            opacity = Math.max(0, Math.min(1, opacity));
+            const bucketIdx = Math.floor(opacity * (BUCKET_COUNT - 1));
+            const bucket = buckets[bucketIdx];
+
+            // Expand arrays if needed (simple push)
+            bucket.xs[bucket.count] = dot.x;
+            bucket.ys[bucket.count] = dot.y;
+            bucket.sizes[bucket.count] = size;
+            bucket.count++;
+        }
+
+        // 2. Batch Draw
+        for (let b = 0; b < BUCKET_COUNT; b++) {
+            const bucket = buckets[b];
+            if (bucket.count === 0) continue;
+
+            // Skip invisible dots (bucket 0 is opacity 0)
+            if (b === 0 && bucketColors[0].endsWith('0)')) continue;
+
+            ctx.fillStyle = bucketColors[b];
             ctx.beginPath();
-            ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${CONFIG.color.r}, ${CONFIG.color.g}, ${CONFIG.color.b}, ${opacity})`;
+
+            for (let k = 0; k < bucket.count; k++) {
+                const x = bucket.xs[k];
+                const y = bucket.ys[k];
+                const s = bucket.sizes[k];
+
+                ctx.moveTo(x + s, y);
+                ctx.arc(x, y, s, 0, Math.PI * 2);
+            }
+
             ctx.fill();
         }
 
