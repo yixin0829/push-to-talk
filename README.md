@@ -268,8 +268,8 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
-| `hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+shift+^`, macOS `cmd+shift+space`. See [Hotkey Options](#hotkey-options) for examples. |
-| `toggle_hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+shift+space`, macOS `cmd+shift+^`. |
+| `hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+shift+^`, macOS `cmd+shift+^`. See [Hotkey Options](#hotkey-options) for examples. |
+| `toggle_hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+shift+space`, macOS `cmd+shift+space`. |
 | `enable_text_refinement` | boolean | `true` | Whether to refine transcribed text using AI. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |
@@ -299,11 +299,11 @@ You can configure different hotkey combinations for both modes. Platform-specifi
 
 **Push-to-talk hotkey** (hold to record):
 - Windows/Linux: `ctrl+shift+^` (default), `ctrl+alt+r`, `f12`
-- macOS: `cmd+shift+space` (default), `cmd+alt+r`, `f12`
+- macOS: `cmd+shift+^` (default), `cmd+alt+r`, `f12`
 
 **Toggle hotkey** (press once to start, press again to stop):
 - Windows/Linux: `ctrl+shift+space` (default), `ctrl+shift+t`
-- macOS: `cmd+shift+^` (default), `cmd+shift+t`
+- macOS: `cmd+shift+space` (default), `cmd+shift+t`
 
 Both hotkeys support any combination from the `pynput` library. The application automatically uses platform-aware defaults based on your OS.
 
