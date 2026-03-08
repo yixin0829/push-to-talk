@@ -70,7 +70,6 @@ def mock_gui_sections(mocker):
         dict: Dictionary of section name -> section instance
     """
     from src.gui.api_section import APISection
-    from src.gui.audio_section import AudioSection
     from src.gui.hotkey_section import HotkeySection
     from src.gui.settings_section import FeatureFlagsSection
     from src.gui.glossary_section import GlossarySection
@@ -80,7 +79,6 @@ def mock_gui_sections(mocker):
     mocker.patch("tkinter.ttk.LabelFrame")
     sections = {
         "api": APISection,
-        "audio": AudioSection,
         "hotkey": HotkeySection,
         "feature_flags": FeatureFlagsSection,
         "glossary": GlossarySection,
@@ -122,16 +120,12 @@ def prepared_config_gui(mock_tk_root, mock_gui_sections):
         config.openai_api_key,
         config.deepgram_api_key,
         config.cerebras_api_key,
+        config.gemini_api_key,
+        config.custom_api_key,
         config.stt_model,
         config.refinement_provider,
         config.refinement_model,
-    )
-
-    gui.audio_section = mock_gui_sections["audio"](MagicMock())
-    gui.audio_section.set_values(
-        config.sample_rate,
-        config.chunk_size,
-        config.channels,
+        config.custom_endpoint,
     )
 
     gui.hotkey_section = mock_gui_sections["hotkey"](MagicMock())

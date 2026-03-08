@@ -122,20 +122,20 @@ class GlossarySection:
         # Description
         description = ttk.Label(
             self.frame,
-            text="Add domain-specific terms, acronyms, and technical words to help the AI\nbetter recognize and transcribe your vocabulary.",
+            text="Add domain-specific terms, acronyms, and technical words to help the AI better recognize\nand transcribe your speech.",
             font=("TkDefaultFont", 9),
         )
         description.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 10))
 
         # Search bar
         search_frame = ttk.Frame(self.frame)
-        search_frame.grid(row=1, column=0, columnspan=3, sticky="ew", pady=(0, 5))
+        search_frame.grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 5))
 
         ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
         self.glossary_search_var = tk.StringVar()
         self.glossary_search_var.trace("w", self._filter_glossary_list)
         search_entry = ttk.Entry(
-            search_frame, textvariable=self.glossary_search_var, width=30
+            search_frame, textvariable=self.glossary_search_var, width=50
         )
         search_entry.pack(side="left", fill="x", expand=True)
 
@@ -149,7 +149,11 @@ class GlossarySection:
         listbox_frame.pack(fill="both", expand=True)
 
         self.glossary_listbox = tk.Listbox(
-            listbox_frame, height=6, selectmode=tk.SINGLE, font=("TkDefaultFont", 9)
+            listbox_frame,
+            height=6,
+            width=60,
+            selectmode=tk.SINGLE,
+            font=("TkDefaultFont", 9),
         )
 
         scrollbar_glossary = ttk.Scrollbar(listbox_frame, orient="vertical")

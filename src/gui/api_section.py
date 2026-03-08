@@ -7,6 +7,7 @@ from src.gui.validators import (
     validate_openai_api_key,
     validate_deepgram_api_key,
     validate_cerebras_api_key,
+    validate_gemini_api_key,
 )
 
 
@@ -36,6 +37,8 @@ class APISection:
         self.openai_api_key_var = tk.StringVar()
         self.deepgram_api_key_var = tk.StringVar()
         self.cerebras_api_key_var = tk.StringVar()
+        self.gemini_api_key_var = tk.StringVar()
+        self.custom_api_key_var = tk.StringVar()
         self.stt_model_var = tk.StringVar()
         self.refinement_provider_var = tk.StringVar()
         self.refinement_model_var = tk.StringVar()
@@ -44,6 +47,8 @@ class APISection:
         self.openai_widgets = {}
         self.deepgram_widgets = {}
         self.cerebras_widgets = {}
+        self.gemini_widgets = {}
+        self.custom_widgets = {}
         self.stt_model_combo = None
         self.refinement_model_combo = None
 
@@ -54,6 +59,8 @@ class APISection:
         # Provider-specific refinement model selections
         self.openai_refinement_model = "gpt-4.1-nano"
         self.cerebras_refinement_model = "llama-3.3-70b"
+        self.gemini_refinement_model = "gemini-3-flash-preview"
+        self.custom_refinement_model = "llama3"
 
         self._create_widgets()
 
@@ -171,6 +178,80 @@ class APISection:
         cerebras_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
         self.cerebras_widgets["frame"].columnconfigure(1, weight=1)
 
+        # Google Gemini API Key Frame
+        self.gemini_widgets["frame"] = ttk.Frame(self.api_keys_frame)
+        self.gemini_widgets["frame"].grid(
+            row=3, column=0, columnspan=4, sticky="ew", pady=5
+        )
+
+        ttk.Label(self.gemini_widgets["frame"], text="Gemini API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        gemini_api_key_entry = ttk.Entry(
+            self.gemini_widgets["frame"],
+            textvariable=self.gemini_api_key_var,
+            show="*",
+            width=50,
+        )
+        gemini_api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
+
+        # Gemini Show/Hide API Key button
+        def toggle_gemini_key_visibility():
+            if gemini_api_key_entry["show"] == "*":
+                gemini_api_key_entry["show"] = ""
+                gemini_show_hide_btn["text"] = "Hide"
+            else:
+                gemini_api_key_entry["show"] = "*"
+                gemini_show_hide_btn["text"] = "Show"
+
+        gemini_show_hide_btn = ttk.Button(
+            self.gemini_widgets["frame"],
+            text="Show",
+            command=toggle_gemini_key_visibility,
+            width=8,
+        )
+        gemini_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        self.gemini_widgets["frame"].columnconfigure(1, weight=1)
+
+        # Custom API Key Frame
+        self.custom_widgets["frame"] = ttk.Frame(self.api_keys_frame)
+        self.custom_widgets["frame"].grid(
+            row=4, column=0, columnspan=4, sticky="ew", pady=5
+        )
+
+        ttk.Label(self.custom_widgets["frame"], text="Custom API Key:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        custom_api_key_entry = ttk.Entry(
+            self.custom_widgets["frame"],
+            textvariable=self.custom_api_key_var,
+            show="*",
+            width=50,
+        )
+        custom_api_key_entry.grid(
+            row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0), pady=2
+        )
+
+        # Custom Show/Hide API Key button
+        def toggle_custom_key_visibility():
+            if custom_api_key_entry["show"] == "*":
+                custom_api_key_entry["show"] = ""
+                custom_show_hide_btn["text"] = "Hide"
+            else:
+                custom_api_key_entry["show"] = "*"
+                custom_show_hide_btn["text"] = "Show"
+
+        custom_show_hide_btn = ttk.Button(
+            self.custom_widgets["frame"],
+            text="Show",
+            command=toggle_custom_key_visibility,
+            width=8,
+        )
+        custom_show_hide_btn.grid(row=0, column=3, padx=(5, 0), pady=2)
+        self.custom_widgets["frame"].columnconfigure(1, weight=1)
+
         # === Speech-to-Text Settings Section ===
         # STT Provider Selection
         ttk.Label(self.frame, text="STT Provider:").grid(
@@ -207,7 +288,7 @@ class APISection:
         refinement_provider_combo = ttk.Combobox(
             self.frame,
             textvariable=self.refinement_provider_var,
-            values=["openai", "cerebras"],
+            values=["openai", "cerebras", "gemini", "custom"],
             state="readonly",
             width=20,
         )
@@ -235,8 +316,8 @@ class APISection:
                 "gpt-4o-mini",
                 "gpt-4o",
             ],
-            state="readonly",
-            width=20,
+            state="normal",  # Allow custom model names
+            width=30,
         )
         self.refinement_model_combo.grid(
             row=3, column=1, sticky="w", padx=(10, 0), pady=2
@@ -245,7 +326,37 @@ class APISection:
             "<<ComboboxSelected>>", self._on_refinement_model_changed
         )
 
+        # Custom API Endpoint (optional)
+        self.custom_endpoint_frame = ttk.Frame(self.frame)
+        self.custom_endpoint_frame.grid(
+            row=4, column=0, columnspan=2, sticky="ew", pady=2
+        )
+        self.custom_endpoint_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(self.custom_endpoint_frame, text="Custom Endpoint:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        self.custom_endpoint_var = tk.StringVar()
+        self.custom_endpoint_entry = ttk.Entry(
+            self.custom_endpoint_frame,
+            textvariable=self.custom_endpoint_var,
+            width=32,
+        )
+        self.custom_endpoint_entry.grid(
+            row=0, column=1, sticky="w", padx=(10, 0), pady=2
+        )
+        # Add tooltip-style label
+        ttk.Label(
+            self.custom_endpoint_frame,
+            text="(Optional: for OpenAI-compatible APIs)",
+            font=("TkDefaultFont", 8),
+            foreground="gray",
+        ).grid(row=1, column=1, sticky="w", padx=(10, 0), pady=0)
+
         self.frame.columnconfigure(1, weight=1)
+
+        # Initial visibility update
+        self._update_custom_endpoint_visibility()
 
     def _on_provider_changed(self, event=None):
         """Handle STT provider changes - show/hide appropriate API key fields."""
@@ -267,8 +378,17 @@ class APISection:
     def _on_refinement_provider_changed(self, event=None):
         """Handle refinement provider changes - update model options."""
         self._update_refinement_model_options()
+        self._update_custom_endpoint_visibility()
         if self.on_change:
             self.on_change()
+
+    def _update_custom_endpoint_visibility(self):
+        """Show or hide the custom endpoint field based on refinement provider."""
+        provider = self.refinement_provider_var.get()
+        if provider == "custom":
+            self.custom_endpoint_frame.grid()
+        else:
+            self.custom_endpoint_frame.grid_remove()
 
     def _on_refinement_model_changed(self, event=None):
         """Handle refinement model changes - save to provider-specific variable."""
@@ -280,6 +400,10 @@ class APISection:
             self.openai_refinement_model = current_model
         elif provider_value == "cerebras":
             self.cerebras_refinement_model = current_model
+        elif provider_value == "gemini":
+            self.gemini_refinement_model = current_model
+        elif provider_value == "custom":
+            self.custom_refinement_model = current_model
 
     def _update_stt_model_options(self):
         """Update STT model options based on selected provider."""
@@ -344,6 +468,19 @@ class APISection:
             "qwen-3-235b-a22b-instruct-2507",
             "qwen-3-32b",
             "llama3.1-8b",
+            "gpt-oss-120b",
+        ]
+        gemini_models = [
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview",
+            "gemini-2.5-flash-preview-05-20",
+            "gemini-2.5-pro-preview-06-05",
+        ]
+        custom_models = [
+            "llama3",
+            "mistral",
+            "mixtral",
+            "gemma",
         ]
 
         # Save the current model to the appropriate provider-specific variable
@@ -351,6 +488,10 @@ class APISection:
             self.openai_refinement_model = current_model
         elif current_model in cerebras_models:
             self.cerebras_refinement_model = current_model
+        elif current_model in gemini_models:
+            self.gemini_refinement_model = current_model
+        elif current_model in custom_models:
+            self.custom_refinement_model = current_model
 
         # Update model options and restore provider-specific selection
         if provider_value == "openai":
@@ -365,6 +506,20 @@ class APISection:
             # Restore the previously selected Cerebras model
             if self.cerebras_refinement_model in models:
                 self.refinement_model_var.set(self.cerebras_refinement_model)
+            else:
+                self.refinement_model_var.set(models[0])
+        elif provider_value == "gemini":
+            models = gemini_models
+            # Restore the previously selected Gemini model
+            if self.gemini_refinement_model in models:
+                self.refinement_model_var.set(self.gemini_refinement_model)
+            else:
+                self.refinement_model_var.set(models[0])
+        elif provider_value == "custom":
+            models = custom_models
+            # Restore the previously selected Custom model
+            if self.custom_refinement_model in models:
+                self.refinement_model_var.set(self.custom_refinement_model)
             else:
                 self.refinement_model_var.set(models[0])
         else:
@@ -384,9 +539,12 @@ class APISection:
             "openai_api_key": self.openai_api_key_var.get().strip(),
             "deepgram_api_key": self.deepgram_api_key_var.get().strip(),
             "cerebras_api_key": self.cerebras_api_key_var.get().strip(),
+            "gemini_api_key": self.gemini_api_key_var.get().strip(),
+            "custom_api_key": self.custom_api_key_var.get().strip(),
             "stt_model": self.stt_model_var.get(),
             "refinement_provider": self.refinement_provider_var.get(),
             "refinement_model": self.refinement_model_var.get(),
+            "custom_endpoint": self.custom_endpoint_var.get().strip(),
         }
 
     def set_values(
@@ -395,9 +553,12 @@ class APISection:
         openai_api_key: str,
         deepgram_api_key: str,
         cerebras_api_key: str,
+        gemini_api_key: str,
+        custom_api_key: str,
         stt_model: str,
         refinement_provider: str,
         refinement_model: str,
+        custom_endpoint: str = "",
     ):
         """
         Set the API configuration values.
@@ -411,14 +572,20 @@ class APISection:
             openai_api_key: OpenAI API key
             deepgram_api_key: Deepgram API key
             cerebras_api_key: Cerebras API key
+            gemini_api_key: Gemini API key
+            custom_api_key: Custom API key
             stt_model: STT model name
             refinement_provider: Refinement provider name
             refinement_model: Refinement model name
+            custom_endpoint: Custom API endpoint URL
         """
         # Set API keys
         self.openai_api_key_var.set(openai_api_key)
         self.deepgram_api_key_var.set(deepgram_api_key)
         self.cerebras_api_key_var.set(cerebras_api_key)
+        self.gemini_api_key_var.set(gemini_api_key)
+        self.custom_api_key_var.set(custom_api_key)
+        self.custom_endpoint_var.set(custom_endpoint)
 
         # Store provider-specific models BEFORE setting providers
         # This ensures the update methods will use these values
@@ -431,10 +598,17 @@ class APISection:
             self.openai_refinement_model = refinement_model
         elif refinement_provider == "cerebras":
             self.cerebras_refinement_model = refinement_model
+        elif refinement_provider == "gemini":
+            self.gemini_refinement_model = refinement_model
+        elif refinement_provider == "custom":
+            self.custom_refinement_model = refinement_model
 
         # Set providers (this triggers combobox value list updates)
         self.stt_provider_var.set(stt_provider)
         self.refinement_provider_var.set(refinement_provider)
+
+        # Update visibility of custom endpoint
+        self._update_custom_endpoint_visibility()
 
         # Update combobox options to match the providers
         self._update_combobox_options_only()
@@ -478,6 +652,20 @@ class APISection:
                     "qwen-3-32b",
                     "llama3.1-8b",
                 ]
+            elif provider == "gemini":
+                models = [
+                    "gemini-3-flash-preview",
+                    "gemini-3-pro-preview",
+                    "gemini-2.5-flash-preview-05-20",
+                    "gemini-2.5-pro-preview-06-05",
+                ]
+            elif provider == "custom":
+                models = [
+                    "llama3",
+                    "mistral",
+                    "mixtral",
+                    "gemma",
+                ]
             else:
                 models = []
             self.refinement_model_combo["values"] = models
@@ -504,7 +692,9 @@ class APISection:
                 openai_status = str(e)
                 openai_prefix = "[X]"
 
-        selected_marker = " (Selected)" if values["stt_provider"] == "openai" else ""
+        selected_marker = (
+            " (Selected STT Model)" if values["stt_provider"] == "openai" else ""
+        )
         status_lines.append(f"\n{openai_prefix} OpenAI{selected_marker}:")
         status_lines.append(f"  Status: {openai_status}")
         if values["openai_api_key"]:
@@ -524,7 +714,9 @@ class APISection:
                 deepgram_status = str(e)
                 deepgram_prefix = "[X]"
 
-        selected_marker = " (Selected)" if values["stt_provider"] == "deepgram" else ""
+        selected_marker = (
+            " (Selected STT Model)" if values["stt_provider"] == "deepgram" else ""
+        )
         status_lines.append(f"\n{deepgram_prefix} Deepgram{selected_marker}:")
         status_lines.append(f"  Status: {deepgram_status}")
         if values["deepgram_api_key"]:
@@ -545,7 +737,7 @@ class APISection:
                 cerebras_prefix = "[X]"
 
         selected_marker = (
-            " (Selected for refinement)"
+            " (Selected Refinement Model)"
             if values["refinement_provider"] == "cerebras"
             else ""
         )
@@ -555,6 +747,49 @@ class APISection:
             status_lines.append(
                 f"  Key: {'*' * min(len(values['cerebras_api_key']), 20)}"
             )
+
+        # Test Gemini
+        gemini_status = "Not configured"
+        gemini_prefix = "[ ]"
+        if values["gemini_api_key"]:
+            try:
+                validate_gemini_api_key(values["gemini_api_key"])
+                gemini_status = "VALID"
+                gemini_prefix = "[OK]"
+            except Exception as e:
+                gemini_status = str(e)
+                gemini_prefix = "[X]"
+
+        selected_marker = (
+            " (Selected Refinement Model)"
+            if values["refinement_provider"] == "gemini"
+            else ""
+        )
+        status_lines.append(f"\n{gemini_prefix} Gemini{selected_marker}:")
+        status_lines.append(f"  Status: {gemini_status}")
+        if values["gemini_api_key"]:
+            status_lines.append(
+                f"  Key: {'*' * min(len(values['gemini_api_key']), 20)}"
+            )
+
+        # Custom provider info (no validation - endpoints vary too widely)
+        selected_marker = (
+            " (Selected Refinement Model)"
+            if values["refinement_provider"] == "custom"
+            else ""
+        )
+        if values["custom_api_key"] or values["custom_endpoint"]:
+            status_lines.append(f"\n[ ] Custom{selected_marker}:")
+            status_lines.append("  Status: Configured (not validated)")
+            if values["custom_api_key"]:
+                status_lines.append(
+                    f"  Key: {'*' * min(len(values['custom_api_key']), 20)}"
+                )
+            if values["custom_endpoint"]:
+                status_lines.append(f"  Endpoint: {values['custom_endpoint']}")
+        else:
+            status_lines.append(f"\n[ ] Custom{selected_marker}:")
+            status_lines.append("  Status: Not configured")
 
         # Add configuration summary
         status_lines.append("\n" + "-" * 40)
@@ -581,6 +816,10 @@ class APISection:
         elif values["refinement_provider"] == "cerebras" and cerebras_prefix == "[X]":
             status_lines.append(
                 "\n*** WARNING: Selected refinement provider (Cerebras) has an invalid API key!"
+            )
+        elif values["refinement_provider"] == "gemini" and gemini_prefix == "[X]":
+            status_lines.append(
+                "\n*** WARNING: Selected refinement provider (Gemini) has an invalid API key!"
             )
 
         return "\n".join(status_lines)

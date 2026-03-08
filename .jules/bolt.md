@@ -1,0 +1,3 @@
+## 2024-05-23 - Lazy Loading Audio Components
+**Learning:** Initializing `pyaudio.PyAudio()` involves scanning for audio devices, which can be a slow, blocking operation (taking seconds on some systems). Doing this in the main thread during application startup causes the UI to freeze and feel unresponsive.
+**Action:** Always initialize heavy I/O or hardware-interface components like audio drivers in a background thread or lazily when first needed, ensuring the main GUI thread remains responsive. Use `threading.Thread(target=init_func, daemon=True)` for initialization that doesn't need to block app start.

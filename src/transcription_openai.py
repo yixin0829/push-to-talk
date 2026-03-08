@@ -2,10 +2,11 @@ import os
 from loguru import logger
 import time
 from typing import Optional
-from openai import OpenAI
+from openai import OpenAI, APIError as OpenAIAPIError
 
 from src.transcription_base import TranscriberBase
 from src.utils import validate_audio_file_exists, validate_audio_duration
+from src.exceptions import TranscriptionError, APIError
 
 
 class OpenAITranscriber(TranscriberBase):
@@ -48,12 +49,16 @@ class OpenAITranscriber(TranscriberBase):
             start_time = time.time()
             logger.debug(f"Starting transcription for: {audio_file_path}")
 
+            # Build optional prompt from glossary terms
+            prompt = ", ".join(self.glossary) if self.glossary else None
+
             with open(audio_file_path, "rb") as audio_file:
                 response = self.client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
                     language=language,
                     response_format="text",
+                    prompt=prompt,
                 )
 
             # Handle both string and object responses
@@ -76,6 +81,13 @@ class OpenAITranscriber(TranscriberBase):
             )
             return transcribed_text if transcribed_text else None
 
+        except OpenAIAPIError as e:
+            logger.error(f"OpenAI API error during transcription: {e}")
+            raise APIError(
+                f"OpenAI transcription API failed: {e}",
+                provider="OpenAI",
+                status_code=getattr(e, "status_code", None),
+            ) from e
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
-            return None
+            raise TranscriptionError(f"Failed to transcribe audio: {e}") from e

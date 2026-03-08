@@ -94,3 +94,19 @@ SUPPORTED_CHUNK_SIZES = [512, 1024, 2048, 4096]
 
 Powers of 2 are preferred for efficient audio buffer processing.
 """
+
+# Text Refinement
+TEXT_REFINEMENT_MIN_LENGTH = 20
+"""Minimum text length (in characters) to send for refinement.
+
+Rationale: Very short text (<20 characters) is typically not worth
+the API cost and latency of refinement. Return as-is instead.
+"""
+
+# Service Timeouts
+HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS = 5.0
+"""Maximum time to wait for hotkey service thread to stop (in seconds).
+
+Rationale: Gives hotkey listener thread ample time to clean up
+resources while preventing indefinite blocking.
+"""

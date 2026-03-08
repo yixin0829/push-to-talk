@@ -70,7 +70,7 @@ class PromptSection:
         self.prompt_text = tk.Text(
             text_frame,
             height=10,
-            width=80,
+            width=60,
             wrap=tk.WORD,
             font=("TkFixedFont", 9),
         )
@@ -170,7 +170,7 @@ class PromptSection:
         with_glossary_text = tk.Text(
             self._defaults_frame,
             height=6,
-            width=80,
+            width=60,
             wrap=tk.WORD,
             font=("TkFixedFont", 8),
             state="disabled",
@@ -191,7 +191,7 @@ class PromptSection:
         wo_glossary_text = tk.Text(
             self._defaults_frame,
             height=6,
-            width=80,
+            width=60,
             wrap=tk.WORD,
             font=("TkFixedFont", 8),
             state="disabled",

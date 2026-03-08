@@ -4,7 +4,7 @@ import threading
 from enum import Enum
 from typing import Callable, Optional, Set
 
-from pynput import keyboard as pynput_keyboard
+from pynput import keyboard
 
 from src.hotkey_service import HotkeyService
 
@@ -64,7 +64,7 @@ class HotkeyRecorder:
         self._state = RecordingState.IDLE
         self._current_keys: Set[str] = set()
         self._captured_keys: Set[str] = set()  # Keys captured before release
-        self._listener: Optional[pynput_keyboard.Listener] = None
+        self._listener: Optional[keyboard.Listener] = None
         self._lock = threading.Lock()
         self._timeout_timer: Optional[threading.Timer] = None
         self._stabilization_timer: Optional[threading.Timer] = None
@@ -97,7 +97,7 @@ class HotkeyRecorder:
         self._timeout_timer.start()
 
         # Start keyboard listener
-        self._listener = pynput_keyboard.Listener(
+        self._listener = keyboard.Listener(
             on_press=self._on_key_press,
             on_release=self._on_key_release,
         )
@@ -203,9 +203,9 @@ class HotkeyRecorder:
         Reuses HotkeyService normalization logic for consistency.
         """
         try:
-            if isinstance(key, pynput_keyboard.Key):
+            if isinstance(key, keyboard.Key):
                 name = key.name
-            elif isinstance(key, pynput_keyboard.KeyCode):
+            elif isinstance(key, keyboard.KeyCode):
                 if key.char:
                     name = key.char
                 elif key.vk is not None:
@@ -215,7 +215,7 @@ class HotkeyRecorder:
                         name = "^"
                     else:
                         try:
-                            mapped = pynput_keyboard.KeyCode.from_vk(key.vk)
+                            mapped = keyboard.KeyCode.from_vk(key.vk)
                             if mapped.char:
                                 name = mapped.char
                             elif hasattr(mapped, "name") and mapped.name:

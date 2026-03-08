@@ -5,11 +5,41 @@ All notable changes to PushToTalk will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-03-08
 ### Added
+- Context manager support to `AudioRecorder` for reliable resource cleanup with `__enter__` and `__exit__` methods
+- Custom exception hierarchy in `src/exceptions.py` with `PushToTalkError`, `ConfigurationError`, `APIError`, `AudioRecordingError`, `TranscriptionError`, `TextRefinementError`, `TextInsertionError`, and `HotkeyError`
+- Constants for magic numbers: `TEXT_REFINEMENT_MIN_LENGTH` (20 characters) and `HOTKEY_SERVICE_THREAD_TIMEOUT_SECONDS` (5.0 seconds)
+- ⭐ Support for Gemini API as a text refinement provider and custom OpenAI-compatible model provider (e.g. Ollama, Together AI, etc.)
+
 ### Changed
+- Migrated from deprecated `google-generativeai` package to new `google-genai` SDK
+- Replaced heavyweight `pyautogui` dependency with lightweight `pyperclip` + `pynput` for clipboard operations and keyboard control
+- Improved exception handling to use `ConfigurationError` instead of generic `ValueError` for configuration issues
+- Enhanced audio cleanup error handling to prevent `NameError` during nested exception handling
+
 ### Removed
+- `pyautogui` dependency (replaced with `pynput` for keyboard operations)
+- `get_active_window_title()` functionality from text inserter (was only used for logging)
+
 ### Fixed
+- Resource leaks in `AudioRecorder` by implementing proper context manager protocol
+- Potential `NameError` in nested exception handlers by checking variable existence before use
+- Exception variable shadowing in error cleanup paths
+
 ### Technical
+- Optimized hotkey alias loading by replacing `@functools.lru_cache(maxsize=1)` with class-level caching
+- Added Windows DPI awareness support with fallback mechanisms
+- Improved error categorization and debugging with custom exception types
+- ⭐ Implemented non-blocking transcription with background processing
+  - Worker thread spawns background threads for STT processing recording, transcription, refinement and text insertion
+  - Reduce latency from 3-5 seconds to 100ms (user may start recording right after finishing the previous recording)
+- **Optimized Application Startup**: Asynchronous initialization of audio components
+  - `AudioRecorder` initializes PyAudio in a background thread to prevent GUI freezing during startup
+  - Ensures immediate application responsiveness while audio drivers load in parallel
+  - Implemented thread-safe synchronization to handle recording requests during initialization
+
 ### Documentation
 ### Security
 

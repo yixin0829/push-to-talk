@@ -187,7 +187,7 @@ def pynput_stub(monkeypatch):
     Usage:
         def test_something(pynput_stub):
             # pynput.keyboard is now available
-            from pynput.keyboard import Key
+            from pynput import keyboard
             ...
 
     Args:

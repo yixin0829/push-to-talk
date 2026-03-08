@@ -49,9 +49,9 @@ class TestAudioIntegrationWithRealFiles:
             f"Found {len(cls.audio_files)} audio fixtures for integration testing"
         )
 
-    def test_transcription_fallback_behavior(self):
-        """Test transcription fallback behavior without real API calls"""
-        logger.info("Testing transcription fallback behavior")
+    def test_transcription_api_failure(self):
+        """Test transcription API failure with invalid key"""
+        logger.info("Testing transcription API failure")
 
         # Create transcriber with invalid API key to trigger fallback
         transcriber = OpenAITranscriber(api_key="invalid-key-for-testing")
@@ -62,22 +62,22 @@ class TestAudioIntegrationWithRealFiles:
             shutil.copy2(self.audio_files["audio1"], temp_path)
 
         try:
-            # This should fail gracefully and return None
-            result = transcriber.transcribe_audio(temp_path)
+            # This should raise APIError
+            from src.exceptions import APIError
 
-            # Should return None due to API failure, but not crash
-            assert result is None, "Invalid API key should result in None return"
+            with pytest.raises(APIError, match="OpenAI transcription API failed"):
+                transcriber.transcribe_audio(temp_path)
 
         finally:
             # Clean up temp file since transcriber no longer handles cleanup
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
-        logger.info("Transcription fallback behavior test passed")
+        logger.info("Transcription API failure test passed")
 
-    def test_text_refiner_fallback_behavior(self):
-        """Test text refiner fallback behavior without real API calls"""
-        logger.info("Testing text refiner fallback behavior")
+    def test_text_refiner_api_failure(self):
+        """Test text refiner API failure with invalid key"""
+        logger.info("Testing text refiner API failure")
 
         # Create refiner with invalid API key to trigger fallback
         refiner = TextRefinerOpenAI(api_key="invalid-key-for-testing")
@@ -86,16 +86,13 @@ class TestAudioIntegrationWithRealFiles:
         raw_text = self.expected_scripts["audio3"]
         logger.info(f"Testing fallback with text length: {len(raw_text)} characters")
 
-        # This should fall back to returning the original text
-        result = refiner.refine_text(raw_text)
+        # This should raise APIError
+        from src.exceptions import APIError
 
-        # Should return original text on API failure
-        assert result == raw_text.strip(), "API failure should return original text"
-        assert "Format this as a to-do list" in result, (
-            "Original format instruction should be preserved"
-        )
+        with pytest.raises(APIError, match="OpenAI refinement API failed"):
+            refiner.refine_text(raw_text)
 
-        logger.info("Text refiner fallback behavior test passed")
+        logger.info("Text refiner API failure test passed")
 
     def test_audio_file_format_validation(self):
         """Test that fixture audio files have correct format"""

@@ -10,7 +10,6 @@ from loguru import logger
 from src.push_to_talk import PushToTalkConfig
 from src.config.constants import CONFIG_CHANGE_DEBOUNCE_DELAY_MS
 from src.gui.api_section import APISection
-from src.gui.audio_section import AudioSection
 from src.gui.hotkey_section import HotkeySection
 from src.gui.settings_section import FeatureFlagsSection
 from src.gui.glossary_section import GlossarySection
@@ -50,7 +49,6 @@ class ConfigurationWindow:
 
         # UI sections
         self.api_section = None
-        self.audio_section = None
         self.hotkey_section = None
         self.feature_flags_section = None
         self.glossary_section = None
@@ -114,7 +112,6 @@ class ConfigurationWindow:
         self.api_section = APISection(
             scrollable_frame, on_change=self._on_config_changed
         )
-        self.audio_section = AudioSection(scrollable_frame)
         self.hotkey_section = HotkeySection(scrollable_frame)
         self.glossary_section = GlossarySection(
             scrollable_frame,
@@ -238,17 +235,12 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.api_section.openai_api_key_var,
                         self.api_section.deepgram_api_key_var,
                         self.api_section.cerebras_api_key_var,
+                        self.api_section.gemini_api_key_var,
+                        self.api_section.custom_api_key_var,
                         self.api_section.stt_model_var,
                         self.api_section.refinement_provider_var,
                         self.api_section.refinement_model_var,
-                    ]
-                )
-            if self.audio_section:
-                all_vars.extend(
-                    [
-                        self.audio_section.sample_rate_var,
-                        self.audio_section.chunk_size_var,
-                        self.audio_section.channels_var,
+                        self.api_section.custom_endpoint_var,
                     ]
                 )
             if self.hotkey_section:
@@ -340,7 +332,6 @@ Configure your settings below, then click "Start Application" to begin:"""
     def _get_config_from_sections(self) -> PushToTalkConfig:
         """Create a configuration object from current section values."""
         api_values = self.api_section.get_values()
-        audio_values = self.audio_section.get_values()
         hotkey_values = self.hotkey_section.get_values()
         feature_values = self.feature_flags_section.get_values()
 
@@ -349,12 +340,12 @@ Configure your settings below, then click "Start Application" to begin:"""
             openai_api_key=api_values["openai_api_key"],
             deepgram_api_key=api_values["deepgram_api_key"],
             cerebras_api_key=api_values["cerebras_api_key"],
+            gemini_api_key=api_values["gemini_api_key"],
+            custom_api_key=api_values["custom_api_key"],
             stt_model=api_values["stt_model"],
             refinement_provider=api_values["refinement_provider"],
             refinement_model=api_values["refinement_model"],
-            sample_rate=audio_values["sample_rate"],
-            chunk_size=audio_values["chunk_size"],
-            channels=audio_values["channels"],
+            custom_endpoint=api_values["custom_endpoint"],
             hotkey=hotkey_values["hotkey"],
             toggle_hotkey=hotkey_values["toggle_hotkey"],
             enable_text_refinement=feature_values["enable_text_refinement"],
@@ -374,12 +365,12 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.openai_api_key,
                 config.deepgram_api_key,
                 config.cerebras_api_key,
+                config.gemini_api_key,
+                config.custom_api_key,
                 config.stt_model,
                 config.refinement_provider,
                 config.refinement_model,
-            )
-            self.audio_section.set_values(
-                config.sample_rate, config.chunk_size, config.channels
+                config.custom_endpoint,
             )
             self.hotkey_section.set_values(config.hotkey, config.toggle_hotkey)
             self.feature_flags_section.set_values(

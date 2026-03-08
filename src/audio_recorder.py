@@ -6,6 +6,7 @@ from typing import Optional
 from loguru import logger
 
 from src.config.constants import AUDIO_RECORDING_THREAD_TIMEOUT_SECONDS
+from src.exceptions import AudioRecordingError
 
 
 class AudioRecorder:
@@ -34,14 +35,22 @@ class AudioRecorder:
         self.audio_data = []
         self.recording_thread: Optional[threading.Thread] = None
 
-        # Initialize PyAudio once at startup
+        self.audio_interface = None
+        self.stream = None
+        self._init_error: Optional[Exception] = None
+
+        # Initialize PyAudio in a background thread to avoid blocking startup
+        self._init_thread = threading.Thread(target=self._initialize_audio_interface, daemon=True)
+        self._init_thread.start()
+
+    def _initialize_audio_interface(self):
+        """Initialize PyAudio interface in background."""
         try:
             self.audio_interface = pyaudio.PyAudio()
+            logger.debug("PyAudio initialized successfully in background")
         except Exception as e:
+            self._init_error = e
             logger.error(f"Failed to initialize PyAudio: {e}")
-            self.audio_interface = None
-
-        self.stream = None
 
     def start_recording(self) -> bool:
         """Start recording audio."""
@@ -49,9 +58,19 @@ class AudioRecorder:
             logger.warning("Recording is already in progress")
             return False
 
+        # Ensure initialization is complete
         if not self.audio_interface:
-            logger.error("Audio interface not initialized")
-            return False
+            if self._init_thread and self._init_thread.is_alive():
+                logger.info("Waiting for audio interface initialization...")
+                self._init_thread.join(timeout=5.0)
+
+            if self._init_error:
+                logger.error(f"Cannot start recording, initialization failed: {self._init_error}")
+                return False
+
+            if not self.audio_interface:
+                logger.error("Audio interface not initialized")
+                return False
 
         try:
             self.stream = self.audio_interface.open(
@@ -169,6 +188,14 @@ class AudioRecorder:
     def shutdown(self):
         """Terminate audio interface."""
         self._cleanup_stream()
+
+        # Ensure init thread is done if we are shutting down
+        if self._init_thread and self._init_thread.is_alive():
+            try:
+                self._init_thread.join(timeout=1.0)
+            except Exception:
+                pass
+
         try:
             if self.audio_interface:
                 self.audio_interface.terminate()
@@ -176,6 +203,11 @@ class AudioRecorder:
         except Exception as e:
             logger.error(f"Error during audio interface shutdown: {e}")
 
-    def __del__(self):
-        """Destructor to ensure cleanup."""
+    def __enter__(self):
+        """Context manager entry - returns self for use in 'with' statements."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cleanup even if exceptions occur."""
         self.shutdown()
+        return False  # Don't suppress exceptions

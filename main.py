@@ -8,6 +8,8 @@ Run this script to start the push-to-talk speech-to-text application with GUI co
 import sys
 import os
 import argparse
+import platform
+import ctypes
 import tkinter as tk
 from tkinter import messagebox
 from loguru import logger
@@ -54,6 +56,21 @@ def main():
 
     # Setup logging based on debug flag
     setup_logging(debug_mode=args.debug)
+
+    # Enable High DPI support on Windows
+    if platform.system() == "Windows":
+        try:
+            # Try SetProcessDpiAwareness (Windows 8.1+)
+            # 0 = DPI_AWARENESS_UNAWARE
+            # 1 = DPI_AWARENESS_SYSTEM_AWARE
+            # 2 = DPI_AWARENESS_PER_MONITOR_AWARE
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            try:
+                # Fallback to SetProcessDPIAware (Windows Vista+)
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
 
     try:
         # Load existing config if it exists

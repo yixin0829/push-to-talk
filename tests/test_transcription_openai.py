@@ -4,6 +4,7 @@ from loguru import logger
 from unittest.mock import MagicMock
 
 from src.transcription_openai import OpenAITranscriber
+from src.exceptions import ConfigurationError, TranscriptionError, APIError
 
 
 class TestOpenAITranscriber:
@@ -48,7 +49,7 @@ class TestOpenAITranscriber:
         logger.info("Testing OpenAITranscriber initialization without API key")
 
         mocker.patch.dict(os.environ, {}, clear=True)
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ConfigurationError) as exc_info:
             OpenAITranscriber()
 
         assert "OpenAI API key is required" in str(exc_info.value)
@@ -117,21 +118,20 @@ class TestOpenAITranscriber:
         logger.info("Transcribe audio file not found test passed")
 
     def test_transcribe_audio_api_failure(self, mocker):
-        """Test transcription API failure"""
+        """Test transcription API failure raises TranscriptionError"""
         logger.info("Testing transcription API failure")
 
         mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
         mocker.patch("os.path.exists", return_value=True)
         mocker.patch("os.remove")
 
-        # Mock API failure
+        # Mock API failure (generic exception)
         self.transcriber.client.audio.transcriptions.create = MagicMock(
             side_effect=Exception("API request failed")
         )
 
-        result = self.transcriber.transcribe_audio("test_audio.wav")
-
-        assert result is None
+        with pytest.raises(TranscriptionError, match="Failed to transcribe audio"):
+            self.transcriber.transcribe_audio("test_audio.wav")
 
         logger.info("Transcribe audio API failure test passed")
 
@@ -263,48 +263,32 @@ class TestOpenAITranscriber:
 
         logger.info("Transcribe audio cleanup failure test passed")
 
-    def test_transcribe_audio_api_error_cleanup(self, mocker):
-        """Test that cleanup happens even when API fails"""
-        logger.info("Testing cleanup on API error")
+    def test_transcribe_audio_openai_api_error(self, mocker):
+        """Test that OpenAI API errors raise APIError"""
+        logger.info("Testing OpenAI API error handling")
 
         mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
         mocker.patch("os.path.exists", return_value=True)
         mocker.patch("os.remove")
 
-        # Mock API failure
+        # Import OpenAI's APIError to mock it
+        from openai import APIError as OpenAIAPIError
+
+        # Mock OpenAI API error with status_code
+        # APIError(message, request, body)
+        mock_request = MagicMock()
+        api_error = OpenAIAPIError(
+            "API rate limit exceeded", request=mock_request, body=None
+        )
+        api_error.status_code = 429
         self.transcriber.client.audio.transcriptions.create = MagicMock(
-            side_effect=Exception("API failed")
+            side_effect=api_error
         )
 
-        result = self.transcriber.transcribe_audio("test_audio.wav")
+        with pytest.raises(APIError, match="OpenAI transcription API failed"):
+            self.transcriber.transcribe_audio("test_audio.wav")
 
-        assert result is None
-
-        logger.info("Transcribe audio API error cleanup test passed")
-
-    def test_transcribe_audio_cleanup_error_on_failure(self, mocker):
-        """Test cleanup error handling when API fails and file removal fails"""
-        logger.info("Testing cleanup error handling on API failure")
-
-        mock_exists = mocker.patch("os.path.exists")
-        mock_exists.side_effect = [True, False]  # File exists initially, then doesn't
-
-        mock_remove = mocker.patch("os.remove")
-        mock_remove.side_effect = Exception("Cannot remove file")
-
-        mocker.patch("builtins.open", mocker.mock_open(read_data=b"fake audio data"))
-
-        # Mock API failure
-        self.transcriber.client.audio.transcriptions.create = MagicMock(
-            side_effect=Exception("API failed")
-        )
-
-        result = self.transcriber.transcribe_audio("test_audio.wav")
-
-        # Should handle both API failure and cleanup failure gracefully
-        assert result is None
-
-        logger.info("Transcribe audio cleanup error on failure test passed")
+        logger.info("OpenAI API error test passed")
 
     def test_different_model_initialization(self, mocker):
         """Test initialization with different model"""
