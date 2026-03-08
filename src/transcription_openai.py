@@ -49,12 +49,16 @@ class OpenAITranscriber(TranscriberBase):
             start_time = time.time()
             logger.debug(f"Starting transcription for: {audio_file_path}")
 
+            # Build optional prompt from glossary terms
+            prompt = ", ".join(self.glossary) if self.glossary else None
+
             with open(audio_file_path, "rb") as audio_file:
                 response = self.client.audio.transcriptions.create(
                     model=self.model,
                     file=audio_file,
                     language=language,
                     response_format="text",
+                    prompt=prompt,
                 )
 
             # Handle both string and object responses

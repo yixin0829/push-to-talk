@@ -15,7 +15,7 @@
 
 A Python application that provides push-to-talk speech-to-text functionality with AI speech to text transcription, smart text refinement, and automatic text insertion into the active window on Windows, MacOS (coming soon), and Linux (coming soon). **Now features a persistent GUI configuration interface with real-time status management and easy application control.**
 
-**Watch 60s Demo:** https://www.youtube.com/watch?v=PIqToMHP-c4  
+**Watch 60s Demo:** https://www.youtube.com/watch?v=PIqToMHP-c4
 **How to download (FOR FREE):** https://www.youtube.com/watch?v=CjbcRMQE3jE
 
 ## 🏆 Why PushToTalk?
@@ -155,15 +155,9 @@ The application features a sophisticated real-time configuration system that app
   - **Gemini**: gemini-3-flash-preview (default), gemini-3-pro-preview, gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-06-05
   - **Custom**: llama3, mistral, mixtral, gemma (or any model name for your endpoint)
 
-### Audio Settings
-- **Sample Rate**: 8kHz to 44.1kHz options (16kHz recommended)
-- **Chunk Size**: Buffer size configuration
-- **Channels**: Mono/stereo recording options
-- **Helpful Recommendations**: Built-in guidance for optimal settings
-
 ### Hotkey Configuration
-- **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Shift+^ on Windows/Linux, Cmd+Shift+Space on macOS)
-- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Shift+Space on Windows/Linux, Cmd+Shift+^ on macOS)
+- **Push-to-Talk Hotkey**: Hold to record (default: Ctrl+Space+^ on Windows/Linux, Cmd+Space+^ on macOS)
+- **Toggle Recording Hotkey**: Press once to start/stop (default: Ctrl+Cmd on Windows/Linux, Cmd+Cmd on macOS)
 - **Record Button**: Click "Record" and press keys one at a time to capture hotkey combinations
 - **Validation**: Prevents duplicate hotkey assignments and ensures hotkeys are different
 
@@ -240,8 +234,8 @@ The application creates a `push_to_talk_config.json` file. Example configuration
   "sample_rate": 16000,
   "chunk_size": 1024,
   "channels": 1,
-  "hotkey": "ctrl+shift+^",
-  "toggle_hotkey": "ctrl+shift+space",
+  "hotkey": "ctrl+space+^",
+  "toggle_hotkey": "ctrl+cmd",
   "enable_text_refinement": true,
   "enable_logging": true,
   "enable_audio_feedback": true,
@@ -260,7 +254,7 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `deepgram_api_key` | string | `""` | Your Deepgram API key for transcription services. Required when using Deepgram provider. Can be set via GUI, config file, or `DEEPGRAM_API_KEY` environment variable. |
 | `stt_model` | string | `"nova-3"` | STT Model for speech-to-text. For OpenAI: `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`. For Deepgram: `nova-3`, `nova-2`, `base`, `enhanced`, `whisper-medium`. |
 | `refinement_provider` | string | `"cerebras"` | Text refinement provider. Options: `openai`, `cerebras`, `gemini`, `custom`. Determines which AI service refines transcribed text. |
-| `refinement_model` | string | `"llama-3.3-70b"` | Refinement Model for text refinement. For OpenAI: `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. For Cerebras: `llama-3.3-70b`, `qwen-3-235b-a22b-instruct-2507`, `qwen-3-32b`, `llama3.1-8b`. For Gemini: `gemini-3-flash-preview`, `gemini-3-pro-preview`, `gemini-2.5-flash-preview-05-20`, `gemini-2.5-pro-preview-06-05`. For Custom: any model name. |
+| `refinement_model` | string | `"llama-3.3-70b"` | Refinement Model for text refinement. For OpenAI: `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-4o`. For Cerebras: `llama-3.3-70b`, `qwen-3-235b-a22b-instruct-2507`, `qwen-3-32b`, `llama3.1-8b`, `gpt-oss-120b`. For Gemini: `gemini-3-flash-preview`, `gemini-3-pro-preview`, `gemini-2.5-flash-preview-05-20`, `gemini-2.5-pro-preview-06-05`. For Custom: any model name. |
 | `cerebras_api_key` | string | `""` | Your Cerebras API key for text refinement. Required when using Cerebras provider. Can be set via GUI, config file, or `CEREBRAS_API_KEY` environment variable. |
 | `gemini_api_key` | string | `""` | Your Google Gemini API key for text refinement. Required when using Gemini provider. Can be set via GUI, config file, or `GOOGLE_API_KEY` environment variable. |
 | `custom_api_key` | string | `""` | Your custom API key for text refinement. Required when using Custom provider. |
@@ -268,8 +262,8 @@ The application creates a `push_to_talk_config.json` file. Example configuration
 | `sample_rate` | integer | `16000` | Audio sampling frequency in Hz. 16kHz is optimal for speech recognition. |
 | `chunk_size` | integer | `1024` | Audio buffer size in samples. Determines how much audio is read at once (affects latency vs performance). |
 | `channels` | integer | `1` | Number of audio channels. Use `1` for mono recording (recommended for speech). |
-| `hotkey` | string | `"ctrl+shift+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+shift+^`, macOS `cmd+shift+space`. See [Hotkey Options](#hotkey-options) for examples. |
-| `toggle_hotkey` | string | `"ctrl+shift+space"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+shift+space`, macOS `cmd+shift+^`. |
+| `hotkey` | string | `"ctrl+space+^"` | Hotkey combination for push-to-talk. Platform-aware defaults: Windows/Linux `ctrl+space+^`, macOS `cmd+space+^`. See [Hotkey Options](#hotkey-options) for examples. |
+| `toggle_hotkey` | string | `"ctrl+cmd"` | Hotkey combination for toggle recording mode. Press once to start, press again to stop. Platform-aware defaults: Windows/Linux `ctrl+cmd`, macOS `cmd+cmd`. |
 | `enable_text_refinement` | boolean | `true` | Whether to refine transcribed text using AI. Disable for faster processing without refinement. |
 | `enable_logging` | boolean | `true` | Whether to enable detailed logging to `push_to_talk.log` file using loguru. |
 | `enable_audio_feedback` | boolean | `true` | Whether to play audio cues when starting/stopping recording. Provides immediate feedback for hotkey interactions. |

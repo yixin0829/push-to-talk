@@ -5,6 +5,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 from src.text_refiner_base import TextRefinerBase
+from src.exceptions import ConfigurationError, TextRefinementError, APIError
 
 
 class GeminiTextRefiner(TextRefinerBase):
@@ -22,7 +23,7 @@ class GeminiTextRefiner(TextRefinerBase):
 
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "Google Gemini API key is required. Set GOOGLE_API_KEY environment variable or pass api_key parameter."
             )
 
@@ -90,6 +91,13 @@ class GeminiTextRefiner(TextRefinerBase):
             return refined_text
 
         except Exception as e:
-            logger.error(f"Text refinement failed: {e}")
-            logger.info("Falling back to original text")
-            return raw_text.strip()
+            if hasattr(e, "code") or hasattr(e, "status_code"):
+                logger.error(f"Gemini API error during text refinement: {e}")
+                raise APIError(
+                    f"Gemini refinement API failed: {e}",
+                    provider="Gemini",
+                    status_code=getattr(e, "code", getattr(e, "status_code", None)),
+                ) from e
+            else:
+                logger.error(f"Text refinement failed: {e}")
+                raise TextRefinementError(f"Failed to refine text: {e}") from e

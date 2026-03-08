@@ -29,12 +29,12 @@ from src.exceptions import (
 
 def _get_default_hotkey() -> str:
     """Get platform-specific default hotkey."""
-    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+^"
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+space+^"
 
 
 def _get_default_toggle_hotkey() -> str:
     """Get platform-specific default toggle hotkey."""
-    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+shift+space"
+    return f"{'cmd' if sys.platform == 'darwin' else 'ctrl'}+cmd"
 
 
 class PushToTalkConfig(BaseModel):

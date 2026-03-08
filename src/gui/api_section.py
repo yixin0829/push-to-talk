@@ -8,7 +8,6 @@ from src.gui.validators import (
     validate_deepgram_api_key,
     validate_cerebras_api_key,
     validate_gemini_api_key,
-    validate_custom_api_key,
 )
 
 
@@ -469,6 +468,7 @@ class APISection:
             "qwen-3-235b-a22b-instruct-2507",
             "qwen-3-32b",
             "llama3.1-8b",
+            "gpt-oss-120b",
         ]
         gemini_models = [
             "gemini-3-flash-preview",
@@ -772,33 +772,24 @@ class APISection:
                 f"  Key: {'*' * min(len(values['gemini_api_key']), 20)}"
             )
 
-        # Test Custom
-        custom_status = "Not configured"
-        custom_prefix = "[ ]"
-        if values["custom_api_key"] or values["custom_endpoint"]:
-            try:
-                # Use placeholder key if empty (often fine for local LLMs like Ollama)
-                key_to_test = values["custom_api_key"] or "placeholder"
-                validate_custom_api_key(key_to_test, values["custom_endpoint"])
-                custom_status = "VALID"
-                custom_prefix = "[OK]"
-            except Exception as e:
-                custom_status = str(e)
-                custom_prefix = "[X]"
-
+        # Custom provider info (no validation - endpoints vary too widely)
         selected_marker = (
             " (Selected Refinement Model)"
             if values["refinement_provider"] == "custom"
             else ""
         )
-        status_lines.append(f"\n{custom_prefix} Custom{selected_marker}:")
-        status_lines.append(f"  Status: {custom_status}")
-        if values["custom_api_key"]:
-            status_lines.append(
-                f"  Key: {'*' * min(len(values['custom_api_key']), 20)}"
-            )
-        if values["custom_endpoint"]:
-            status_lines.append(f"  Endpoint: {values['custom_endpoint']}")
+        if values["custom_api_key"] or values["custom_endpoint"]:
+            status_lines.append(f"\n[ ] Custom{selected_marker}:")
+            status_lines.append("  Status: Configured (not validated)")
+            if values["custom_api_key"]:
+                status_lines.append(
+                    f"  Key: {'*' * min(len(values['custom_api_key']), 20)}"
+                )
+            if values["custom_endpoint"]:
+                status_lines.append(f"  Endpoint: {values['custom_endpoint']}")
+        else:
+            status_lines.append(f"\n[ ] Custom{selected_marker}:")
+            status_lines.append("  Status: Not configured")
 
         # Add configuration summary
         status_lines.append("\n" + "-" * 40)
@@ -829,10 +820,6 @@ class APISection:
         elif values["refinement_provider"] == "gemini" and gemini_prefix == "[X]":
             status_lines.append(
                 "\n*** WARNING: Selected refinement provider (Gemini) has an invalid API key!"
-            )
-        elif values["refinement_provider"] == "custom" and custom_prefix == "[X]":
-            status_lines.append(
-                "\n*** WARNING: Selected refinement provider (Custom) has invalid settings!"
             )
 
         return "\n".join(status_lines)

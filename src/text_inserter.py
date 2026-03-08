@@ -47,7 +47,7 @@ class TextInserter:
 
     def _insert_via_clipboard(self, text: str) -> bool:
         """Insert text by copying to clipboard and pasting."""
-
+        original_clipboard = None
         try:
             original_clipboard = pyperclip.paste()
             pyperclip.copy(text)
@@ -66,15 +66,18 @@ class TextInserter:
 
             time.sleep(TEXT_INSERTION_DELAY_AFTER_PASTE_SECONDS)
 
-            if original_clipboard:
-                pyperclip.copy(original_clipboard)
-
             logger.info(f"Text inserted via clipboard: {len(text)} characters")
             return True
 
         except Exception as e:
             logger.error(f"Clipboard insertion failed: {e}")
             raise TextInsertionError(f"Clipboard insertion failed: {e}") from e
+        finally:
+            if original_clipboard is not None:
+                try:
+                    pyperclip.copy(original_clipboard)
+                except Exception:
+                    pass
 
     def _get_clipboard_text(self) -> Optional[str]:
         """Get current clipboard text content."""

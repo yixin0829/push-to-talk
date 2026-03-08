@@ -61,13 +61,13 @@ class HotkeyService:
     def _get_default_hotkey() -> str:
         """Get the default push-to-talk hotkey for the current platform."""
         modifier = HotkeyService._get_platform_modifier()
-        return f"{modifier}+shift+^"
+        return f"{modifier}+space+^"
 
     @staticmethod
     def _get_default_toggle_hotkey() -> str:
         """Get the default toggle hotkey for the current platform."""
         modifier = HotkeyService._get_platform_modifier()
-        return f"{modifier}+shift+space"
+        return f"{modifier}+cmd"
 
     @staticmethod
     def get_platform_name() -> str:

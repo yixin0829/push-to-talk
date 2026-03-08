@@ -86,11 +86,11 @@ What actually happens
 ## Environment
 - OS: [Windows 11/macOS 14/Ubuntu 22.04]
 - Python: [3.9.x]
-- PushToTalk: [0.4.0]
+- PushToTalk: [0.6.0]
 - STT Provider: [OpenAI/Deepgram]
 - STT Model: [e.g., whisper-1, nova-3]
-- Refinement Provider: [OpenAI/Cerebras]
-- Refinement Model: [e.g., gpt-4.1-nano, llama-3.3-70b]
+- Refinement Provider: [OpenAI/Cerebras/Gemini/Custom]
+- Refinement Model: [e.g., gpt-4.1-nano, llama-3.3-70b, gemini-3-flash-preview]
 
 ## Additional Context
 Any other relevant information, logs, or screenshots
