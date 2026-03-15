@@ -76,6 +76,7 @@
 
 html {
     scroll-behavior: smooth;
+    scroll-padding-top: 100px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

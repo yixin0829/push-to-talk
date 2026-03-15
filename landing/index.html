@@ -404,97 +404,97 @@
 
             <div class="faq-list">
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-1" aria-controls="faq-a-1" aria-expanded="false">
                         <span>What API keys do I need to use PushToTalk?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-1" role="region" aria-labelledby="faq-q-1">
                         <p>You'll need an API key for your chosen speech-to-text provider (OpenAI or Deepgram). Text refinement is optional (currently supported: OpenAI GPT, Cerebras, Gemini, Ollama, custom providers like Together AI). You don't need a PushToTalk account—just your provider API key(s).</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-2" aria-controls="faq-a-2" aria-expanded="false">
                         <span>Do I need to create an account?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-2" role="region" aria-labelledby="faq-q-2">
                         <p>No PushToTalk account. You'll need an account with whichever provider(s) you use (OpenAI, Deepgram, Cerebras) to obtain API keys.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-3" aria-controls="faq-a-3" aria-expanded="false">
                         <span>Is PushToTalk free to use?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-3" role="region" aria-labelledby="faq-q-3">
                         <p>Yes—PushToTalk is free and open source (MIT). You’ll pay your providers directly for transcription/refinement usage (pay-as-you-go), and many offer free tiers to start. In the upcoming version (v0.6.0), you can also use your own custom endpoints or local LLM models for text refinement.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-4" aria-controls="faq-a-4" aria-expanded="false">
                         <span>Does it work offline?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-4" role="region" aria-labelledby="faq-q-4">
                         <p>Not currently. PushToTalk requires an internet connection to call your configured AI providers for transcription and text refinement (optional).</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-5" aria-controls="faq-a-5" aria-expanded="false">
                         <span>Do global hotkeys require admin privileges?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-5" role="region" aria-labelledby="faq-q-5">
                         <p>Sometimes, yes. If your hotkey doesn't trigger recording, try running PushToTalk as admin or choose a different hotkey combo that doesn't conflict with other apps.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-6" aria-controls="faq-a-6" aria-expanded="false">
                         <span>What languages are supported?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-6" role="region" aria-labelledby="faq-q-6">
                         <p>Language support depends on your chosen STT provider. OpenAI Whisper supports 50+ languages including English, Spanish, French, German, Chinese, Japanese, and many more. Deepgram also offers multi-language support.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-7" aria-controls="faq-a-7" aria-expanded="false">
                         <span>Is my audio data stored or shared?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-7" role="region" aria-labelledby="faq-q-7">
                         <p>PushToTalk doesn't run a backend or upload your data anywhere except to the provider(s) you configure. By default it doesn't keep audio; in debug mode it may save recordings locally for troubleshooting. Provider retention/privacy policies still apply.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
-                    <button class="faq-question" aria-expanded="false">
+                    <button class="faq-question" id="faq-q-8" aria-controls="faq-a-8" aria-expanded="false">
                         <span>Can I customize the text refinement behavior?</span>
                         <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
                     </button>
-                    <div class="faq-answer">
+                    <div class="faq-answer" id="faq-a-8" role="region" aria-labelledby="faq-q-8">
                         <p>Yes. Use custom system prompts and a glossary to control tone, formatting, and terminology. You can tweak settings while running and changes apply instantly.</p>
                     </div>
                 </div>
