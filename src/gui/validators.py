@@ -30,6 +30,13 @@ def validate_configuration(config: PushToTalkConfig) -> tuple[bool, str | None]:
                 "Deepgram API key is required when using Deepgram provider!\n\n"
                 "Please enter your Deepgram API key or switch to OpenAI provider.",
             )
+    elif config.stt_provider == "60db":
+        if not config.sixtydb_api_key.strip():
+            return (
+                False,
+                "60dB API key is required when using 60dB provider!\n\n"
+                "Please enter your 60dB API key or switch to another provider.",
+            )
     else:
         return False, f"Unknown provider: {config.stt_provider}"
 
@@ -88,6 +95,39 @@ def validate_deepgram_api_key(api_key: str) -> bool:
     """
     url = "https://api.deepgram.com/v1/auth/token"
     headers = {"Authorization": f"Token {api_key}"}
+
+    req = urllib.request.Request(url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(req, timeout=10):
+            # If we get here, the API key is valid
+            return True
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            raise Exception("401 - Incorrect API key")
+        elif e.code == 404:
+            raise Exception("404 - API endpoint not found")
+        else:
+            raise Exception(f"HTTP {e.code}: {e.reason}")
+    except urllib.error.URLError as e:
+        raise Exception(f"timeout - Network error: {e.reason}")
+
+
+def validate_sixtydb_api_key(api_key: str) -> bool:
+    """
+    Validate a 60dB API key by making a direct request to the voices endpoint.
+
+    Args:
+        api_key: 60dB API key to validate
+
+    Returns:
+        True if valid, False otherwise
+
+    Raises:
+        Exception: With error message containing HTTP error codes (401, 404) or timeout
+    """
+    url = "https://api.60db.ai/myvoices"
+    headers = {"Authorization": f"Bearer {api_key}"}
 
     req = urllib.request.Request(url, headers=headers)
 

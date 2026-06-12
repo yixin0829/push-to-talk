@@ -4,6 +4,7 @@ from loguru import logger
 from src.transcriber_factory import TranscriberFactory
 from src.transcription_openai import OpenAITranscriber
 from src.transcription_deepgram import DeepgramTranscriber
+from src.transcription_sixtydb import SixtyDBTranscriber
 from src.transcription_base import TranscriberBase
 
 
@@ -65,6 +66,35 @@ class TestTranscriberFactory:
         logger.info(
             "Factory creates Deepgram transcriber with custom model test passed"
         )
+
+    def test_create_sixtydb_transcriber(self):
+        """Test factory creates 60dB transcriber"""
+        logger.info("Testing factory creates 60dB transcriber")
+
+        transcriber = TranscriberFactory.create_transcriber(
+            provider="60db", api_key="test-sixtydb-key", model="60db-stt"
+        )
+
+        assert isinstance(transcriber, SixtyDBTranscriber)
+        assert isinstance(transcriber, TranscriberBase)
+        assert transcriber.api_key == "test-sixtydb-key"
+        assert transcriber.model == "60db-stt"
+
+        logger.info("Factory creates 60dB transcriber test passed")
+
+    def test_create_sixtydb_transcriber_with_glossary(self):
+        """Test factory creates 60dB transcriber with glossary"""
+        logger.info("Testing factory creates 60dB transcriber with glossary")
+
+        glossary = ["test", "terms"]
+        transcriber = TranscriberFactory.create_transcriber(
+            provider="60db", api_key="test-key", model="60db-stt", glossary=glossary
+        )
+
+        assert isinstance(transcriber, SixtyDBTranscriber)
+        assert transcriber.glossary == glossary
+
+        logger.info("Factory creates 60dB transcriber with glossary test passed")
 
     def test_invalid_provider_raises_error(self):
         """Test invalid provider raises ValueError"""

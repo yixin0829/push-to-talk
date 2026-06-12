@@ -234,6 +234,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                         self.api_section.stt_provider_var,
                         self.api_section.openai_api_key_var,
                         self.api_section.deepgram_api_key_var,
+                        self.api_section.sixtydb_api_key_var,
                         self.api_section.cerebras_api_key_var,
                         self.api_section.gemini_api_key_var,
                         self.api_section.custom_api_key_var,
@@ -339,6 +340,7 @@ Configure your settings below, then click "Start Application" to begin:"""
             stt_provider=api_values["stt_provider"],
             openai_api_key=api_values["openai_api_key"],
             deepgram_api_key=api_values["deepgram_api_key"],
+            sixtydb_api_key=api_values["sixtydb_api_key"],
             cerebras_api_key=api_values["cerebras_api_key"],
             gemini_api_key=api_values["gemini_api_key"],
             custom_api_key=api_values["custom_api_key"],
@@ -371,6 +373,7 @@ Configure your settings below, then click "Start Application" to begin:"""
                 config.refinement_provider,
                 config.refinement_model,
                 config.custom_endpoint,
+                sixtydb_api_key=config.sixtydb_api_key,
             )
             self.hotkey_section.set_values(config.hotkey, config.toggle_hotkey)
             self.feature_flags_section.set_values(
