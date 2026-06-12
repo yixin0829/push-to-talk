@@ -142,11 +142,12 @@ The application features a sophisticated real-time configuration system that app
 - **API Key Change**: Update OpenAI key → Only transcription/refinement components reinitialize
 
 ### Speech-to-Text Settings
-- **STT Provider Selection**: Choose between OpenAI or Deepgram (default: Deepgram)
-- **API Key**: Secure entry with show/hide functionality (dynamically shows OpenAI or Deepgram field based on provider)
+- **STT Provider Selection**: Choose between OpenAI, Deepgram or 60dB (default: Deepgram)
+- **API Key**: Secure entry with show/hide functionality (dynamically shows OpenAI, Deepgram or 60dB field based on provider)
 - **Model Selection**: Choose provider-specific models:
   - **OpenAI**: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe
   - **Deepgram**: nova-3 (default and recommended), nova-2, base, enhanced, whisper-medium
+  - **60dB**: 60db-stt (single endpoint; auto-detects language)
 
 ### Text Refinement Settings
 - **Refinement Provider**: Choose between OpenAI, Cerebras, Gemini, or Custom (default: Cerebras)
@@ -205,7 +206,7 @@ The application supports three ways to provide API keys (checked in this order):
 3. **Configuration File**: Manually edit `push_to_talk_config.json`
 
 The required API key depends on your selected providers:
-- **STT Provider**: OpenAI requires `openai_api_key`, Deepgram requires `deepgram_api_key`
+- **STT Provider**: OpenAI requires `openai_api_key`, Deepgram requires `deepgram_api_key`, 60dB requires `sixtydb_api_key`
 - **Refinement Provider**: OpenAI requires `openai_api_key`, Cerebras requires `cerebras_api_key`, Gemini requires `gemini_api_key`, Custom requires `custom_api_key`
 
 Environment variables are checked automatically if GUI or config file values are empty.

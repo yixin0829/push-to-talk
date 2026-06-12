@@ -44,10 +44,11 @@ class PushToTalkConfig(BaseModel):
 
     # Transcription provider settings
     stt_provider: str = Field(
-        default="deepgram", description="STT provider: 'openai' or 'deepgram'"
+        default="deepgram", description="STT provider: 'openai', 'deepgram' or '60db'"
     )
     openai_api_key: str = Field(default="", description="OpenAI API key")
     deepgram_api_key: str = Field(default="", description="Deepgram API key")
+    sixtydb_api_key: str = Field(default="", description="60dB API key")
     stt_model: str = Field(default="nova-3", description="STT model name")
 
     # Text refinement settings
@@ -103,9 +104,11 @@ class PushToTalkConfig(BaseModel):
     @field_validator("stt_provider")
     @classmethod
     def validate_stt_provider(cls, v: str) -> str:
-        """Validate STT provider is either 'openai' or 'deepgram'."""
-        if v not in ["openai", "deepgram"]:
-            raise ValueError(f"stt_provider must be 'openai' or 'deepgram', got '{v}'")
+        """Validate STT provider is 'openai', 'deepgram' or '60db'."""
+        if v not in ["openai", "deepgram", "60db"]:
+            raise ValueError(
+                f"stt_provider must be 'openai', 'deepgram' or '60db', got '{v}'"
+            )
         return v
 
     @field_validator("refinement_provider")
@@ -226,6 +229,13 @@ class PushToTalkApp:
                 if not self.config.deepgram_api_key:
                     raise ConfigurationError(
                         "Deepgram API key is required. Set DEEPGRAM_API_KEY environment variable or provide in config."
+                    )
+        elif self.config.stt_provider == "60db":
+            if not self.config.sixtydb_api_key:
+                self.config.sixtydb_api_key = os.getenv("SIXTYDB_API_KEY")
+                if not self.config.sixtydb_api_key:
+                    raise ConfigurationError(
+                        "60dB API key is required. Set SIXTYDB_API_KEY environment variable or provide in config."
                     )
         else:
             raise ConfigurationError(
@@ -362,6 +372,8 @@ class PushToTalkApp:
             api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
         elif self.config.stt_provider == "deepgram":
             api_key = self.config.deepgram_api_key or os.getenv("DEEPGRAM_API_KEY")
+        elif self.config.stt_provider == "60db":
+            api_key = self.config.sixtydb_api_key or os.getenv("SIXTYDB_API_KEY")
         else:
             raise ConfigurationError(
                 f"Unknown STT provider: {self.config.stt_provider}"
